@@ -1,0 +1,76 @@
+:root {
+
+    [data-theme="light"] {
+        /* Brand Colors */
+        --primary-color: #2563EB;           /* Main buttons, links */
+        --primary-color-hover: #1E40AF;     /* Button hover */
+        --accent-yellow: #FFCC00;           /* Highlights, badges */
+        --accent-hover: #FACC15;            /* Hover states */
+
+        /* Background Colors */
+        --background-color: #F8FAFC;        /* Page background */
+        --surface: #FFFFFF;                 /* Cards */
+        --surface-secondary: #F1F5F9;       /* Panels */
+        --hover: #E2E8F0;                   /* Row hover */
+
+        /* Text Colors */
+        --text-primary: #1E293B;            /* Main text */
+        --text-secondary: #64748B;          /* Labels */
+        --text-muted: #94A3B8;              /* Metadata */
+        --text-inverse: #FFFFFF;            /* On buttons */
+
+        /* Border Colors */
+        --border-light: #E2E8F0;            /* Light borders */
+        --border-medium: #CBD5F5;           /* Medium borders */
+        --divider: #F1F5F9;                 /* Divider lines */
+
+        /* Sidebar Colors */
+        --sidebar-bg: #1E293B;              /* Sidebar background */
+        --sidebar-hover: #334155;           /* Sidebar item hover */
+        --sidebar-active: #2563EB;          /* Active sidebar item */
+        --sidebar-text: #E2E8F0;            /* Sidebar text */
+
+        /* Status Colors */
+        --status-success: #10B981;           /* Success messages */
+        --status-warning: #F59E0B;           /* Warning messages */
+        --status-danger: #EF4444;            /* Error messages */
+        --status-info: #0EA5E9;              /* Informational messages */
+    }
+
+    [data-theme="dark"] {
+        /* Brand Colors */
+        --primary-color: #3B82F6;           /* Main buttons, links */
+        --primary-color-hover: #60A5FA;     /* Button hover */
+        --accent-yellow: #FFD60A;           /* Highlights, badges */
+        --accent-hover: #FFE066;            /* Hover states */
+
+        /* Background Colors */
+        --background-color: #020617;        /* Page background */
+        --surface: #0F172A;                 /* Cards */
+        --surface-secondary: #1E293B;       /* Panels */
+        --hover: #334155;                   /* Row hover */
+
+        /* Text Colors */
+        --text-primary: #E2E8F0;            /* Main text */
+        --text-secondary: #94A3B8;          /* Labels */
+        --text-muted: #64748B;              /* Metadata */
+        --text-inverse: #020617;            /* On buttons */
+
+        /* Border Colors */
+        --border-light: #1E293B;            /* Light borders */
+        --border-medium: #334155;           /* Medium borders */
+        --divider: #0F172A;                 /* Divider lines */
+
+        /* Sidebar Colors */
+        --sidebar-bg: #020617;              /* Sidebar background */
+        --sidebar-hover: #0F172A;           /* Sidebar item hover */
+        --sidebar-active: #3B82F6;          /* Active sidebar item */
+        --sidebar-text: #E2E8F0;            /* Sidebar text */
+
+        /* Status Colors */
+        --status-success: #4ADE80;           /* Success messages */
+        --status-warning: #FBBF24;           /* Warning messages */
+        --status-danger: #F87171;            /* Error messages */
+        --status-info: #38BDF8;              /* Informational messages */
+    }
+}
