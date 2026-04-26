@@ -149,3 +149,4 @@ CREATE TABLE capAuth (
     FOREIGN KEY (capstone_id) REFERENCES capstone(capstone_id),
     FOREIGN KEY (author_id) REFERENCES author(author_id)
 );
+
