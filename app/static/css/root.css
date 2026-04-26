@@ -1,76 +1,63 @@
 :root {
 
-    [data-theme="light"] {
-        /* Brand Colors */
-        --primary-color: #2563EB;           /* Main buttons, links */
-        --primary-color-hover: #1E40AF;     /* Button hover */
-        --accent-yellow: #FFCC00;           /* Highlights, badges */
-        --accent-hover: #FACC15;            /* Hover states */
+    /* ========== PRIMARY COLORS ========== */
+    --color-primary: #2E3F92;        /* Main header blue */
+    --color-primary-dark: #1B1C8F;   /* Navigation bar blue */
+    --color-primary-light: #4A5ED1;  /* Lighter blue variant */
 
-        /* Background Colors */
-        --background-color: #F8FAFC;        /* Page background */
-        --surface: #FFFFFF;                 /* Cards */
-        --surface-secondary: #F1F5F9;       /* Panels */
-        --hover: #E2E8F0;                   /* Row hover */
+    /* ========== ACCENT COLORS ========== */
+    --color-accent: #F39C12;         /* Orange (active Home button) */
+    --color-accent-hover: #E67E22;   /* Darker orange hover */
 
-        /* Text Colors */
-        --text-primary: #1E293B;            /* Main text */
-        --text-secondary: #64748B;          /* Labels */
-        --text-muted: #94A3B8;              /* Metadata */
-        --text-inverse: #FFFFFF;            /* On buttons */
+    /* ========== NEUTRAL COLORS ========== */
+    --color-white: #FFFFFF;
+    --color-black: #000000;
+    --color-gray-light: #E5E5E5;
+    --color-gray: #BDBDBD;
+    --color-gray-dark: #4F4F4F;
 
-        /* Border Colors */
-        --border-light: #E2E8F0;            /* Light borders */
-        --border-medium: #CBD5F5;           /* Medium borders */
-        --divider: #F1F5F9;                 /* Divider lines */
+    /* ========== TEXT COLORS ========== */
+    --text-primary: #FFFFFF;
+    --text-secondary: #E0E0E0;
+    --text-dark: #333333;
 
-        /* Sidebar Colors */
-        --sidebar-bg: #1E293B;              /* Sidebar background */
-        --sidebar-hover: #334155;           /* Sidebar item hover */
-        --sidebar-active: #2563EB;          /* Active sidebar item */
-        --sidebar-text: #E2E8F0;            /* Sidebar text */
+    /* ========== BACKGROUNDS ========== */
+    --bg-header: var(--color-primary);
+    --bg-navbar: var(--color-primary-dark);
+    --bg-active: var(--color-accent);
 
-        /* Status Colors */
-        --status-success: #10B981;           /* Success messages */
-        --status-warning: #F59E0B;           /* Warning messages */
-        --status-danger: #EF4444;            /* Error messages */
-        --status-info: #0EA5E9;              /* Informational messages */
-    }
+    /* ========== BORDERS ========== */
+    --border-light: 1px solid #E5E5E5;
+    --border-dark: 1px solid #1B1C8F;
 
-    [data-theme="dark"] {
-        /* Brand Colors */
-        --primary-color: #3B82F6;           /* Main buttons, links */
-        --primary-color-hover: #60A5FA;     /* Button hover */
-        --accent-yellow: #FFD60A;           /* Highlights, badges */
-        --accent-hover: #FFE066;            /* Hover states */
+    /* ========== FONT SETTINGS ========== */
+    --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-heading: 'Segoe UI', Arial, sans-serif;
 
-        /* Background Colors */
-        --background-color: #020617;        /* Page background */
-        --surface: #0F172A;                 /* Cards */
-        --surface-secondary: #1E293B;       /* Panels */
-        --hover: #334155;                   /* Row hover */
+    /* ========== FONT SIZES ========== */
+    --text-xs: 12px;
+    --text-sm: 14px;
+    --text-md: 16px;
+    --text-lg: 18px;
+    --text-xl: 22px;
+    --text-xxl: 28px;
 
-        /* Text Colors */
-        --text-primary: #E2E8F0;            /* Main text */
-        --text-secondary: #94A3B8;          /* Labels */
-        --text-muted: #64748B;              /* Metadata */
-        --text-inverse: #020617;            /* On buttons */
+    /* ========== SPACING ========== */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
 
-        /* Border Colors */
-        --border-light: #1E293B;            /* Light borders */
-        --border-medium: #334155;           /* Medium borders */
-        --divider: #0F172A;                 /* Divider lines */
+    /* ========== BORDER RADIUS ========== */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-pill: 20px;
 
-        /* Sidebar Colors */
-        --sidebar-bg: #020617;              /* Sidebar background */
-        --sidebar-hover: #0F172A;           /* Sidebar item hover */
-        --sidebar-active: #3B82F6;          /* Active sidebar item */
-        --sidebar-text: #E2E8F0;            /* Sidebar text */
+    /* ========== SHADOWS ========== */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
+    --shadow-lg: 0 6px 12px rgba(0,0,0,0.2);
 
-        /* Status Colors */
-        --status-success: #4ADE80;           /* Success messages */
-        --status-warning: #FBBF24;           /* Warning messages */
-        --status-danger: #F87171;            /* Error messages */
-        --status-info: #38BDF8;              /* Informational messages */
-    }
 }

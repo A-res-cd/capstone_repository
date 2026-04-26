@@ -30,3 +30,5 @@ Thumbs.db
 config.py
 
 static/uploads/
+
+.sql
