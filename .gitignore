@@ -31,4 +31,4 @@ config.py
 
 static/uploads/
 
-.sql
+CAPRE.sql
