@@ -1,0 +1,97 @@
+
+.hero {
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-content {
+    text-align: center;
+}
+
+.hero-title-card {
+    background: linear-gradient(135deg, #1e4fa3, #2d6cdf);
+    color: #fff;
+    padding: 40px 50px;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    max-width: 600px;
+    margin: 0 auto 40px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hero-title-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.hero-title-card h1 {
+    font-size: 38px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+
+.highlight {
+    color: #ffb347; /* soft orange accent */
+}
+
+.subtitle {
+    font-size: 16px;
+    font-weight: 500;
+    opacity: 0.9;
+    margin-bottom: 10px;
+}
+
+.description {
+    font-size: 14px;
+    opacity: 0.85;
+    line-height: 1.6;
+}
+
+.auth-grid {
+    display: flex;
+    justify-content: center;
+    gap: 80px;
+    margin-top: 10px;
+}
+
+.auth-col p {
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+.btn {
+    padding: 12px 26px;
+    border-radius: 30px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+/* Primary (Sign In) */
+.btn-primary {
+    background: linear-gradient(135deg, #ff9800, #ffb347);
+    color: white;
+    box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 152, 0, 0.5);
+}
+
+/* Outline (Sign Up) */
+.btn-outline {
+    border: 2px solid #2d6cdf;
+    color: #2d6cdf;
+    background: transparent;
+}
+
+.btn-outline:hover {
+    background: #2d6cdf;
+    color: white;
+}

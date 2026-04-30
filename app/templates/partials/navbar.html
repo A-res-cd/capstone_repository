@@ -1,4 +1,41 @@
-<nav>
-    <a href="/">Home</a>
-    <a href="/login">login</a>
+<nav class="nav-container">
+
+    <!-- HEADER -->
+    <div class="nav-container-header">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="CAPRE" class="logo">
+    </div>
+
+    <!-- BODY -->
+    <div class="nav-container-body">
+
+        <div class="burger-menu">
+            <i class='bx bx-menu' id="nav-toggle"></i>
+        </div>
+        <!-- USER -->
+        <div class="nav-container-user">
+            <div class="avatar"></div>
+            <div class="username"></div>
+        </div>
+
+        <!-- LINKS -->
+        <div class="nav-links">
+            {% for link in nav_links %}
+                <a href="{{ link.url }}" 
+                   class="nav-item {% if request.path == link.url %}active{% endif %}">
+                    <i class="{{ link.icon }}"></i>
+                    <span>{{ link.name }}</span>
+                </a>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="nav-container-footer">
+        <a href="/logout" class="nav-item logout">
+            <i class="bx bx-log-out"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+
 </nav>

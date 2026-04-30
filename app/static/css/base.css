@@ -1,1 +1,25 @@
 @import url('root.css');
+
+body {
+    margin: 0;
+    font-family: var(--font-primary);
+    background-color: var(--color-white);
+    color: var(--text-dark);
+    overflow: hidden;
+}
+
+/* LAYOUT */
+.layout {
+    display: flex;
+}
+
+/* MAIN CONTENT WRAPPER */
+.main-wrapper {
+    flex: 1;
+    transition: all 0.3s ease;
+}
+
+/* MAIN */
+main {
+    padding: 20px;
+}
