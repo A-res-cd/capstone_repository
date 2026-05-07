@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}">
 
-    <title>{% block title %}{% endblock %}</title>
+    <title>Capre</title>
 </head>
 <body>
     <div class="layout">
@@ -20,7 +20,9 @@
         {% endif %}
 
         <div class="main-wrapper">
-            {% include 'partials/header.html' %}
+            {% if not hide_header %}
+                {% include 'partials/header.html' %}
+            {% endif %}
             <main>
                 {% block content %}{% endblock %}
             </main>
