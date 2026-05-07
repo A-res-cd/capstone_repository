@@ -1,1 +1,98 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/>
+        <path d="M6 12v5c0 2 6 3 6 3s6-1 6-3v-5"/>
+      </svg>
+    </div>
+    <h1>Sign up</h1>
+    <p class="subtitle">Create your university account</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flash-list">
+        {% for category, message in messages %}
+          <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('main.signup') }}" novalidate>
+
+    <div class="form-group">
+      <label for="first_name">First name</label>
+      <input type="text" id="first_name" name="first_name"
+             placeholder="Type here"
+             value="{{ form_data.get('first_name', '') }}"
+             autocomplete="given-name" required>
+    </div>
+
+    <div class="form-group">
+      <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
+      <input type="text" id="middle_name" name="middle_name"
+             placeholder="Type here"
+             value="{{ form_data.get('middle_name', '') }}"
+             autocomplete="additional-name">
+    </div>
+
+    <div class="form-group">
+      <label for="last_name">Last name</label>
+      <input type="text" id="last_name" name="last_name"
+             placeholder="Type here"
+             value="{{ form_data.get('last_name', '') }}"
+             autocomplete="family-name" required>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="form-group">
+      <label for="university_no">University ID</label>
+      <input type="text" id="university_no" name="university_no"
+             placeholder="e.g. SUM2024-00123"
+             value="{{ form_data.get('university_no', '') }}"
+             autocomplete="off" required>
+      <p class="field-hint">Format: SUM&lt;year&gt;-&lt;5-digit number&gt; &nbsp;·&nbsp; Your role is assigned automatically</p>
+    </div>
+
+    <div class="row-two">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email"
+               placeholder="Type here"
+               value="{{ form_data.get('email', '') }}"
+               autocomplete="email" required>
+      </div>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username"
+               placeholder="Type here"
+               value="{{ form_data.get('username', '') }}"
+               autocomplete="username" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password"
+             placeholder="Min. 6 characters"
+             autocomplete="new-password" required minlength="6">
+    </div>
+
+    <button type="submit" class="btn-signup">Sign up</button>
+  </form>
+
+  <p class="login-link">Already a user? <a href="{{ url_for('main.signin') }}">Log in</a></p>
+</div>
+
+</body>
+</html>

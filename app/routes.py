@@ -1,5 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from .variables.variable import get_nav_links, get_role_meta, resolve_title
+from .config.mysql import create_user
 
 main = Blueprint("main", __name__)
 
@@ -31,9 +32,33 @@ def home():
 def signin():
     return render_template("authentication/signin.html", hide_nav=True, hide_header=True)
 
-@main.route('/signup')
+@main.route('/signup', methods=['GET', 'POST'])
 def signup():
-    return render_template("authentication/signup.html", hide_nav=True, hide_header=True)
+    if request.method == 'POST':
+        first_name = request.form.get('first_name')
+        middle_name = request.form.get('middle_name')
+        last_name = request.form.get('last_name')
+        university_no = request.form.get('university_no')
+        email = request.form.get('email')
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+    
+        success, message = create_user(
+        first_name, middle_name, last_name, 
+        university_no, email, username, password
+        )
+        if success:
+            flash("Account created successfully! Please sign in.", "success")
+            return redirect(url_for('main.signin'))
+        else:
+            flash(message, "danger")
+
+            return render_template("authentication/signup.html", 
+                hide_nav=True, hide_header=True, 
+                form_data=request.form)
+
+    return render_template("authentication/signup.html", hide_nav=True, hide_header=True, form_data={})
 
 @main.route("/logout")
 def logout():
@@ -53,3 +78,4 @@ def admin_manage_users():
 @main.route("/requests")
 def admin_requests():
     return render_template("admin/requests.html", hide_nav=False)
+
