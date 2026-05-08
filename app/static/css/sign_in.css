@@ -1,0 +1,152 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #F1F3F2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.card {
+    width: 100%;
+    max-width: 430px;
+    background: #FFFFFF;
+    border: 1px solid #E5E5E5;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+
+.card h1 {
+    background: #2E3F92;
+    color: #FFFFFF;
+    text-align: center;
+    padding: 28px 24px;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* Flash Messages */
+
+.flash-list {
+    list-style: none;
+    padding: 18px 24px 0;
+}
+
+.flash-error,
+.flash-danger {
+    background: #FCEBEB;
+    color: #A32D2D;
+    border: 1px solid #F09595;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.flash-success {
+    background: #EAF3DE;
+    color: #3B6D11;
+    border: 1px solid #97C459;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+/* Form */
+
+form {
+    padding: 28px 32px 10px;
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4F4F4F;
+}
+
+.form-group input {
+    width: 100%;
+    height: 42px;
+    border: 1px solid #CFCFCF;
+    border-radius: 8px;
+    padding: 0 14px;
+    font-size: 14px;
+    color: #333333;
+    outline: none;
+    transition: 0.15s ease;
+    background: #FFFFFF;
+}
+
+.form-group input::placeholder {
+    color: #BDBDBD;
+}
+
+.form-group input:focus {
+    border-color: #2E3F92;
+    box-shadow: 0 0 0 3px rgba(46, 63, 146, 0.12);
+}
+
+/* Button */
+
+.btn-signin {
+    width: 100%;
+    height: 44px;
+    border: none;
+    border-radius: 8px;
+    background: #2E3F92;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    margin-top: 8px;
+}
+
+.btn-signin:hover {
+    background: #1F2F77;
+}
+
+/* Footer */
+
+.footer-links {
+    text-align: center;
+    padding: 10px 32px 28px;
+}
+
+.footer-links p {
+    font-size: 13px;
+    color: #4F4F4F;
+    margin-bottom: 10px;
+}
+
+.footer-links a {
+    color: #2E3F92;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+.forgot-link {
+    display: inline-block;
+    margin-top: 4px;
+}
