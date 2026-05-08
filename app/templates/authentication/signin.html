@@ -1,1 +1,50 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sign_in.css') }}">    
+</head>
+<body>
+
+<div class="card">
+
+  <h1>Sign In</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul class="flash-list">
+        {% for category, message in messages %}
+          <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST" action="{{ url_for('main.signin') }}" novalidate>
+
+    <div class="form-group">
+      <label for="username">User name</label>
+      <input type="text" id="username" name="username"
+             placeholder="Type here"
+             autocomplete="username" required>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password"
+             placeholder="Type here"
+             autocomplete="current-password" required>
+    </div>
+
+    <button type="submit" class="btn-signin">Sign in</button>
+
+  </form>
+
+  <div class="footer-links">
+    <p>Don't have an account? <a href="{{ url_for('main.signup') }}">sign up</a></p>
+    <a href="{{ url_for('main.forgot_password') }}" class="forgot-link">Forgot password?</a>
+  </div>
+
+</div>
+
+</body>
+</html>

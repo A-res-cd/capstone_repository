@@ -2,9 +2,10 @@ import re
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, timezone
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
 
+#connection and stuff
 def db_connect():
     conn = psycopg2.connect(
         host=Config.PG_HOST,
@@ -16,27 +17,35 @@ def db_connect():
 
     return conn
 
-#student auto detection role pattern
+#student and faculty auto detection role pattern
 STUDENT_PATTERN = re.compile(r'^SUM\d{4}-\d{5}$', re.IGNORECASE)
-#son we need the faculty_pattern
+PROFESSOR_PATTERN = re.compile(r'^\d{4}$')
 
 #this should detect the role thingy
 def detect_role(university_no):
     if STUDENT_PATTERN.match(university_no):
-        return 'student'
-    
-    # To do we still need the faculty else
+        return "student"
+    if PROFESSOR_PATTERN.match(university_no):
+        return "faculty"
+    #if needed we can add more roles to auto assign
     return None
 
-#this should get the role from the role table
+#_____________________________________helper functions gang_______________________________ ps i was getting lost in the code so therese allat of notes now
 def get_role_id(mithrix, role_name):
     mithrix.execute("""SELECT role_id FROM role
                        WHERE LOWER(role_name) = LOWER(%s) LIMIT 1""", (role_name,))
     row = mithrix.fetchone()
     return row[0] if row else None
 
+def log_audit(mithrix, user_id, action_type, affected_table, affected_record_id):
+    mithrix.execute("""
+        INSERT INTO audit
+        (user_id, action_type, affected_table, affected_record_id, action_timestamp)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (user_id, action_type, affected_table, affected_record_id, datetime.now(timezone.utc)))
 
-#this be the sign up i think maybe
+
+#___________________________________this be the sign up i think maybe______________________________
 def create_user(first_name, middle_name, last_name, university_no, email, username, password):
 
     role_name = detect_role(university_no)
@@ -94,6 +103,16 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
             VALUES (%s, %s)
         """,(user_id, now))
 
+        #add log to sign up tble
+        mithrix.execute("""
+            INSERT INTO signup (user_id, registration_date)
+            VALUES (%s, %s)
+            RETURNING signup_id
+        """, (user_id, now))
+        signup_id = mithrix.fetchone()[0]
+
+        log_audit(mithrix, user_id, "signup", "signup", signup_id)
+
         conn.commit()
         return True, None
     
@@ -113,6 +132,60 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     except Exception as exc:
         conn.rollback()
         return False, f"Database error: {exc}"
+    
+    finally:
+        mithrix.close()
+        conn.close()
+
+#____________________________sign in or authentication idk_______________________
+def sign_in(username, password, device_ip=None):
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    now = datetime.now(timezone.utc)
+
+    try:
+        mithrix.execute("""
+        SELECT u.user_id, k.username, r.password AS password_hash, ro.role_id, ro.role_name
+        FROM kappa k
+        JOIN slug sl ON sl.username_id = k.username_id AND sl.is_current = TRUE
+        JOIN ror   r  ON r.password_id  = sl.password_id
+        JOIN "user" u ON u.user_id      = sl.user_id
+        JOIN role  ro ON ro.role_id     = u.role_id
+        WHERE k.username = %s
+        LIMIT 1
+    """,(username,))
+        
+        row = mithrix.fetchone()
+
+        if not row:
+            return None, "username not found"
+        
+        if not check_password_hash(row["password_hash"], password):
+            return None, "incorect password"
+        
+        user_id = row["user_id"]
+
+        mithrix.execute("""
+            INSERT INTO login (user_id, log_in_time, login_device_ip)
+            VALUES(%s, %s, %s)
+            RETURNING log_in_id
+        """, (user_id, now, device_ip))
+        log_in_id = mithrix.fetchone()["log_in_id"]
+
+        log_audit(mithrix, user_id, "login", "login", log_in_id)
+
+        conn.commit()
+
+        return{
+            "user_id": user_id,
+            "username": row["username"],
+            "role_id": row["role_id"],
+            "role_name": row["role_name"],
+        }, None
+
+    except Exception as exc:
+        conn.rollback()
+        return None, f"Database error: {exc}"
     
     finally:
         mithrix.close()
