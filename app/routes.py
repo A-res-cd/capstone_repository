@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from .variables.variable import get_nav_links, get_role_meta, resolve_title
 from .config.mysql import create_user, sign_in
+import re
 
 main = Blueprint("main", __name__)
 
@@ -78,6 +79,17 @@ def signup():
         email = request.form.get('email')
         username = request.form.get('username')
         password = request.form.get('password')
+        errors = []
+        if not university_no:
+            flash("University ID is required.", "danger")
+            return render_template("authentication/signup.html", hide_nav=True, hide_header=True, form_data=request.form)
+        else:
+            numeric_format = re.match(r'^2\d{9}$', university_no)
+            dash_format = re.match(r'^2\{3}-\d{5}$', university_no)
+
+            if not numeric_format and not dash_format:
+                flash("University ID must follow the format", "danger")
+                return render_template("authentication/signup.html", hide_nav=True, hide_header=True, form_data=request.form)
 
         success, message = create_user(
             first_name, middle_name, last_name,
