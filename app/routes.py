@@ -144,9 +144,13 @@ def admin_requests():
 def admin_create_capstone():
     try:
         if request.method == 'POST':
+            keyword = request.form.get('keyword_id')
+            specialization = request.form.get('specialization_id')
+            program = request.form.get('program_id')
             capstone_title = request.form.get('capstone_title')
             capstone_year = request.form.get('capstone_year')
             capstone_file = request.files.get('capstone_file')
+            citation = request.form.get('citation_count')
 
     except Exception as e:
         flash("An error occurred while processing your request.", "danger")
