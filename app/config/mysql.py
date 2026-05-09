@@ -31,6 +31,11 @@ def detect_role(university_no):
     return None
 
 #_____________________________________helper functions gang_______________________________ ps i was getting lost in the code so therese allat of notes now
+def get_device_ip(request):
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    return request.remote_addr
+
 def get_role_id(mithrix, role_name):
     mithrix.execute("""SELECT role_id FROM role
                        WHERE LOWER(role_name) = LOWER(%s) LIMIT 1""", (role_name,))
