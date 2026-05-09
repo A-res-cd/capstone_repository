@@ -1,13 +1,15 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
-
+from flask_mail import Mail, Message
 from app.config.mysql import create_user, sign_in
 from .variables.variable import get_nav_links, get_role_meta, resolve_title
+from .config.mysql import create_user, sign_in, lookup_user_for_reset, create_otp, verify_otp, change_password, sign_out
+from app import mail
 
 main = Blueprint("main", __name__)
 
 @main.app_context_processor
 def inject_global_template_vars():
-    role = session.get("role", "Admin")
+    role = session.get("role_name", "Admin")
 
     # 2. Get nav + role meta
     nav_links, nav_sections = get_nav_links(role)
@@ -93,17 +95,152 @@ def signup():
 
 @main.route("/logout")
 def logout():
+    user_id = session.get("user_id")
+
+    if user_id:
+        device_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+        success, error = sign_out(user_id, device_ip=device_ip)
+
+        if not success:
+            print("Logout DB error:", error)  # won't block logout
+
     session.clear()
-    return render_template("index.html", hide_nav=True)
+    flash("You have been logged out.", "success")
+    return redirect(url_for("main.signin"))
 
-@main.route("/forgot_password")
+@main.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
-    return render_template(
-        "authentication/forgot_password.html",
-        hide_nav=True,
-        hide_header=True
-    )
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email    = request.form.get("email",    "").strip()
+ 
+        errors = []
+        if not username: errors.append("Username is required.")
+        if not email:    errors.append("Email is required.")
+ 
+        if errors:
+            for e in errors:
+                flash(e, "danger")
+            return render_template("authentication/forgot_password.html",
+                                   hide_nav=True, hide_header=True)
+ 
+        # 1.4.1 — look up user; both fields must match
+        contact_id, user_id, error = lookup_user_for_reset(username, email)
+ 
+        if error:
+            flash(error, "danger")
+            return render_template("authentication/forgot_password.html",
+                                   hide_nav=True, hide_header=True)
+ 
+        # 1.4.2 — generate OTP and email it
+        try:
+            otp, reset_id = create_otp(contact_id)
+        except RuntimeError as e:
+            flash(str(e), "danger")
+            return render_template("authentication/forgot_password.html",
+                                   hide_nav=True, hide_header=True)
+ 
+        # Send OTP email via Flask-Mail
+        try:
+            msg = Message(
+                subject="Your password reset OTP",
+                recipients=[email],
+                body=(
+                    f"Your one-time password (OTP) is: {otp}\n\n"
+                    f"It expires in 5 minutes. Do not share it with anyone.\n\n"
+                    f"If you did not request this, ignore this email."
+                )
+            )
+            mail.send(msg)
+        except Exception as e:
+            print("MAIL ERROR:", e)  # ← only this line is new
+            flash("Could not send email. Please try again later.", "danger")
+            return render_template("authentication/forgot_password.html",
+                                   hide_nav=True, hide_header=True)
+ 
+        # Store reset_id and user_id in session to carry across steps
+        session["reset_id"] = reset_id
+        session["reset_user_id"] = user_id
+ 
+        flash("OTP sent! Check your email.", "success")
+        return redirect(url_for("main.verify_otp_route"))
+ 
+    return render_template("authentication/forgot_password.html", hide_nav=True, hide_header=True)
 
+@main.route("/verify_otp", methods=["GET", "POST"])
+def verify_otp_route():
+    reset_id = session.get("reset_id")
+    if not reset_id:
+        flash("Session expired. Please start again.", "danger")
+        return redirect(url_for("main.forgot_password"))
+ 
+    if request.method == "POST":
+        otp_entered = request.form.get("otp", "").strip()
+ 
+        if not otp_entered:
+            flash("Please enter the OTP.", "danger")
+            return render_template("authentication/verify_otp.html",
+                                   hide_nav=True, hide_header=True)
+ 
+        # 1.4.3 — validate OTP
+        valid, error = verify_otp(reset_id, otp_entered)
+ 
+        if valid:
+            session["otp_verified"] = True
+            return redirect(url_for("main.reset_password_route"))
+        else:
+            flash(error, "danger")
+ 
+    return render_template("authentication/verify_otp.html",
+                           hide_nav=True, hide_header=True)
+
+@main.route("/reset_password", methods=["GET", "POST"])
+def reset_password_route():
+    # Guard — must have passed OTP step
+    if not session.get("otp_verified"):
+        flash("Please verify your OTP first.", "danger")
+        return redirect(url_for("main.forgot_password"))
+ 
+    reset_id = session.get("reset_id")
+    user_id  = session.get("reset_user_id")
+ 
+    if not reset_id or not user_id:
+        flash("Session expired. Please start again.", "danger")
+        return redirect(url_for("main.forgot_password"))
+ 
+    if request.method == "POST":
+        new_password     = request.form.get("new_password",     "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+ 
+        errors = []
+        if not new_password or len(new_password) < 6:
+            errors.append("Password must be at least 6 characters.")
+        if new_password != confirm_password:
+            errors.append("Passwords do not match.")
+ 
+        if errors:
+            for e in errors:
+                flash(e, "danger")
+            return render_template("authentication/reset_password.html",
+                                   hide_nav=True, hide_header=True)
+ 
+        # 1.4.4 — update password, mark token used, log audit
+        success, error = change_password(reset_id, user_id, new_password)
+ 
+        if success:
+            # Clear all reset session keys
+            session.pop("reset_id",      None)
+            session.pop("reset_user_id", None)
+            session.pop("otp_verified",  None)
+            flash("Password reset successfully! Please sign in.", "success")
+            return redirect(url_for("main.signin"))
+        else:
+            flash(error, "danger")
+ 
+    return render_template("authentication/reset_password.html",
+                           hide_nav=True, hide_header=True)
+ 
+ 
 ## --- Admin specific routes ---
 @main.route("/analytics")
 def admin_analytics():
