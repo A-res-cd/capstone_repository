@@ -65,7 +65,7 @@
 
 .btn {
     padding: 12px 26px;
-    border-radius: 30px;
+    border-radius: 20px;
     font-weight: 600;
     text-decoration: none;
     display: inline-block;
@@ -86,12 +86,12 @@
 
 /* Outline (Sign Up) */
 .btn-outline {
-    border: 2px solid #2d6cdf;
-    color: #2d6cdf;
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
     background: transparent;
 }
 
 .btn-outline:hover {
-    background: #2d6cdf;
+    background: var(--color-primary);
     color: white;
 }

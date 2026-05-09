@@ -11,4 +11,8 @@ class Config:
     MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
     MYSQL_DB = os.getenv("MYSQL_DB")
 
-    SECRET_KEY = os.getenv("SECRET_KEY", "aresDaGreatSecretKey")
+    PG_HOST = os.getenv("PG_HOST")
+    PG_PORT = int(os.getenv("PG_PORT", "5432"))
+    PG_USER = os.getenv("PG_USER")
+    PG_PASSWORD = os.getenv("PG_PASSWORD")
+    PG_DB = os.getenv("PG_DB")
