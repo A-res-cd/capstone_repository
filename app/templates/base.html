@@ -10,7 +10,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}">
 
-    <title>Capre</title>
+    {% block extra_css %}{% endblock %}
+
+    <title>{% block title %}My App{% endblock %}</title>
 </head>
 <body>
     <div class="layout">
