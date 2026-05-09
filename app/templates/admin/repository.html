@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/repository.css') }}">
+{% endblock %}
+
+{% block title %}Repository Management{% endblock %}
+
+{% block content %}
+<section class="repository-section">
+    <div class="repository-container">
+        <h2>Repository Management</h2>
+        <p>This is the repository management page. Here you can manage your capstone projects, view submissions, and more.</p>
+    </div>
+</section>
+{% endblock %}

@@ -25,7 +25,7 @@ def get_nav_links(role):
         # --- Process 3.0: Manage Capstone Repository — Admin + Capstone Professor ---
         {
             "name": "Capstone Repository",
-            "title": "Capstone Repository",
+            "title": "Manage Repository",
             "url": "/repository",
             "icon": "bx bx-folder-open",
             "roles": ["Admin", "Capstone Professor"],

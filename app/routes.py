@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, flash, render_template, request, redirect, url_for, session
+
+from app.config.mysql import create_user, sign_in
 from .variables.variable import get_nav_links, get_role_meta, resolve_title
 from .config.mysql import create_user, sign_in
 
@@ -28,7 +30,7 @@ def inject_global_template_vars():
 def home():
     return render_template("index.html", hide_nav=True)
 
-@main.route("/signin", methods = ["GET", "POST"])
+@main.route("/signin", methods=["GET", "POST"])
 def signin():
     if request.method == "POST":
             username = request.form.get("username", "").strip()
@@ -62,7 +64,7 @@ def signin():
     
     return render_template("authentication/signin.html", hide_nav=True, hide_header=True)
 
-@main.route('/signup', methods = ['GET', 'POST'])
+@main.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
         first_name = request.form.get('first_name')
@@ -93,9 +95,8 @@ def signup():
 @main.route("/logout")
 def logout():
     session.clear()
-    return render_template("index.html", hide_nav=True, hide_header=True)
+    return render_template("index.html", hide_nav=True)
 
-# forfot password
 @main.route("/forgot_password")
 def forgot_password():
     return render_template(
@@ -103,8 +104,6 @@ def forgot_password():
         hide_nav=True,
         hide_header=True
     )
-
-
 
 ## --- Admin specific routes ---
 @main.route("/analytics")
@@ -119,3 +118,10 @@ def admin_manage_users():
 def admin_requests():
     return render_template("admin/requests.html", hide_nav=False)
 
+@main.route("/repository")
+def admin_repository():
+    return render_template("admin/repository.html", hide_nav=False)
+
+@main.route("/add_capstone_record")
+def admin_add_capstone_record():
+    return render_template("admin/add_capstone_record.html", hide_nav=False)
