@@ -112,3 +112,29 @@
 .back-link a:hover {
     text-decoration: underline;
 }
+
+/* ── OTP Specifics ── */
+.otp-input {
+    height: 60px !important; /* Slightly taller for emphasis */
+    text-align: center;
+    font-size: var(--text-xxl) !important;
+    font-weight: 700;
+    letter-spacing: var(--space-sm);
+    color: var(--color-primary);
+}
+
+.otp-timer {
+    text-align: center;
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin-top: var(--space-sm);
+}
+
+.otp-timer span {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.otp-timer.expired span {
+    color: #A32D2D;
+}

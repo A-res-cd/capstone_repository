@@ -18,8 +18,8 @@ class Config:
     PG_PASSWORD = os.getenv("PG_PASSWORD")
     PG_DB = os.getenv("PG_DB")
 
-    MAIL_SERVER         = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-    MAIL_PORT           = int(os.environ.get("MAIL_PORT", 587))
+    MAIL_SERVER         = os.environ.get("MAIL_SERVER")
+    MAIL_PORT           = int(os.environ.get("MAIL_PORT"))
     MAIL_USE_TLS        = True
     MAIL_USERNAME       = os.environ.get("MAIL_USERNAME")   
     MAIL_PASSWORD       = os.environ.get("MAIL_PASSWORD")   

@@ -1,74 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+{% extends "base.html" %}
+
+{% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fp.css') }}">
-</head>
-<body>
+{% endblock %}
 
-<div class="card">
+{% block title %}Verify OTP{% endblock %}
 
-  <h1 class="card-title">Enter OTP</h1>
-  <p class="card-subtitle">Check your email for the 6-digit code. It expires in 5 minutes.</p>
+{% block content %}
+<section class="forgot-password-section">
+    <div class="forgot-password-container">
+        <h2>Enter OTP</h2>
+        <p class="subtitle">Check your email for the 6-digit code. It expires in 5 minutes.</p>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <ul class="flash-list">
-        {% for category, message in messages %}
-          <li class="flash-{{ category }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
+        {# Flash Messages #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-list">
+                    {% for category, message in messages %}
+                        <li class="flash-{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
 
-  <form method="POST" action="{{ url_for('main.verify_otp_route') }}" novalidate>
+        <form action="{{ url_for('main.verify_otp_route') }}" method="POST" class="forgot-password-form" novalidate>
+            <div class="form-group">
+                <label for="otp">One-time password</label>
+                <input type="text" id="otp" name="otp"
+                       class="otp-input"
+                       placeholder="000000"
+                       maxlength="6"
+                       inputmode="numeric"
+                       autocomplete="one-time-code"
+                       required>
+                <p class="otp-timer">Time remaining: <span id="countdown">5:00</span></p>
+            </div>
 
-    <div class="form-group">
-      <label for="otp">One-time password</label>
-      <input type="text" id="otp" name="otp"
-             class="otp-input"
-             placeholder="000000"
-             maxlength="6"
-             inputmode="numeric"
-             autocomplete="one-time-code"
-             required>
-      <p class="otp-timer">Time remaining: <span id="countdown">5:00</span></p>
+            <button type="submit" class="btn btn-primary" id="submit-btn">Verify OTP</button>
+        </form>
+
+        <div class="divider"></div>
+
+        <div class="footer-links">
+            <p class="back-link">Didn't get a code? <a href="{{ url_for('main.forgot_password') }}">Request again</a></p>
+            <p class="back-link"><a href="{{ url_for('main.signin') }}">Back to sign in</a></p>
+        </div>
     </div>
+</section>
+{% endblock %}
 
-    <button type="submit" class="btn-primary" id="submit-btn">Verify OTP</button>
-
-  </form>
-
-  <div class="divider"></div>
-
-  <div class="footer-links">
-    <p>Didn't get a code? <a href="{{ url_for('main.forgot_password') }}">Request again</a></p>
-    <p><a href="{{ url_for('main.signin') }}">Back to sign in</a></p>
-  </div>
-
-</div>
-
-<script>
-  // Countdown timer — 5 minutes
-  let seconds = 5 * 60;
-  const countdownEl = document.getElementById('countdown');
-  const submitBtn   = document.getElementById('submit-btn');
-  const timerEl     = countdownEl.closest('.otp-timer');
-
-  const tick = setInterval(() => {
-    seconds--;
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    countdownEl.textContent = `${m}:${s.toString().padStart(2, '0')}`;
-
-    if (seconds <= 0) {
-      clearInterval(tick);
-      countdownEl.textContent = 'Expired';
-      timerEl.classList.add('expired');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'OTP Expired';
-    }
-  }, 1000);
-</script>
-
-</body>
-</html>
+{% block extra_js %}
+    <script src="{{ url_for('static', filename='js/otp_timer.js') }}"></script>
+{% endblock %}
