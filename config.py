@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "mithrix")
+    SECRET_KEY = os.getenv("SECRET_KEY")
 
     # MySQL connection (must be edited to match your MySQL configuration)
     MYSQL_HOST = os.getenv("MYSQL_HOST")

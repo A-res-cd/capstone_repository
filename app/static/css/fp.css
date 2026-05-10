@@ -1,186 +1,114 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
+@import url('root.css');
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #F1F3F2;
+/* ── Layout ── */
+.forgot-password-section {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    padding: var(--space-md);
+    font-family: var(--font-primary);
 }
 
-/* ── Card ── */
-.card {
-    background: #fff;
-    border: 1px solid #E5E5E5;
-    border-radius: 12px;
+.forgot-password-container {
+    background-color: var(--color-white);
+    padding: var(--space-xl);
+    border-radius: var(--radius-pill); /* 20px from root.css */
+    box-shadow: var(--shadow-lg);
     width: 100%;
-    max-width: 480px;
-    overflow: hidden;
-}
-
-/* ── Card title ── */
-.card-title {
+    max-width: 450px;
     text-align: center;
-    font-size: 22px;
-    font-weight: 700;
-    color: #1a1a1a;
-    padding: 32px 32px 4px;
 }
 
-.card-subtitle {
-    text-align: center;
-    font-size: 13px;
-    color: #888;
-    padding: 0 32px 20px;
+/* ── Typography ── */
+.forgot-password-container h2 {
+    margin-bottom: var(--space-lg);
+    color: var(--color-black);
+    font-size: var(--text-xxl);
+    font-weight: 600;
 }
 
-/* ── Flash messages ── */
-.flash-list { list-style: none; padding: 0 24px 12px; }
-
-.flash-danger {
-    background: #FCEBEB;
-    color: #A32D2D;
-    border: 1px solid #F09595;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
-    margin-bottom: 6px;
-}
-
-.flash-success {
-    background: #EAF3DE;
-    color: #3B6D11;
-    border: 1px solid #97C459;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
-    margin-bottom: 6px;
-}
-
-/* ── Form ── */
-form { padding: 8px 32px 24px; }
-
-.form-group { margin-bottom: 16px; }
-
-.form-group label {
+.subtitle {
     display: block;
-    font-size: 13px;
+    /* Pull closer to heading */
+    margin-top: calc(var(--space-lg) * -1 + 8px);
+    margin-bottom: var(--space-lg);
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+}
+
+/* ── Form Styles ── */
+.forgot-password-form .form-group {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.forgot-password-form .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+}
+
+.forgot-password-form .form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: var(--border-light);
+    border-radius: var(--radius-lg); /* 12px from root.css */
+    box-sizing: border-box;
+    font-size: var(--text-md);
+    /* Inset shadow for the "hollow" design */
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    outline: none;
+    background-color: #FAFAFA;
+    transition: border-color 0.3s, background-color 0.3s;
+}
+
+.forgot-password-form .form-group input:focus {
+    border-color: var(--color-primary);
+    background-color: var(--color-white);
+}
+
+/* ── Button ── */
+.forgot-password-form .btn {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--color-primary);
+    color: var(--color-white);
     font-weight: 600;
-    color: #4F4F4F;
-    margin-bottom: 6px;
-}
-
-.form-group input {
-    width: 100%;
-    height: 38px;
-    padding: 0 12px;
-    border: 1px solid #BDBDBD;
-    border-radius: 8px;
-    font-size: 14px;
-    color: #333;
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.form-group input:focus {
-    border-color: #2E3F92;
-    box-shadow: 0 0 0 3px rgba(46, 63, 146, 0.1);
-}
-
-.form-group input::placeholder { color: #BDBDBD; }
-
-/* ── OTP input — big centered digits ── */
-.otp-input {
-    width: 100%;
-    height: 56px;
-    text-align: center;
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: 12px;
-    border: 2px solid #BDBDBD;
-    border-radius: 8px;
-    color: #2E3F92;
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.otp-input:focus {
-    border-color: #2E3F92;
-    box-shadow: 0 0 0 3px rgba(46, 63, 146, 0.1);
-}
-
-/* ── OTP timer ── */
-.otp-timer {
-    text-align: center;
-    font-size: 12px;
-    color: #888;
-    margin-top: 8px;
-}
-
-.otp-timer span {
-    font-weight: 700;
-    color: #2E3F92;
-}
-
-.otp-timer.expired span { color: #A32D2D; }
-
-/* ── Buttons ── */
-.btn-primary {
-    width: 100%;
-    height: 42px;
-    background: #2E3F92;
-    color: #fff;
+    font-size: var(--text-md);
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    margin-top: 8px;
-    transition: background 0.15s;
+    margin-top: 1rem;
+    transition: background-color 0.2s, transform 0.1s;
 }
 
-.btn-primary:hover { background: #1B1C8F; }
-.btn-primary:disabled {
-    background: #BDBDBD;
-    cursor: not-allowed;
+.forgot-password-form .btn:hover {
+    background-color: var(--color-primary-dark);
 }
 
-/* ── Footer links ── */
+.forgot-password-form .btn:active {
+    transform: translateY(1px);
+}
+
+/* ── Footer & Links ── */
 .footer-links {
-    text-align: center;
-    font-size: 13px;
-    color: #4F4F4F;
-    padding: 0 32px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    margin-top: 1.5rem;
 }
 
-.footer-links a {
-    color: #2E3F92;
-    text-decoration: none;
+.back-link {
+    font-size: var(--text-sm);
+    color: var(--color-black);
     font-weight: 600;
 }
 
-.footer-links a:hover { text-decoration: underline; }
-
-/* ── Divider ── */
-.divider {
-    height: 1px;
-    background: #E5E5E5;
-    margin: 0 32px 20px;
+.back-link a {
+    color: var(--color-primary);
+    text-decoration: none;
 }
 
-/* ── Password strength hint ── */
-.field-hint {
-    font-size: 12px;
-    color: #888;
-    margin-top: 5px;
-}
-
-.row-two {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+.back-link a:hover {
+    text-decoration: underline;
 }

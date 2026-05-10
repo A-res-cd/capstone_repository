@@ -23,3 +23,30 @@ body {
 main {
     padding: 20px;
 }
+
+/* ── Flash Messages ── */
+.flash-list {
+    list-style: none;
+    margin-bottom: var(--space-md);
+    text-align: left;
+}
+
+.flash-danger, .flash-error {
+    background: #FCEBEB;
+    color: #A32D2D;
+    border: 1px solid #F09595;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-xs);
+}
+
+.flash-success {
+    background: #EAF3DE;
+    color: #3B6D11;
+    border: 1px solid #97C459;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-xs);
+}
