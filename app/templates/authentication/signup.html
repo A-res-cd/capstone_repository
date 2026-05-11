@@ -23,7 +23,7 @@
             {% endif %}
         {% endwith %}
 
-        <form action="{{ url_for('main.signup') }}" method="POST" class="sign-in-form" novalidate>
+        <form action="{{ url_for('auth.signup') }}" method="POST" class="sign-in-form" novalidate>
             
             <div class="form-group">
                 <label for="first_name">First name</label>
@@ -80,7 +80,7 @@
             <button type="submit" class="btn btn-primary">Sign up</button>
             
             <p class="sign-up-link">
-                Already a user? <a href="{{ url_for('main.signin') }}">Sign in</a>
+                Already a user? <a href="{{ url_for('auth.signin') }}">Sign in</a>
             </p>
         </form>
     </div>

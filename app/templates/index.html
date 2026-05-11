@@ -21,11 +21,11 @@
         <div class="auth-grid">
             <div class="auth-col">
                 <p>Already have an account?</p>
-                <a href="/signin" class="btn btn-primary">Sign In</a>
+                <a href="{{ url_for('auth.signin') }}" class="btn btn-primary">Sign In</a>
             </div>
             <div class="auth-col">
                 <p>Not Signed up yet?</p>
-                <a href="/signup" class="btn btn-outline">Sign Up</a>
+                <a href="{{ url_for('auth.signup') }}" class="btn btn-outline">Sign Up</a>
             </div>
         </div>
     </div>

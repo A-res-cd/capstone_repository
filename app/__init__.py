@@ -12,7 +12,8 @@ def create_app():
     
     app.secret_key = app.config["SECRET_KEY"]
 
-    from .routes import main
-    app.register_blueprint(main)
+    from .routes import blueprints
+    for bp in blueprints:
+        app.register_blueprint(bp)
 
     return app

@@ -6,7 +6,7 @@ def get_nav_links(role):
         {
             "name": "Analytics & Reports",
             "title": "Analytics & Reports",
-            "url": "/analytics",
+            "url": "admin.analytics",
             "icon": "bx bx-bar-chart-alt-2",
             "roles": ["Admin"],
             "section": "Management"
@@ -16,7 +16,7 @@ def get_nav_links(role):
         {
             "name": "Users & Roles",
             "title": "User Management",
-            "url": "/manage_users",
+            "url": "admin.manage_users",
             "icon": "bx bx-group",
             "roles": ["Admin"],
             "section": "Management"
@@ -26,7 +26,7 @@ def get_nav_links(role):
         {
             "name": "Capstone Repository",
             "title": "Manage Repository",
-            "url": "/repository",
+            "url": "admin.repository",
             "icon": "bx bx-folder-open",
             "roles": ["Admin", "Capstone Professor"],
             "section": "Capstone"
@@ -36,7 +36,7 @@ def get_nav_links(role):
         {
             "name": "Explore Archive",
             "title": "Explore Capstone Archive",
-            "url": "/archive",
+            "url": "pages.browse",
             "icon": "bx bx-search-alt",
             "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
             "section": "Capstone"
@@ -48,7 +48,7 @@ def get_nav_links(role):
         {
             "name": "Requests",
             "title": "Requests",
-            "url": "/requests",
+            "url": "admin.requests",
             "icon": "bx bx-file-blank",
             "roles": ["Admin"],
             "section": "Management"
@@ -61,7 +61,7 @@ def get_nav_links(role):
         {
             "name": "User Information",
             "title": "User Settings",
-            "url": "/user-info",
+            "url": "global.user_info",
             "icon": "bx bx-id-card",
             "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
             "section": "Account"

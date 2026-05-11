@@ -23,7 +23,7 @@
             {% endif %}
         {% endwith %}
 
-        <form action="{{ url_for('main.verify_otp_route') }}" method="POST" class="forgot-password-form" novalidate>
+        <form action="{{ url_for('auth.verify_otp_route') }}" method="POST" class="forgot-password-form" novalidate>
             <div class="form-group">
                 <label for="otp">One-time password</label>
                 <input type="text" id="otp" name="otp"
@@ -33,7 +33,7 @@
                        inputmode="numeric"
                        autocomplete="one-time-code"
                        required>
-                <p class="otp-timer">Time remaining: <span id="countdown">5:00</span></p>
+                <p class="otp-timer">Time reauthing: <span id="countdown">5:00</span></p>
             </div>
 
             <button type="submit" class="btn btn-primary" id="submit-btn">Verify OTP</button>
@@ -42,8 +42,8 @@
         <div class="divider"></div>
 
         <div class="footer-links">
-            <p class="back-link">Didn't get a code? <a href="{{ url_for('main.forgot_password') }}">Request again</a></p>
-            <p class="back-link"><a href="{{ url_for('main.signin') }}">Back to sign in</a></p>
+            <p class="back-link">Didn't get a code? <a href="{{ url_for('auth.forgot_password') }}">Request again</a></p>
+            <p class="back-link"><a href="{{ url_for('auth.signin') }}">Back to sign in</a></p>
         </div>
     </div>
 </section>
