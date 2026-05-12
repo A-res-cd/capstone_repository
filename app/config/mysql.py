@@ -728,3 +728,26 @@ def get_archive_years():
     finally:
         mithrix.close()
         conn.close()
+
+
+def get_users():
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT u.user_id,
+                   CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
+                   u.university_no,
+                   r.role_name AS role,
+                   c.contact_value AS email
+            FROM "user" u
+            JOIN role r ON u.role_id = r.role_id
+            LEFT JOIN contact c ON c.user_id = u.user_id AND c.contact_type = 'email' AND c.is_primary = TRUE
+            ORDER BY u.user_id
+        """)
+        return mithrix.fetchall()
+    except Exception:
+        return []
+    finally:
+        mithrix.close()
+        conn.close()

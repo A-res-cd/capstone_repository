@@ -7,5 +7,39 @@
 {% block title %}Manage Users{% endblock %}
 
 {% block content %}
+<section class="manage-users-section">
+    <div class="manage-users-content">
+        <h1>Manage Users</h1>
+        <p>View and manage all users in the system.</p>
 
+        <div class="users-table-wrapper">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.user_id }}</td>
+                        <td>{{ user.full_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.role }}</td>
+                        <td>
+                            <!-- Action buttons (e.g., Edit, Deactivate) -->
+                            <button class="btn-action btn-edit
+                                            bx bx-edit-alt"> Edit</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+</section>
 {% endblock %}

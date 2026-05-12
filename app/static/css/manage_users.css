@@ -1,0 +1,106 @@
+@import url('root.css');
+
+.manage-users-section {
+    max-width: 1200px;
+    height: calc(85vh - 60px);
+    margin: 0 auto;
+}
+
+/* Header Styling */
+.manage-users-content h1 {
+    color: var(--primary-blue);
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+    font-weight: 700;
+}
+
+.manage-users-content p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 30px;
+}
+
+/* Table Container Styling */
+.users-table-wrapper {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+/* Table Header */
+.users-table thead th {
+    background-color: var(--color-primary-light);
+    color: var(--color-white);
+    padding: 15px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-transform: capitalize;
+}
+
+.users-table thead tr th:last-child{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.users-table tbody tr td:last-child{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Table Body */
+.users-table tbody td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9rem;
+    color: #444;
+    vertical-align: middle;
+}
+
+.users-table tbody tr:nth-child(even) { background: #e4e9ff; }
+.users-table tbody tr:nth-child(odd) { background: var(--color-white); }
+.users-table tbody tr:hover { background: #f0f3ff; }
+
+.users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Action Buttons */
+.btn-action {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-right: 5px;
+    transition: opacity 0.2s;
+    font-weight: 500;
+}
+
+.btn-action:hover {
+    opacity: 0.9;
+}
+
+.btn-edit {
+    background-color: var(--color-primary-light);
+}
+
+/* Match the "New Capstone" button style if you add one later */
+.btn-primary-custom {
+    background-color: var(--accent-orange);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-weight: bold;
+    float: right;
+}
