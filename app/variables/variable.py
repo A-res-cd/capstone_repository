@@ -26,7 +26,7 @@ def get_nav_links(role):
         {
             "name": "Capstone Repository",
             "title": "Manage Repository",
-            "url": "admin.repository",
+            "url": "admin.view_capstone_repository",
             "icon": "bx bx-folder-open",
             "roles": ["Admin", "Capstone Professor"],
             "section": "Capstone"
@@ -61,7 +61,7 @@ def get_nav_links(role):
         {
             "name": "User Information",
             "title": "User Settings",
-            "url": "global.user_info",
+            "url": "pages.user_info",
             "icon": "bx bx-id-card",
             "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
             "section": "Account"
@@ -112,15 +112,14 @@ def get_role_meta(role):
     return meta.get(role, {"label": role, "badge_class": "", "icon": "bx bx-user"})
 
 def resolve_title(nav_sections, nav_links, path):
-    if nav_sections:
-        for section in nav_sections.values():
-            for link in section:
-                if link["url"] == path:
-                    return link.get("title") or link["name"]
-
-    elif nav_links:
-        for link in nav_links:
+    for section in nav_sections.values():
+        for link in section:
             if link["url"] == path:
                 return link.get("title") or link["name"]
+
+    # Fallback to flat list (catches anything not in a section)
+    for link in nav_links:
+        if link["url"] == path:
+            return link.get("title") or link["name"]
 
     return None

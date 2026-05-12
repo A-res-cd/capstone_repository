@@ -44,7 +44,7 @@ def signin():
             if user["role_id"] == 1:    # Admin
                 return redirect(url_for("admin.analytics"))
             elif user["role_id"] == 4:  # Student
-                return redirect(url_for("student.browse"))
+                return redirect(url_for("pages.browse"))
         else:
             flash(error, "error")
 

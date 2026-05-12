@@ -5,7 +5,6 @@ body {
     font-family: var(--font-primary);
     background-color: var(--color-white);
     color: var(--text-dark);
-    overflow: hidden;
 }
 
 /* LAYOUT */

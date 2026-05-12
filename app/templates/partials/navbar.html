@@ -32,7 +32,7 @@
                         <span class="nav-section-label">{{ section_name }}</span>
                         {% for link in section_links %}
                             <a href="{{ link.url }}"
-                               class="nav-item {% if request.path == link.url %}active{% endif %}">
+                               class="nav-item {% if current_path == link.url %}active{% endif %}">
                                 <i class="{{ link.icon }}"></i>
                                 <span>{{ link.name }}</span>
                             </a>
@@ -42,7 +42,7 @@
             {% else %}
                 {% for link in nav_links %}
                     <a href="{{ link.url }}"
-                       class="nav-item {% if request.path == link.url %}active{% endif %}">
+                       class="nav-item {% if current_path == link.url %}active{% endif %}">
                         <i class="{{ link.icon }}"></i>
                         <span>{{ link.name }}</span>
                     </a>
@@ -61,5 +61,3 @@
     </div>
 
 </nav>
-
-{% set page_title = page_title if page_title is not none else (active_title if active_title else "Home") %}

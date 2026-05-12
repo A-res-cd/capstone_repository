@@ -1,16 +1,118 @@
 {% extends 'base.html' %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/repository.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/repository.css') }}">
 {% endblock %}
 
 {% block title %}Repository Management{% endblock %}
 
 {% block content %}
 <section class="repository-section">
-    <div class="repository-container">
-        <h2>Repository Management</h2>
-        <p>This is the repository management page. Here you can manage your capstone projects, view submissions, and more.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flash-list">
+        {% for category, message in messages %}
+        <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    <div class="form-container">
+        <div class="form-header">
+            <h2>Create New Capstone</h2>
+            <p>Fill in the details below to add a new capstone project to the repository</p>
+        </div>
+
+        <form action="{{ url_for('admin.admin_create_capstone') }}" method="POST" enctype="multipart/form-data"
+            class="capstone-form" novalidate>
+
+            <!-- Row 1: Title and Year Stuff-->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="capstone_title">Capstone Title</label>
+                    <input type="text" id="capstone_title" name="capstone_title" placeholder="Enter capstone title"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="capstone_year">Capstone Year</label>
+                    <input type="number" id="capstone_year" name="capstone_year" placeholder="e.g. 2024" min="2000"
+                        max="2099" required>
+                </div>
+            </div>
+
+            <!-- Row 2: Program and Specialization Shits -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="program_id">Program</label>
+                    <select id="program_id" name="program_id" required>
+                        <option value="" disabled selected>Select program</option>
+                        {% for prog in programs %}
+                        <option value="{{prog[0]}}">{{prog[1]}}</option>
+                        {%endfor%}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="specialization_id">Specialization</label>
+                    <select id="specialization_id" name="specialization_id" required>
+                        <option value="" disabled selected>Select specialization</option>
+                        {% for spec in specializations %}
+                        <option value="{{spec[0]}}">{{spec[1]}}</option>
+                        {%endfor%}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Row 3: Semester and Term Asswipes-->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="semester">Semester</label>
+                    <select id="semester" name="semester" required>
+                        <option value="" disabled selected>Select semester</option>
+                        <option value="1st">1st Semester</option>
+                        <option value="2nd">2nd Semester</option>
+                        <option value="summer">Summer</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="term">Term</label>
+                    <input type="number" id="term" name="term" placeholder="e.g. 1" min="1" required>
+                </div>
+            </div>
+
+            <!-- Row 4: Citation Count and Keywords dont even know what im referring to-->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="citation_count">Citation Count</label>
+                    <input type="number" id="citation_count" name="citation_count" placeholder="0" min="0" value="0">
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="capstone_keywords">Keywords</label>
+                    <input type="text" id="capstone_keywords" name="capstone_keywords"
+                        placeholder="e.g. machine learning, neural networks" required>
+                </div>
+            </div>
+
+            <!-- Row 5: File Upload -->
+            <div class="form-group full-width">
+                <label for="capstone_file">Capstone File</label>
+                <div class="file-upload-wrapper">
+                    <input type="file" id="capstone_file" name="capstone_file" accept=".pdf,.doc,.docx" required>
+                    <p class="file-hint">Accepted formats: PDF, DOC, DOCX (Max 50MB)</p>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Submit Capstone</button>
+                <button type="reset" class="btn btn-secondary">Clear Form</button>
+            </div>
+        </form>
     </div>
 </section>
 {% endblock %}

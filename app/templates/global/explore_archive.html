@@ -1,6 +1,182 @@
 {% extends "base.html" %}
 {% block title %}Browse Capstones{% endblock %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/archive.css') }}">
+{% endblock %}
+
 {% block content %}
-<h2>Browse Capstones</h2>
+<section class="explore-archive-section">
+    <div class="explore-archive-container">
+        <h2 class="section-title">Capstone Projects</h2>
+
+        {# ── Filter Bar ── #}
+        <div class="archive-filters">
+            <form method="GET" action="{{ url_for('pages.browse') }}" class="filter-form">
+                <div class="filter-group">
+                    <span>Search:</span>
+                    <input type="text" name="search" class="filter-input"
+                           placeholder="Title or keyword…" value="{{ search }}">
+                </div>
+                <div class="filter-group">
+                    <span>Year:</span>
+                    <select name="year" class="filter-select">
+                        <option value="">All</option>
+                        {% for yr in years %}
+                            <option value="{{ yr }}" {% if selected_year == yr|string %}selected{% endif %}>
+                                {{ yr }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn-filter">Search</button>
+                {% if search or selected_year %}
+                    <a href="{{ url_for('pages.browse') }}" class="btn-clear">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="archive-layout-wrapper">
+
+            {# ── Main list ── #}
+            <div class="archive-main-content">
+
+                <div class="archive-table-header">
+                    <span class="col-title">Title</span>
+                    <span class="col-program">Program</span>
+                    <span class="col-spec">Specialization</span>
+                    <span class="col-year">Year</span>
+                    <span class="col-term">Term</span>
+                </div>
+
+                {% if projects %}
+                    <div class="archive-grid" id="archive-grid">
+                        {% for project in projects %}
+                        <div class="archive-card"
+                             data-id="{{ project.capstone_id }}"
+                             data-title="{{ project.capstone_title }}"
+                             data-program="{{ project.program_name }}"
+                             data-spec="{{ project.specialization_name }}"
+                             data-keywords="{{ project.capstone_keywords }}"
+                             data-year="{{ project.capstone_year }}"
+                             data-semester="{{ project.semester }}"
+                             data-term="{{ project.term }}"
+                             data-citations="{{ project.citation_count }}">
+                            <div class="col-title">
+                                <strong>{{ project.capstone_title }}</strong>
+                            </div>
+                            <div class="col-program">{{ project.program_name }}</div>
+                            <div class="col-spec">{{ project.specialization_name }}</div>
+                            <div class="col-year">{{ project.capstone_year }}</div>
+                            <div class="col-term">{{ project.semester }} – {{ project.term }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {# ── Pagination ── #}
+                    <div class="archive-pagination-bar">
+                        <span>
+                            Showing
+                            {{ (page - 1) * 12 + 1 }}–{{ [(page * 12), total] | min }}
+                            of {{ total }} capstone{{ 's' if total != 1 }}
+                        </span>
+                        <div class="pagination-controls">
+                            {% if page > 1 %}
+                                <a href="{{ url_for('pages.browse', page=page-1, search=search, year=selected_year) }}"
+                                   class="page-btn">&lt;</a>
+                            {% else %}
+                                <button class="page-btn" disabled>&lt;</button>
+                            {% endif %}
+
+                            <span class="page-indicator">{{ page }} / {{ total_pages }}</span>
+
+                            {% if page < total_pages %}
+                                <a href="{{ url_for('pages.browse', page=page+1, search=search, year=selected_year) }}"
+                                   class="page-btn">&gt;</a>
+                            {% else %}
+                                <button class="page-btn" disabled>&gt;</button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div class="archive-empty">
+                        <i class="bx bx-folder-open"></i>
+                        <p>
+                            {% if search or selected_year %}
+                                No capstones match your filters.
+                                <a href="{{ url_for('pages.browse') }}">Clear filters</a>
+                            {% else %}
+                                No capstone records found.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+
+            </div>{# end archive-main-content #}
+
+            {# ── Sidebar ── #}
+            <aside class="archive-sidebar">
+                {% if sidebar_project %}
+                <div class="sidebar-card" id="sidebar-card">
+                    <h3 id="sb-title">{{ sidebar_project.capstone_title }}</h3>
+                    <div class="sidebar-meta">
+                        <label>Program</label>
+                        <p id="sb-program">{{ sidebar_project.program_name }}</p>
+                        <label>Specialization</label>
+                        <p id="sb-spec">{{ sidebar_project.specialization_name }}</p>
+                        <label>Keywords</label>
+                        <p id="sb-keywords">{{ sidebar_project.capstone_keywords }}</p>
+                    </div>
+                    <hr>
+                    <div class="sidebar-meta">
+                        <p>
+                            <label>Year:</label>
+                            <span id="sb-year">{{ sidebar_project.capstone_year }}</span>
+                        </p>
+                        <p>
+                            <label>Term:</label>
+                            <span id="sb-term">{{ sidebar_project.semester }} – {{ sidebar_project.term }}</span>
+                        </p>
+                        <p>
+                            <label>Citations:</label>
+                            <span id="sb-citations">{{ sidebar_project.citation_count }}</span>
+                        </p>
+                    </div>
+                    <div class="sidebar-actions">
+                        <button class="btn-abstract">View Abstract</button>
+                        <button class="btn-manuscript">Request Full Manuscript</button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="sidebar-card sidebar-empty">
+                    <i class="bx bx-book-open"></i>
+                    <p>Select a capstone to see details.</p>
+                </div>
+                {% endif %}
+            </aside>
+
+        </div>{# end archive-layout-wrapper #}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Click any row → update the sidebar without a page reload
+document.querySelectorAll('.archive-card').forEach(card => {
+    card.addEventListener('click', () => {
+        document.querySelectorAll('.archive-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+
+        document.getElementById('sb-title').textContent     = card.dataset.title;
+        document.getElementById('sb-program').textContent   = card.dataset.program;
+        document.getElementById('sb-spec').textContent      = card.dataset.spec;
+        document.getElementById('sb-keywords').textContent  = card.dataset.keywords;
+        document.getElementById('sb-year').textContent      = card.dataset.year;
+        document.getElementById('sb-term').textContent      = card.dataset.semester + ' – ' + card.dataset.term;
+        document.getElementById('sb-citations').textContent = card.dataset.citations;
+    });
+});
+</script>
 {% endblock %}
