@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/repository.css') }}">
+<style>
+    .repository-table-container {
+        margin-top: 30px;
+        overflow-x: auto;
+    }
+    
+    .capstone-table {
+        width: 100%;
+        border-collapse: collapse;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .capstone-table thead {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .capstone-table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .capstone-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .capstone-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn-update {
+        background-color: #007bff;
+        color: white;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 12px;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-update:hover {
+        background-color: #0056b3;
+    }
+    
+    .btn-delete {
+        background-color: #dc3545;
+        color: white;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 12px;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-delete:hover {
+        background-color: #c82333;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
+    
+    .empty-state p {
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .btn-create-new {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-create-new:hover {
+        background-color: #218838;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Capstone Repository{% endblock %}
+
+{% block content %}
+<section class="repository-section">
+    <div class="repository-header">
+        <h1>Capstone Repository</h1>
+        <p class="header-subtitle">Manage your capstone projects and submissions</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="alert-messages">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('main.admin_create_capstone') }}" class="btn-create-new">+ Create New Capstone</a>
+    </div>
+
+    {% if capstones %}
+    <div class="repository-table-container">
+        <table class="capstone-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Program</th>
+                    <th>Specialization</th>
+                    <th>Year</th>
+                    <th>Semester</th>
+                    <th>Keywords</th>
+                    <th>Citations</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for capstone in capstones %}
+                <tr>
+                    <td><strong>{{ capstone.capstone_title }}</strong></td>
+                    <td>{{ capstone.program_name }}</td>
+                    <td>{{ capstone.specialization_name }}</td>
+                    <td>{{ capstone.capstone_year }}</td>
+                    <td>
+                        {% if capstone.semester %}
+                            Sem {{ capstone.semester }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small>{{ capstone.capstone_keywords[:30] }}{% if capstone.capstone_keywords|length > 30 %}...{% endif %}</small>
+                    </td>
+                    <td>{{ capstone.citation_count or 0 }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('main.update_capstone', capstone_id=capstone.capstone_id) }}" class="btn-update">Edit</a>
+                            <button class="btn-delete" onclick="deleteCapstone({{ capstone.capstone_id }})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No capstone projects found.</p>
+        <a href="{{ url_for('main.admin_create_capstone') }}" class="btn-create-new">Create Your First Capstone</a>
+    </div>
+    {% endif %}
+</section>
+
+<script>
+function deleteCapstone(capstoneId) {
+    if (confirm('Are you sure you want to delete this capstone project? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/delete_capstone/' + capstoneId;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}
