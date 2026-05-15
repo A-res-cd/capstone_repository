@@ -22,7 +22,7 @@ function openCreate() {
     document.getElementById('file-label-note').textContent  = '(required)';
     document.getElementById('current-file-note').textContent = '';
     document.getElementById('capstone-form').action =
-        "{{ url_for('admin.admin_create_capstone') }}";
+        "/repository/create";
     showForm();
 }
 

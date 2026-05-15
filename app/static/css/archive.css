@@ -120,6 +120,14 @@
     flex-shrink: 0;
 }
 
+.archive-table-header .col-program,
+.archive-table-header .col-spec,
+.archive-table-header .col-year,
+.archive-table-header .col-term {
+    align-self: center;
+    justify-self: center;
+}
+
 /* Scrollable rows */
 .archive-grid {
     flex: 1;
@@ -134,7 +142,7 @@
     grid-template-columns: 3fr 1.5fr 1.5fr 80px 120px;
     padding: var(--space-sm) var(--space-md);
     font-size: var(--text-sm);
-    color: var(--text-dark);
+    color: var(--color-dark);
     border-bottom: var(--border-light);
     cursor: pointer;
     transition: background 0.15s;
@@ -153,25 +161,21 @@
     border-left: 3px solid var(--color-primary);
 }
 
+.archive-card .col-program,
+.archive-card .col-spec,
+.archive-card .col-year,
+.archive-card .col-term { align-self: center; justify-self: center;}
+
 .col-title strong {
     color: var(--color-primary);
     font-weight: 600;
 }
 
-.col-program,
-.col-spec {
-    color: var(--color-gray-dark);
+.col-spec th, 
+.col-year th,
+.col-term th{
+    color: var(--color-white);
     font-size: var(--text-xs);
-}
-
-.col-year {
-    font-weight: 600;
-    color: var(--text-dark);
-}
-
-.col-term {
-    font-size: var(--text-xs);
-    color: var(--color-gray-dark);
 }
 
 /* Pagination */

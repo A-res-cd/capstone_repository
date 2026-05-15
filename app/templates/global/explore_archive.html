@@ -73,32 +73,6 @@
                         {% endfor %}
                     </div>
 
-                    {# ── Pagination ── #}
-                    <div class="archive-pagination-bar">
-                        <span>
-                            Showing
-                            {{ (page - 1) * 12 + 1 }}–{{ [(page * 12), total] | min }}
-                            of {{ total }} capstone{{ 's' if total != 1 }}
-                        </span>
-                        <div class="pagination-controls">
-                            {% if page > 1 %}
-                                <a href="{{ url_for('pages.browse', page=page-1, search=search, year=selected_year) }}"
-                                   class="page-btn">&lt;</a>
-                            {% else %}
-                                <button class="page-btn" disabled>&lt;</button>
-                            {% endif %}
-
-                            <span class="page-indicator">{{ page }} / {{ total_pages }}</span>
-
-                            {% if page < total_pages %}
-                                <a href="{{ url_for('pages.browse', page=page+1, search=search, year=selected_year) }}"
-                                   class="page-btn">&gt;</a>
-                            {% else %}
-                                <button class="page-btn" disabled>&gt;</button>
-                            {% endif %}
-                        </div>
-                    </div>
-
                 {% else %}
                     <div class="archive-empty">
                         <i class="bx bx-folder-open"></i>

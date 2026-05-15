@@ -22,8 +22,9 @@ def db_connect():
     return conn
 
 
+
 # student and faculty auto detection role pattern
-STUDENT_PATTERN = re.compile(r'^2\d{9}|^2\d{3}-\d{5}$')
+STUDENT_PATTERN = re.compile(r'^2\d{9}$|^2\d{3}-\d{5}$|^[A-Z]{2,4}\d{4}-\d{5}$', re.IGNORECASE)
 PROFESSOR_PATTERN = re.compile(r'^\d{4}$')
 ADMIN_PATTERN = re.compile(r'^admin\d{3}$')
 
@@ -32,11 +33,11 @@ ADMIN_PATTERN = re.compile(r'^admin\d{3}$')
 
 def detect_role(university_no):
     if STUDENT_PATTERN.match(university_no):
-        return "student"
+        return "Student"
     if PROFESSOR_PATTERN.match(university_no):
-        return "faculty"
+        return "Faculty"
     if ADMIN_PATTERN.match(university_no):
-        return "admin"
+        return "Admin"
     return None
 
 # _____________________________________helper functions gang_______________________________ ps i was getting lost in the code so therese allat of notes now
@@ -68,6 +69,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
 
     role_name = detect_role(university_no)
     if role_name is None:
+        print(f"University number '{university_no}' did not match any known patterns.")
         return False, ("University number format not recognized")
 
     conn = db_connect()
@@ -200,7 +202,7 @@ def sign_in(username, password, device_ip=None):
 
     except Exception as exc:
         conn.rollback()
-        return None, f"Database error: {exc}"
+        return None, f"Database error: {exc}"   
 
     finally:
         mithrix.close()
@@ -425,17 +427,17 @@ def sign_out(user_id, device_ip=None):
 
 def create_capstone_project(keyword_id, specialization_id, program_id,
                             capstone_title, capstone_year, capstone_file,
-                            citation_count, semester, term):
+                            citation_count, semester):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
         mithrix.execute("""
             INSERT INTO capstone(keyword_id, specialization_id, program_id,
                         capstone_title, capstone_year, capstone_file,
-                        citation_count, semester, term)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        citation_count, semester)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (keyword_id, specialization_id, program_id, capstone_title,
-              capstone_year, capstone_file, citation_count, semester, term))
+              capstone_year, capstone_file, citation_count, semester))
         conn.commit()
         return True, None
     except Exception as exc:
@@ -534,7 +536,7 @@ def get_capstone_details(capstone_id):
     try:
         mithrix.execute("""
             SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
-                   c.citation_count, c.semester, c.term,
+                   c.citation_count, c.semester,
                    k.keyword_id, k.capstone_keywords,
                    s.specialization_id, s.specialization_name,
                    p.program_id, p.program_name
@@ -554,7 +556,7 @@ def get_capstone_details(capstone_id):
 
 def update_capstone_record(capstone_id, keyword_id, specialization_id, program_id,
                            capstone_title, capstone_year, capstone_file,
-                           citation_count, semester, term):
+                           citation_count, semester):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -568,10 +570,9 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
                 capstone_file = %s,
                 citation_count = %s,
                 semester = %s,
-                term = %s
             WHERE capstone_id = %s
         """, (keyword_id, specialization_id, program_id, capstone_title,
-              capstone_year, capstone_file, citation_count, semester, term, capstone_id))
+              capstone_year, capstone_file, citation_count, semester, capstone_id))
         conn.commit()
         return True, None
     except Exception as exc:
@@ -591,7 +592,7 @@ def get_all_capstones():
     try:
         mithrix.execute("""
             SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
-                   c.citation_count, c.semester, c.term,
+                   c.citation_count, c.semester,
                    k.keyword_id, k.capstone_keywords,
                    s.specialization_id, s.specialization_name,
                    p.program_id, p.program_name
@@ -603,6 +604,7 @@ def get_all_capstones():
         """)
         return mithrix.fetchall()
     except Exception as exc:
+        print(f'Error: {exc}')
         return []
     finally:
         mithrix.close()
@@ -617,16 +619,16 @@ def delete_capstone(capstone_id):
     mithrix = conn.cursor()
     try:
         mithrix.execute("""
+            DELETE FROM capstone
+            WHERE capstone_id = %s
+        """, (capstone_id,))
+
+        mithrix.execute("""
             DELETE FROM keyword
             WHERE keyword_id IN (
                 SELECT keyword_id FROM capstone
                 WHERE capstone_id = %s
             )
-        """, (capstone_id,))
-
-        mithrix.execute("""
-            DELETE FROM capstone
-            WHERE capstone_id = %s
         """, (capstone_id,))
 
         conn.commit()
@@ -687,7 +689,6 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12):
                 c.capstone_file,
                 c.citation_count,
                 c.semester,
-                c.term,
                 k.capstone_keywords,
                 s.specialization_name,
                 p.program_name
@@ -730,6 +731,10 @@ def get_archive_years():
         conn.close()
 
 
+
+
+# ______________________________Manage Users___________________________
+
 def get_users():
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -748,6 +753,100 @@ def get_users():
         return mithrix.fetchall()
     except Exception:
         return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+def get_all_roles():
+    """Return all roles as (role_id, role_name) tuples for template dropdowns."""
+    conn = db_connect()
+    mithrix = conn.cursor()
+    try:
+        mithrix.execute('SELECT role_id, role_name FROM "role" ORDER BY role_id')
+        return mithrix.fetchall()
+    except Exception:
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def update_user_role(user_id, new_role_id, acting_admin_id):
+    """Change a user's role and write an audit entry."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        # capture old role for audit
+        mithrix.execute(
+            'SELECT role_id FROM "user" WHERE user_id = %s', (user_id,)
+        )
+        row = mithrix.fetchone()
+        old_role_id = row["role_id"] if row else None
+
+        mithrix.execute(
+            'UPDATE "user" SET role_id = %s WHERE user_id = %s',
+            (new_role_id, user_id),
+        )
+
+        log_audit(
+            mithrix, acting_admin_id,
+            "role_change", "user", user_id,
+            old_values=str(old_role_id),
+            new_values=str(new_role_id),
+        )
+
+        conn.commit()
+        return True, None
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def delete_user_account(user_id, acting_admin_id):
+    """
+    Hard-delete a user and all dependent rows.
+    Order matters — FK constraints cascade from least to most dependent.
+    """
+    conn = db_connect()
+    mithrix = conn.cursor()
+    try:
+        # audit first, while user still exists
+        log_audit(mithrix, acting_admin_id, "delete_user", "user", user_id)
+
+        # remove auth chain
+        mithrix.execute("""
+            DELETE FROM slug WHERE user_id = %s
+        """, (user_id,))
+
+        mithrix.execute("""
+            DELETE FROM login   WHERE user_id = %s
+        """, (user_id,))
+
+        mithrix.execute("""
+            DELETE FROM logOut  WHERE user_id = %s
+        """, (user_id,))
+
+        mithrix.execute("""
+            DELETE FROM signup  WHERE user_id = %s
+        """, (user_id,))
+
+        mithrix.execute("""
+            DELETE FROM contact WHERE user_id = %s
+        """, (user_id,))
+
+        # finally the user row itself
+        mithrix.execute("""
+            DELETE FROM "user"  WHERE user_id = %s
+        """, (user_id,))
+
+        conn.commit()
+        return True, None
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
     finally:
         mithrix.close()
         conn.close()
