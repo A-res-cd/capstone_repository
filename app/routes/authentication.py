@@ -28,13 +28,36 @@ def signin():
 
         if errors:
             for e in errors:
-                flash(e, "error")
-            return render_template("authentication/signin.html",
-                                   hide_nav=True, hide_header=True)
+                flash(e, "danger")
+            return render_template("authentication/signin.html", hide_nav=True, hide_header=True, locked_until=None)
+
 
         device_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         user, error = sign_in(username, password, device_ip=device_ip)
+        if error:
+            if "locked" in error.lower():
+                from app.config.mysql import db_connect
+                import psycopg2.extras
+                conn = db_connect()
+                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute("""
+                    SELECT u.locked_until
+                    FROM "user" u
+                    JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
+                    JOIN kappa k ON k.username_id = sl.username_id
+                    WHERE k.username = %s
+                    LIMIT 1
+                """, (username,))
+                row = cur.fetchone()
+                cur.close()
+                conn.close()
+                if row and row["locked_until"]:
+                    locked_until = None
+                    locked_until = row["locked_until"].isoformat()
+            else:
+                flash(error, "error")
 
+            return render_template("authentication/signin.html", hide_nav=True, hide_header=True, locked_until=locked_until)
         if user:
             session["user_id"]   = user["user_id"]
             session["username"]  = user["username"]

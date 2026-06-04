@@ -22,6 +22,33 @@
             {% endif %}
         {% endwith %}
 
+        {% if locked_until %}
+            <div class="lockout-banner" id="lockout-banner">
+                <ul class="flash-list">
+                    <li class="flash-danger">
+                        Account locked. Try again in <strong id="lockout-timer">--:--</strong>
+                    </li>
+                </ul>
+            </div>
+            <script>
+                const unlocksAt = new Date("{{ locked_until }}");
+                function updateTimer() {
+                    const now = new Date();
+                    const diff = Math.max(0, Math.floor((unlocksAt - now) / 1000));
+                    if (diff === 0) {
+                        document.getElementById("lockout-banner").innerHTML =
+                            "&#128275; Account unlocked. You may try again.";
+                        return;
+                    }
+                    const mins = String(Math.floor(diff / 60)).padStart(2, "0");
+                    const secs = String(diff % 60).padStart(2, "0");
+                    document.getElementById("lockout-timer").textContent = `${mins}:${secs}`;
+                    setTimeout(updateTimer, 1000);
+                }
+                updateTimer();
+            </script>
+        {% endif %}
+
         <form action="{{ url_for('auth.signin') }}" method="POST" class="sign-in-form" novalidate>
             <div class="form-group">
                 <label for="username">Username</label>

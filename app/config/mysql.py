@@ -26,9 +26,12 @@ def db_connect():
 # student and faculty auto detection role pattern
 STUDENT_PATTERN = re.compile(r'^2\d{9}$|^2\d{3}-\d{5}$|^[A-Z]{2,4}\d{4}-\d{5}$', re.IGNORECASE)
 PROFESSOR_PATTERN = re.compile(r'^\d{4}$')
-ADMIN_PATTERN = re.compile(r'^admin\d{3}$')
-
+ADMIN_PATTERN = re.compile(r'^admin\d{3}$', re.IGNORECASE)
 # this should detect the role thingy
+
+# validation patterns
+EMAIL_PATTERN    = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]{3,30}$')
 
 
 def detect_role(university_no):
@@ -67,7 +70,25 @@ def log_audit(mithrix, user_id, action_type, affected_table, affected_record_id,
 # ___________________________________this be the sign up i think maybe______________________________
 def create_user(first_name, middle_name, last_name, university_no, email, username, password):
 
+    #strip and basic validation
+    first_name    = first_name.strip()    if first_name    else ""
+    middle_name   = middle_name.strip()   if middle_name   else ""
+    last_name     = last_name.strip()     if last_name     else ""
+    university_no = university_no.strip() if university_no else ""
+    email         = email.strip()         if email         else ""
+    username      = username.strip()      if username      else ""
     role_name = detect_role(university_no)
+
+    #validation
+    if not all([first_name, last_name, university_no, email, username, password]):
+        return False, "All required fields must be filled in."
+    if len(password) < 6:
+        return False, "Password must be at least 6 characters."
+    if not EMAIL_PATTERN.match(email):
+        return False, "Invalid email format."
+    if not USERNAME_PATTERN.match(username):
+        return False, "Username must be 3-30 characters, letters, numbers, and underscores only."
+    
     if role_name is None:
         print(f"University number '{university_no}' did not match any known patterns.")
         return False, ("University number format not recognized")
@@ -153,7 +174,8 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         conn.close()
 
 # ____________________________sign in or authentication idk_______________________
-
+LOCKOUT_THRESHOLD = 5 # number of allowed failed attempts before lockout
+LOCKOUT_DURATION = 20 # lockout duration in minutes
 
 def sign_in(username, password, device_ip=None):
     conn = db_connect()
@@ -162,7 +184,7 @@ def sign_in(username, password, device_ip=None):
 
     try:
         mithrix.execute("""
-        SELECT u.user_id, k.username, r.password AS password_hash, ro.role_id, ro.role_name
+        SELECT u.user_id, u.locked_until, k.username, r.password AS password_hash, ro.role_id, ro.role_name
         FROM kappa k
         JOIN slug sl ON sl.username_id = k.username_id AND sl.is_current = TRUE
         JOIN ror   r  ON r.password_id  = sl.password_id
@@ -175,16 +197,58 @@ def sign_in(username, password, device_ip=None):
         row = mithrix.fetchone()
 
         if not row:
-            return None, "username not found"
+            return None, "Invalid username or password."
+        
+#start of new sign in with lockout and audit logging (if the bruth force defence is not needed delete the code from here to the end of the next comment)        
+        if row["locked_until"]:
+            locked_until = row["locked_until"]
+            if locked_until.tzinfo is None:
+                locked_until = locked_until.replace(tzinfo=timezone.utc)
+            if now < locked_until:
+                remaining = int((locked_until - now).total_seconds() // 60) + 1
+                return None, f"Account locked. Try again in {remaining} minute(s)."
+            else:
+                # lockout expired, clear it and continue
+                mithrix.execute("""
+                    UPDATE "user" SET locked_until = NULL WHERE user_id = %s
+                """, (row["user_id"],))
+                conn.commit()  # commit the clear before continuing
 
         if not check_password_hash(row["password_hash"], password):
-            return None, "incorect password"
 
+            mithrix.execute("""
+                INSERT INTO login (user_id, log_in_time, login_device_ip, failed_attempts)
+                VALUES (%s, %s, %s, 1)
+            """, (row["user_id"], now, device_ip))
+
+            mithrix.execute("""
+                SELECT COUNT(*) AS fails
+                FROM login
+                WHERE user_id = %s
+                  AND failed_attempts > 0
+                  AND log_in_time >= NOW() - (%s * INTERVAL '1 minute')
+            """, (row["user_id"], LOCKOUT_DURATION))
+            fails = mithrix.fetchone()["fails"]
+
+            if fails >= LOCKOUT_THRESHOLD:
+                from datetime import timedelta
+                mithrix.execute("""
+                    UPDATE "user"
+                    SET locked_until = %s
+                    WHERE user_id = %s
+                """, (now + timedelta(minutes=LOCKOUT_DURATION), row["user_id"]))
+                conn.commit()
+                return None, f"Too many failed attempts. Account locked for {LOCKOUT_DURATION} minutes."
+
+            conn.commit()
+            remaining_attempts = LOCKOUT_THRESHOLD - fails
+            return None, f"Invalid username or password. {remaining_attempts} attempt(s) remaining before lockout."
+        
         user_id = row["user_id"]
 
         mithrix.execute("""
-            INSERT INTO login (user_id, log_in_time, login_device_ip)
-            VALUES(%s, %s, %s)
+            INSERT INTO login (user_id, log_in_time, login_device_ip, failed_attempts)
+            VALUES (%s, %s, %s, 0)
             RETURNING log_in_id
         """, (user_id, now, device_ip))
         log_in_id = mithrix.fetchone()["log_in_id"]
@@ -194,24 +258,27 @@ def sign_in(username, password, device_ip=None):
         conn.commit()
 
         return {
-            "user_id": user_id,
-            "username": row["username"],
-            "role_id": row["role_id"],
+            "user_id":   user_id,
+            "username":  row["username"],
+            "role_id":   row["role_id"],
             "role_name": row["role_name"],
         }, None
 
     except Exception as exc:
         conn.rollback()
-        return None, f"Database error: {exc}"   
+        return None, f"Database error: {exc}"
 
     finally:
         mithrix.close()
         conn.close()
+#end of new sign in with lockout and audit logging
+
+
 
 
 # _______________forgot password stuffs_____________
-OTP_EXPIRY_MINUTES = 5
-OTP_MAX_ATTEMPTS = 3
+OTP_EXPIRY_MINUTES = 4
+OTP_MAX_ATTEMPTS = 2
 
 
 def lookup_user_for_reset(username, email):
@@ -569,7 +636,7 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
                 capstone_year = %s,
                 capstone_file = %s,
                 citation_count = %s,
-                semester = %s,
+                semester = %s
             WHERE capstone_id = %s
         """, (keyword_id, specialization_id, program_id, capstone_title,
               capstone_year, capstone_file, citation_count, semester, capstone_id))
@@ -618,18 +685,27 @@ def delete_capstone(capstone_id):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
+        # get keyword_id for potential cleanup
         mithrix.execute("""
-            DELETE FROM capstone
-            WHERE capstone_id = %s
+            SELECT keyword_id FROM capstone WHERE capstone_id = %s
         """, (capstone_id,))
+        row = mithrix.fetchone()
+        if not row:
+            return False, "Capstone not found."
+        keyword_id = row[0]
 
         mithrix.execute("""
-            DELETE FROM keyword
-            WHERE keyword_id IN (
-                SELECT keyword_id FROM capstone
-                WHERE capstone_id = %s
-            )
+            DELETE FROM capstone WHERE capstone_id = %s
         """, (capstone_id,))
+        
+        #delete the keyword if no other capstone is using it
+        mithrix.execute("""
+            DELETE FROM keyword
+            WHERE keyword_id = %s
+              AND NOT EXISTS (
+                  SELECT 1 FROM capstone WHERE keyword_id = %s
+              )
+        """, (keyword_id, keyword_id))
 
         conn.commit()
         return True, "Capstone deleted successfully"
