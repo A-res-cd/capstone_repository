@@ -24,16 +24,15 @@
         {% endwith %}
 
         <form action="{{ url_for('auth.verify_otp_route') }}" method="POST" class="forgot-password-form" novalidate>
+            {{ form.hidden_tag() }}
+            
             <div class="form-group">
-                <label for="otp">One-time password</label>
-                <input type="text" id="otp" name="otp"
-                       class="otp-input"
-                       placeholder="000000"
-                       maxlength="6"
-                       inputmode="numeric"
-                       autocomplete="one-time-code"
-                       required>
-                <p class="otp-timer">Time reauthing: <span id="countdown">5:00</span></p>
+                {{ form.otp.label }}
+                {{ form.otp(id="otp", class="otp-input", placeholder="000000", maxlength="6", inputmode="numeric", autocomplete="one-time-code") }}
+                <p class="otp-timer">Time remaining: <span id="countdown">5:00</span></p>
+                {% for error in form.otp.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
             </div>
 
             <button type="submit" class="btn btn-primary" id="submit-btn">Verify OTP</button>

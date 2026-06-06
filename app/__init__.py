@@ -1,8 +1,11 @@
 from flask import Flask
 from flask_mail import Mail
 from config import Config
+from flask_wtf.csrf import CSRFProtect
 
 mail = Mail()
+
+csrf = CSRFProtect()
 
 def create_app():
     app = Flask(__name__)
