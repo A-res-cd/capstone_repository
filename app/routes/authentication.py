@@ -60,9 +60,13 @@ def signin():
             session["role_id"]   = user["role_id"]
             session["role_name"] = user["role_name"]
 
-            if user["role_id"] == 1:    # Admin
+            if user["role_id"] == 3:    # Admin
                 return redirect(url_for("admin.analytics"))
-            elif user["role_id"] == 4:  # Student
+            elif user["role_id"] == 4:  # Capstone Professor
+                return redirect(url_for("admin.view_capstone_repository"))
+            elif user["role_id"] == 2:  # Faculty
+                return redirect(url_for("pages.browse"))
+            else:                        # Student (1)
                 return redirect(url_for("pages.browse"))
         else:
             flash(error, "error")

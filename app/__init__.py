@@ -12,6 +12,7 @@ def create_app():
     app.config.from_object(Config)
 
     mail.init_app(app)
+    csrf.init_app(app)
     
     app.secret_key = app.config["SECRET_KEY"]
 

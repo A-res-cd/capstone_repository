@@ -7,6 +7,7 @@ from app.config.mysql import (
     get_capstone_details, update_capstone_record, update_keyword,
     delete_capstone, get_users, update_user_role, get_all_roles
 )
+from app.routes.decorators import role_required
 
 admin = Blueprint("admin", __name__)
 
@@ -29,6 +30,7 @@ def _save_file(file_obj):
     file_obj.save(os.path.join(UPLOAD_FOLDER, filename))
     return filename
 
+@role_required(3)  # Admin role only
 
 # ── Static pages ──────────────────────────────────────────────────────────────
 
