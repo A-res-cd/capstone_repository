@@ -30,8 +30,6 @@ def _save_file(file_obj):
     file_obj.save(os.path.join(UPLOAD_FOLDER, filename))
     return filename
 
-@role_required(3)  # Admin role only
-
 # ── Static pages ──────────────────────────────────────────────────────────────
 
 @admin.route("/analytics")
@@ -41,12 +39,14 @@ def analytics():
 # ── User management ─────────────────────────────────────────────────────────
 
 @admin.route("/manage_users")
+@role_required(3)
 def manage_users():
     users = get_users()
     roles = get_all_roles()
     return render_template("admin/manage_users.html", users=users, roles=roles, hide_nav=False)
 
 @admin.route("/manage_users/update_role/<int:user_id>", methods=["POST"])
+@role_required(3)
 def update_role(user_id):
     new_role_id     = request.form.get("role_id")
     acting_admin_id = request.form.get("acting_admin_id")
@@ -62,6 +62,7 @@ def update_role(user_id):
 
 
 @admin.route("/manage_users/delete/<int:user_id>", methods=["POST"])
+@role_required(3)
 def delete_user(user_id):
     acting_admin_id = request.form.get("acting_admin_id")
     ok, err = delete_user_account(user_id, acting_admin_id)
@@ -72,6 +73,7 @@ def delete_user(user_id):
 # ── Requests page (static for now) ─────────────────────────────────────────
 
 @admin.route("/requests")
+@role_required(3)
 def requests():
     return render_template("admin/requests.html", hide_nav=False)
 
@@ -81,6 +83,7 @@ UPLOAD_FOLDER = 'app/static/uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx'}
 
 @admin.route("/repository")
+@role_required(3)
 def view_capstone_repository():
     capstones       = get_all_capstones()
     programs        = get_programs()
@@ -97,6 +100,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @admin.route("/repository/create", methods=["POST"])
+@role_required(3)
 def admin_create_capstone():
     programs = get_programs()
     specializations = get_specializations()
@@ -147,6 +151,7 @@ def admin_create_capstone():
 
 
 @admin.route("/repository/update/<int:capstone_id>", methods=["POST"])
+@role_required(3)
 def update_capstone(capstone_id):
     programs = get_programs()
     specializations = get_specializations()
@@ -209,6 +214,7 @@ def update_capstone(capstone_id):
 
 
 @admin.route("/delete_capstone/<int:capstone_id>", methods=["POST"])
+@role_required(3)
 def delete_capstone_route(capstone_id):
     try:
         success, message = delete_capstone(capstone_id)
