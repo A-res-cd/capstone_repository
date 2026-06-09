@@ -49,11 +49,15 @@
   <!-- Right: PDF viewer -->
   <div class="pdf-panel">
     <div class="pdf-toolbar">
-      <span class="pdf-label">Abstract Preview</span>
+      <span class="pdf-label">{% if max_pages == 1 %}Abstract Preview{% else %}Full Document{% endif %}</span>
       <div class="pdf-controls">
+        {% if max_pages is none %}
         <button id="prev-page" onclick="changePage(-1)">‹ Prev</button>
         <span id="page-info">Page <span id="current-page">1</span> / <span id="total-pages">—</span></span>
         <button id="next-page" onclick="changePage(1)">Next ›</button>
+        {% else %}
+        <span id="page-info">Abstract Page 1</span>
+        {% endif %}
       </div>
     </div>
 
@@ -72,6 +76,7 @@
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
   const PDF_URL = "{{ url_for('static', filename=capstone.capstone_file) }}";
+  const MAX_PAGES = {{ max_pages | tojson }};
   let pdfDoc = null;
   let currentPage = 1;
   const scale = 1.5;
@@ -88,17 +93,19 @@
 
   function changePage(delta) {
     const next = currentPage + delta;
-    if (next < 1 || next > pdfDoc.numPages) return;
+    const maxAllowed = MAX_PAGES ? MAX_PAGES : pdfDoc.numPages;
+    if (next < 1 || next > maxAllowed) return;
     currentPage = next;
     renderPage(currentPage);
   }
 
   pdfjsLib.getDocument(PDF_URL).promise.then(doc => {
     pdfDoc = doc;
+    const maxAllowed = MAX_PAGES ? MAX_PAGES : doc.numPages;
     document.getElementById('total-pages').textContent = doc.numPages;
     document.getElementById('pdf-loading').style.display = 'none';
     // Page 2 is usually the abstract — adjust if needed
-    currentPage = Math.min(2, doc.numPages);
+    currentPage = Math.min(1, maxAllowed, doc.numPages);
     renderPage(currentPage);
   }).catch(err => {
     document.getElementById('pdf-loading').textContent = 'Could not load PDF.';

@@ -219,6 +219,7 @@ def sign_in(username, password, device_ip=None):
             mithrix.execute("""
                 INSERT INTO login (user_id, log_in_time, login_device_ip, failed_attempts)
                 VALUES (%s, %s, %s, 1)
+                RETURNING log_in_id
             """, (row["user_id"], now, device_ip))
 
             mithrix.execute("""
@@ -245,6 +246,12 @@ def sign_in(username, password, device_ip=None):
             return None, f"Invalid username or password. {remaining_attempts} attempt(s) remaining before lockout."
         
         user_id = row["user_id"]
+
+        mithrix.execute("""
+            UPDATE login
+            SET failed_attempts = 0
+            WHERE user_id = %s AND failed_attempts > 0
+        """, (row["user_id"],))
 
         mithrix.execute("""
             INSERT INTO login (user_id, log_in_time, login_device_ip, failed_attempts)

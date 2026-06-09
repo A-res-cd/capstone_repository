@@ -118,7 +118,18 @@
                         </p>
                     </div>
                     <div class="sidebar-actions">
-                        <button class="btn-abstract">View Abstract</button>
+                        {% if session.get('role_name') == 'Admin' %}
+                        <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
+                            id="sb-abstract-link" 
+                            class="btn-abstract"
+                            data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
+                            target="_blank"
+                            rel="noopener noreferrer">
+                            View Abstract
+                        </a>
+                        {% else %}
+                        <button class="btn-abstract" disabled title="Admin only">View Abstract</button>
+                        {% endif %}
                         <button class="btn-manuscript">Request Full Manuscript</button>
                     </div>
                 </div>
@@ -138,9 +149,10 @@
 {% block extra_js %}
 <script>
 // Click any row → update the sidebar without a page reload
-document.querySelectorAll('.archive-card').forEach(card => {
+const archiveCards = document.querySelectorAll('.archive-card');
+archiveCards.forEach(card => {
     card.addEventListener('click', () => {
-        document.querySelectorAll('.archive-card').forEach(c => c.classList.remove('active'));
+        archiveCards.forEach(c => c.classList.remove('active'));
         card.classList.add('active');
 
         document.getElementById('sb-title').textContent     = card.dataset.title;
@@ -150,7 +162,29 @@ document.querySelectorAll('.archive-card').forEach(card => {
         document.getElementById('sb-year').textContent      = card.dataset.year;
         document.getElementById('sb-term').textContent      = card.dataset.semester + ' – ' + card.dataset.term;
         document.getElementById('sb-citations').textContent = card.dataset.citations;
+
+        const abstractLink = document.getElementById('sb-abstract-link');
+        if (abstractLink) {
+            const baseUrl = abstractLink.dataset.baseUrl;
+            abstractLink.href = baseUrl.replace('/0', '/' + card.dataset.id);
+        }
     });
 });
+
+const abstractLink = document.getElementById('sb-abstract-link');
+if (abstractLink && archiveCards.length) {
+    const baseUrl = abstractLink.dataset.baseUrl;
+    abstractLink.href = baseUrl.replace('/0', '/' + archiveCards[0].dataset.id);
+    archiveCards[0].classList.add('active');
+
+    abstractLink.addEventListener('click', (event) => {
+        const activeCard = document.querySelector('.archive-card.active') || archiveCards[0];
+        if (!activeCard) return;
+        const targetId = activeCard.dataset.id;
+        if (!targetId) return;
+        abstractLink.href = baseUrl.replace('/0', '/' + targetId);
+    });
+}
+
 </script>
 {% endblock %}

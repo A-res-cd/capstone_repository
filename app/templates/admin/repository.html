@@ -74,12 +74,13 @@
                                     data-spec="{{ c.specialization_id }}"
                                     data-year="{{ c.capstone_year }}"
                                     data-semester="{{ c.semester }}"
+                                    data-term="{{ c.term }}"
                                     data-citations="{{ c.citation_count }}"
                                     data-file="{{ c.capstone_file }}">
                                     <i class="bx bx-edit-alt"></i> Edit
                                 </button>
                                 <button class="btn-row btn-row--delete"
-                                    onclick="confirmDelete({{ c.capstone_id }})">
+                                    onclick="confirmDelete('{{ c.capstone_id }}')">
                                     <i class="bx bx-trash"></i> Delete
                                 </button>
                             </div>

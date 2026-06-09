@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, session, url_for, flash
 from werkzeug.utils import secure_filename
 import os
 from app.config.mysql import (
@@ -227,3 +227,27 @@ def delete_capstone_route(capstone_id):
         flash(f"Error: {e}", "danger")
 
     return redirect(url_for("admin.view_capstone_repository"))
+
+
+@admin.route("/repository/view/<int:capstone_id>")
+@role_required(3)
+def view_capstone(capstone_id):
+    capstone = get_capstone_details(capstone_id)
+    is_admin = session.get("role_id") == 3
+    max_pages = None if is_admin else 1  # Non-admin sees only page 1
+    
+    return render_template(
+        "admin/view_capstone.html",
+        capstone=capstone,
+        max_pages=max_pages
+    )
+
+#this is new
+@admin.route("/repository/pdf/<int:capstone_id>")
+@role_required(3)
+def view_capstone_pdf(capstone_id):
+    capstone = get_capstone_details(capstone_id)
+    if not capstone:
+        flash("Capstone not found.", "danger")
+        return redirect(url_for("admin.view_capstone_repository"))
+    return render_template("admin/view_capstone.html", capstone=capstone, max_pages=None)
