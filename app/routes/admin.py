@@ -5,7 +5,8 @@ from app.config.mysql import (
     delete_user_account, get_all_capstones, get_programs, get_specializations, get_used_keyword,
     insert_keywords, create_capstone_project,
     get_capstone_details, update_capstone_record, update_keyword,
-    delete_capstone, get_users, update_user_role, get_all_roles
+    delete_capstone, get_users, update_user_role, get_all_roles,
+    get_all_requests, review_request
 )
 from app.routes.decorators import role_required
 
@@ -74,8 +75,9 @@ def delete_user(user_id):
 
 @admin.route("/requests")
 @role_required(3)
-def requests():
-    return render_template("admin/requests.html", hide_nav=False)
+def view_requests():
+    requests = get_all_requests()
+    return render_template("admin/requests.html", hide_nav=False, requests=requests)
 
 
 # ── Repository (list + create form on same page) ──────────────────────────────
@@ -224,7 +226,7 @@ def delete_capstone_route(capstone_id):
         else:
             flash(message, "danger")
     except Exception as e:
-        flash(f"Error: {e}", "danger")
+        flash(f"Error: {e}", "danger") 
 
     return redirect(url_for("admin.view_capstone_repository"))
 
@@ -251,3 +253,16 @@ def view_capstone_pdf(capstone_id):
         flash("Capstone not found.", "danger")
         return redirect(url_for("admin.view_capstone_repository"))
     return render_template("admin/view_capstone.html", capstone=capstone, max_pages=None)
+
+
+@admin.route("/repository/decide/<int:request_id>", methods=["POST"])
+@role_required(3)   
+def decide_request(request_id):
+    status = request.form.get("status")
+    status_reason = request.form.get("status_reason", "")
+    reviewed_by = session.get("user_id")
+
+    ok, err = review_request(request_id, status, status_reason, reviewed_by)
+    flash("Request updated." if ok else f"Error: {err}",
+          "success" if ok else "danger")
+    return redirect(url_for("admin.view_requests"))

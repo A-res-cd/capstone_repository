@@ -130,7 +130,12 @@
                         {% else %}
                         <button class="btn-abstract" disabled title="Admin only">View Abstract</button>
                         {% endif %}
-                        <button class="btn-manuscript">Request Full Manuscript</button>
+
+                        <a href="{{ url_for('pages.manuscript_request_page', capstone_id=sidebar_project.capstone_id) }}"
+                            id="sb-request-link"
+                            data-base-url="{{ url_for('pages.manuscript_request_page', capstone_id=0) }}">
+                            <button class="btn-manuscript">Request Full Manuscript</button>
+                        </a>
                     </div>
                 </div>
                 {% else %}
@@ -167,6 +172,12 @@ archiveCards.forEach(card => {
         if (abstractLink) {
             const baseUrl = abstractLink.dataset.baseUrl;
             abstractLink.href = baseUrl.replace('/0', '/' + card.dataset.id);
+        }
+
+        const requestLink = document.getElementById('sb-request-link');
+        if (requestLink){
+            const baseRequrl = requestLink.dataset.baseUrl;
+            requestLink.href = baseReqUrl.replace('0/', '/' + card.dataset.id);
         }
     });
 });

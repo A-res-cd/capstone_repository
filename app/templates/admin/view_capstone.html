@@ -79,7 +79,7 @@
   const MAX_PAGES = {{ max_pages | tojson }};
   let pdfDoc = null;
   let currentPage = 1;
-  const scale = 1.5;
+  const scale = 1.5;   
 
   async function renderPage(num) {
     const page = await pdfDoc.getPage(num);

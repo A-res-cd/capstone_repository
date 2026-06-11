@@ -933,3 +933,128 @@ def delete_user_account(user_id, acting_admin_id):
     finally:
         mithrix.close()
         conn.close()
+
+
+def request_fullview(user_id, capstone_id, request_reason):
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    now = datetime.now(timezone.utc)
+
+    try:
+        mithrix.execute("""
+            INSERT INTO request(user_id, capstone_id, request_status, request_reason, request_date)
+            VALUES(%s, %s, 'pending', %s,  %s)
+            RETURNING request_id
+        """, (user_id, capstone_id, request_reason, now))
+
+
+        request_id = mithrix.fetchone()["request_id"]
+        log_audit(mithrix, user_id, "manuscript_request", "manuscript_request", request_id)
+
+        conn.commit()
+        return True, None
+    
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
+    
+    finally:
+        mithrix.close()
+        conn.close()
+
+def get_all_requests():
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        mithrix.execute("""
+            SELECT r.*, c.capstone_title,
+            CONCAT_WS('', u.user_first_name, u.user_last_name) AS requester_name
+            FROM request r
+            JOIN capstone c ON c.capstone_id = r.capstone_id
+            JOIN "user" u ON u.user_id = r.user_id
+            ORDER BY r.request_date DESC
+        """)
+
+        return mithrix.fetchall()
+    
+    except Exception as exc:
+        return []
+    
+    finally:
+        mithrix.close()
+        conn.close()
+
+def review_request(request_id, request_status, status_reason, reviewed_by):
+    conn = db_connect()
+    mithrix = conn.cursor()
+    now = datetime.now(timezone.utc)
+
+    try:
+        mithrix.execute("""
+            UPDATE request SET 
+            request_status = %s,
+            status_reason = %s,
+            reviewed_by = %s,
+            decision_date = %s
+            WHERE request_id = %s         
+        """, (request_status, status_reason, reviewed_by, now, request_id))
+
+        conn.commit()
+        return True, None
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
+    
+    finally:
+        mithrix.close()
+        conn.close()
+
+#I DONT WANNA DO THIS ANYMOREEEEEEEEEE
+
+def get_user_requests(user_id):
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        mithrix.execute("""
+            SELECT r.*, c.capstone_title, c.capstone_id, s.specialization_name, c.capstone_year
+            FROM request r
+            JOIN capstone c ON c.capstone_id  = r.capstone_id
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            WHERE r.user_id = %s
+            ORDER BY r.request_date DESC
+        """, (user_id, ))
+
+        return mithrix.fetchall()
+    except Exception as exc:
+        return []
+    
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+#FAHHHHH ANG DAMI FUNCTIONSSSSSSSS IM SICK AND TIRED OF THISSSSSSS
+def cancel_manuscript_request(request_id, user_id):
+    conn = db_connect()
+    mithrix = conn.cursor()
+
+    try:
+        mithrix.execute("""
+            UPDATE request
+            SET request_status = 'cancelled'
+            WHERE request_id = %s AND user_id = %s
+            AND request_status = 'pending'
+        """, (request_id, user_id))
+        
+        conn.commit()
+        return True, None
+    
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
+    
+    finally:
+        mithrix.close()
+        conn.close()
