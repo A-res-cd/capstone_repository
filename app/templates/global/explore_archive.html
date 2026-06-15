@@ -131,10 +131,11 @@
                         <button class="btn-abstract" disabled title="Admin only">View Abstract</button>
                         {% endif %}
 
-                        <a href="{{ url_for('pages.manuscript_request_page', capstone_id=sidebar_project.capstone_id) }}"
-                            id="sb-request-link"
-                            data-base-url="{{ url_for('pages.manuscript_request_page', capstone_id=0) }}">
-                            <button class="btn-manuscript">Request Full Manuscript</button>
+                        <a id="sb-request-link"
+                           class="btn-manuscript"
+                           href="{{ url_for('pages.manuscript_request_page', capstone_id=sidebar_project.capstone_id) }}"
+                           data-base-url="{{ url_for('pages.manuscript_request_page', capstone_id=0) }}">
+                            Request Full Manuscript
                         </a>
                     </div>
                 </div>
@@ -151,51 +152,7 @@
 </section>
 {% endblock %}
 
+
 {% block extra_js %}
-<script>
-// Click any row → update the sidebar without a page reload
-const archiveCards = document.querySelectorAll('.archive-card');
-archiveCards.forEach(card => {
-    card.addEventListener('click', () => {
-        archiveCards.forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-
-        document.getElementById('sb-title').textContent     = card.dataset.title;
-        document.getElementById('sb-program').textContent   = card.dataset.program;
-        document.getElementById('sb-spec').textContent      = card.dataset.spec;
-        document.getElementById('sb-keywords').textContent  = card.dataset.keywords;
-        document.getElementById('sb-year').textContent      = card.dataset.year;
-        document.getElementById('sb-term').textContent      = card.dataset.semester + ' – ' + card.dataset.term;
-        document.getElementById('sb-citations').textContent = card.dataset.citations;
-
-        const abstractLink = document.getElementById('sb-abstract-link');
-        if (abstractLink) {
-            const baseUrl = abstractLink.dataset.baseUrl;
-            abstractLink.href = baseUrl.replace('/0', '/' + card.dataset.id);
-        }
-
-        const requestLink = document.getElementById('sb-request-link');
-        if (requestLink){
-            const baseRequrl = requestLink.dataset.baseUrl;
-            requestLink.href = baseReqUrl.replace('0/', '/' + card.dataset.id);
-        }
-    });
-});
-
-const abstractLink = document.getElementById('sb-abstract-link');
-if (abstractLink && archiveCards.length) {
-    const baseUrl = abstractLink.dataset.baseUrl;
-    abstractLink.href = baseUrl.replace('/0', '/' + archiveCards[0].dataset.id);
-    archiveCards[0].classList.add('active');
-
-    abstractLink.addEventListener('click', (event) => {
-        const activeCard = document.querySelector('.archive-card.active') || archiveCards[0];
-        if (!activeCard) return;
-        const targetId = activeCard.dataset.id;
-        if (!targetId) return;
-        abstractLink.href = baseUrl.replace('/0', '/' + targetId);
-    });
-}
-
-</script>
+<script src="{{ url_for('static', filename='js/archive_sidebar.js') }}"></script>
 {% endblock %}

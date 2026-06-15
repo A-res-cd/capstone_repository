@@ -1,11 +1,110 @@
 {% extends "base.html" %}
+{% block title %}Manuscript Requests{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/requests.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/archive.css') }}">
 {% endblock %}
 
-{% block title %}Manage Requests{% endblock %}
-
 {% block content %}
+<section class="explore-archive-section">
+    <div class="explore-archive-container">
+        <h2 class="section-title">Manuscript Requests</h2>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <p><strong>{{ message }}</strong></p>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="archive-layout-wrapper">
+
+            <!-- Left: Requests list -->
+            <div class="archive-main-content">
+                {% if requests %}
+                <div class="archive-table-header">
+                    <span class="col-title">Requester</span>
+                    <span class="col-program">Capstone Title</span>
+                    <span class="col-year">Date Submitted</span>
+                    <span class="col-term">Status</span>
+                </div>
+
+                <div class="archive-grid" id="requests-grid">
+                    {% for req in requests %}
+                    <div class="archive-card request-row"
+                         data-request-id="{{ req.request_id }}"
+                         data-requester="{{ req.requester_name }}"
+                         data-capstone="{{ req.capstone_title }}"
+                         data-reason="{{ req.request_reason }}"
+                         data-status="{{ req.request_status }}"
+                         data-feedback="{{ req.status_reason or '' }}"
+                         data-date="{{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}"
+                         data-capstone-id="{{ req.capstone_id }}">
+                        <div class="col-title"><strong>{{ req.requester_name }}</strong></div>
+                        <div class="col-program">{{ req.capstone_title }}</div>
+                        <div class="col-year">{{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}</div>
+                        <div class="col-term">{{ req.request_status | capitalize }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="archive-empty">
+                    <i class="bx bx-folder-open"></i>
+                    <p>No requests found.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right: Sidebar -->
+            <aside class="archive-sidebar">
+                <div class="sidebar-card sidebar-empty" id="sidebar-empty">
+                    <i class="bx bx-file-blank"></i>
+                    <p>Select a request to see details.</p>
+                </div>
+
+                <div class="sidebar-card" id="sidebar-detail" style="display: none;">
+                    <h3 id="sd-capstone"></h3>
+
+                    <div class="sidebar-meta">
+                        <label>Requester</label>
+                        <p id="sd-requester"></p>
+
+                        <label>Date Submitted</label>
+                        <p id="sd-date"></p>
+
+                        <label>Status</label>
+                        <p id="sd-status"></p>
+
+                        <label>Reason</label>
+                        <p id="sd-reason"></p>
+                    </div>
+
+                    <hr>
+
+                    <div id="sd-action-form">
+                        <form method="POST" id="decide-form" action="">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <label for="status_reason">Feedback / Reason (optional)</label>
+                            <textarea name="status_reason" id="status_reason" rows="4"></textarea>
+                            <div class="sidebar-actions">
+                                <button type="submit" name="status" value="approved" class="btn-manuscript">Approve</button>
+                                <button type="submit" name="status" value="rejected" class="btn-abstract">Reject</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="sd-already-decided" style="display: none;">
+                        <label>Admin Feedback</label>
+                        <p id="sd-feedback"></p>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </div>
+</section>
+
+<script>
+    const BASE_DECIDE_URL = "{{ url_for('admin.decide_request', request_id=0) }}";
+</script>
+<script src="{{ url_for('static', filename='js/reqeust_sidebar.js') }}"></script>
 {% endblock %}
