@@ -510,10 +510,12 @@ def create_capstone_project(keyword_id, specialization_id, program_id,
                         capstone_title, capstone_year, capstone_file,
                         citation_count, semester)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING capstone_id
         """, (keyword_id, specialization_id, program_id, capstone_title,
               capstone_year, capstone_file, citation_count, semester))
+        capstone_id = mithrix.fetchone()[0]
         conn.commit()
-        return True, None
+        return True, capstone_id
     except Exception as exc:
         conn.rollback()
         return False, f"Database error: {exc}"
@@ -700,6 +702,11 @@ def delete_capstone(capstone_id):
         if not row:
             return False, "Capstone not found."
         keyword_id = row[0]
+
+        # delete related capAuth entries first (authors/advisers)
+        mithrix.execute("""
+            DELETE FROM capAuth WHERE capstone_id = %s
+        """, (capstone_id,))
 
         mithrix.execute("""
             DELETE FROM capstone WHERE capstone_id = %s
@@ -1055,6 +1062,130 @@ def cancel_manuscript_request(request_id, user_id):
         conn.rollback()
         return False, f"Database error: {exc}"
     
+    finally:
+        mithrix.close()
+        conn.close()
+
+def add_citations(capstone_id):
+    conn = db_connect()
+    mithrix = conn.cursor()
+
+    try:
+        mithrix.execute("""
+            UPDATE capstone
+            SET citation_count = citation_count + 1
+            WHERE capstone_id = %s
+        """, (capstone_id, ))
+
+        conn.commit()
+        return True, None
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database Error: {exc}"
+    
+    finally:
+        mithrix.close()
+        conn.close()
+
+def get_capstone_authors(casptone_id):
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        mithrix.execute("""
+            SELECT a.aut_first_name, a.aut_middle_name, a.aut_last_name, ca.author_order
+            FROM capAuth ca
+            JOIN Author a On a.author_id = ca.author_id
+            WHERE ca.capstone_id = %s AND ca.role = 'Author'
+            ORDER BY ca.author_order ASC
+        """, (casptone_id,))
+
+        return mithrix.fetchall()
+    
+    except Exception:
+        return[]
+    
+    finally:
+        mithrix.close()
+        conn.close()
+
+def get_capstone_people(capstone_id):
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        mithrix.execute("""
+            SELECT a.aut_first_name, a.aut_middle_name, a.aut_last_name, ca.author_order, ca.role
+            FROM capAuth ca
+            JOIN Author a ON a.author_id = ca.author_id
+            WHERE ca.capstone_id = %s
+            ORDER BY ca.author_order ASC
+        """, (capstone_id, )) 
+
+        return mithrix.fetchall()
+    
+    except Exception as exc:
+        return []
+    
+    finally:
+        conn.close()
+        mithrix.close()
+
+def set_capstone_people(capstone_id, authors, adviser):
+    conn = db_connect()
+    mithrix = conn.cursor()
+
+    try:
+        mithrix.execute("""
+            DELETE FROM capAuth WHERE capstone_id = %s
+                        
+        """, (capstone_id, ))
+
+        order = 1
+        for person in authors:
+            first = (person.get("first") or "").strip()
+            middle = (person.get("middle") or "").strip()
+            last = (person.get("last") or "").strip()
+            
+            if not first and not last:
+                continue
+
+            mithrix.execute("""
+                INSERT INTO Author (aut_first_name, aut_middle_name, aut_last_name)
+                VALUES (%s, %s, %s)
+                RETURNING author_id
+            """, (first, middle or None, last))
+
+            author_id = mithrix.fetchone()[0]
+
+            mithrix.execute("""
+                INSERT INTO capAuth (capstone_id, author_id, author_order, role)
+                VALUES (%s, %s, %s, 'Author')
+            """, (capstone_id, author_id, order))
+
+            order += 1
+
+        adv_first = (adviser.get("first") or "").strip()
+        adv_middle = (adviser.get("middle") or "").strip()
+        adv_last = (adviser.get("last") or "").strip()
+
+        mithrix.execute("""
+            INSERT INTO Author (aut_first_name, aut_middle_name, aut_last_name)
+            VALUES (%s, %s, %s)
+            RETURNING author_id
+        """, (adv_first, adv_middle or None, adv_last))
+        adviser_id = mithrix.fetchone()[0]
+
+        mithrix.execute("""
+            INSERT INTO capAuth (capstone_id, author_id, author_order, role)
+            VALUES (%s, %s, %s, 'Adviser')
+        """, (capstone_id, adviser_id, order))
+
+        conn.commit()
+        return True, None
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
     finally:
         mithrix.close()
         conn.close()

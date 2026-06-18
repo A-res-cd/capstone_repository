@@ -92,7 +92,7 @@
             {# ── Sidebar ── #}
             <aside class="archive-sidebar">
                 {% if sidebar_project %}
-                <div class="sidebar-card" id="sidebar-card">
+                <div class="sidebar-card" id="sidebar-card" data-capstone-id="{{ sidebar_project.capstone_id }}">
                     <h3 id="sb-title">{{ sidebar_project.capstone_title }}</h3>
                     <div class="sidebar-meta">
                         <label>Program</label>
@@ -138,6 +138,9 @@
                             Request Full Manuscript
                         </a>
                     </div>
+                    <button type="button" id="sb-cite-btn" class="btn-cite">
+                        Cite
+                    </button>
                 </div>
                 {% else %}
                 <div class="sidebar-card sidebar-empty">
@@ -146,6 +149,19 @@
                 </div>
                 {% endif %}
             </aside>
+
+            {# ── pop up citation ── #}
+            <div id="cite-modal-overlay">
+                <div id="cite-modal">
+                    <button type="button" id="cite-modal-close" aria-label="Close">&times;</button>
+                    <h3>APA 7 Citation</h3>
+                    <p id="cite-modal-text"></p>
+                    <div class="sidebar-actions">
+                        <button type="button" id="cite-modal-copy" class="btn-manuscript">Copy</button>
+                    </div>
+                    <p id="cite-modal-copied">Copied!</p>
+                </div>
+            </div>
 
         </div>{# end archive-layout-wrapper #}
     </div>

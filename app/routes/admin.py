@@ -6,7 +6,7 @@ from app.config.mysql import (
     insert_keywords, create_capstone_project,
     get_capstone_details, update_capstone_record, update_keyword,
     delete_capstone, get_users, update_user_role, get_all_roles,
-    get_all_requests, review_request
+    get_all_requests, review_request, set_capstone_people, get_capstone_people
 )
 from app.routes.decorators import role_required
 
@@ -30,6 +30,22 @@ def _save_file(file_obj):
     filename = file_obj.filename
     file_obj.save(os.path.join(UPLOAD_FOLDER, filename))
     return filename
+
+#this is new
+def _parse_capstone_people(form):
+    authors = []
+    for i in range(1, 5):
+        authors.append({
+            "first":  form.get(f"author_first_{i}"),
+            "middle": form.get(f"author_middle_{i}"),
+            "last":   form.get(f"author_last_{i}"),
+        })
+    adviser = {
+        "first":  form.get("adviser_first"),
+        "middle": form.get("adviser_middle"),
+        "last":   form.get("adviser_last"),
+    }
+    return authors, adviser
 
 # ── Static pages ──────────────────────────────────────────────────────────────
 
@@ -138,9 +154,21 @@ def admin_create_capstone():
                     file_path, citation, sem
                 )
                 if success:
-                    # print(f"Capstone created with ID: {message}")
-                    flash("Capstone project created successfully!", "success")
-                    return redirect(url_for('admin.view_capstone_repository'))
+                    new_capstone_id = message
+
+                    authors, adviser = _parse_capstone_people(request.form)
+                    
+                    if not (adviser["first"] and adviser["last"]):
+                        flash("Adviser information is required.", "danger")
+                        return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
+                    
+                    ok, err = set_capstone_people(new_capstone_id, authors, adviser)
+                    if not ok:
+                        flash(f"Capstone created, but author/adviser save failed: {err}", "warning")
+                    else:
+                        flash("Capstone created successfully!", "success")
+
+                    return redirect(url_for("admin.view_capstone_repository"))
                 else:
                     flash(message, "danger")
 
@@ -205,7 +233,17 @@ def update_capstone(capstone_id):
             if not success:
                 flash(f"Error updating capstone: {message}", "danger")
             else:
-                flash("Capstone updated successfully!", "success")
+                authors, adviser = _parse_capstone_people(request.form)
+
+                if not (adviser["first"] and adviser["last"]):
+                    flash("Adviser information is required.", "danger")
+                    return render_template("admin/update_capstone.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations, used_keywords=used_keywords, capstone=capstone)
+
+                ok, err = set_capstone_people(capstone_id, authors, adviser)
+                if not ok:
+                    flash(f"Capstone updated, but author/adviser save failed: {err}", "warning")
+                else:
+                    flash("Capstone updated successfully!", "success")
                 return redirect(url_for("admin.view_capstone_repository"))
 
     except Exception as e:
