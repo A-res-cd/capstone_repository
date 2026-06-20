@@ -1,11 +1,11 @@
 @import url('root.css');
 
-/* Main Container */
 .user-information-section {
     padding: var(--space-xl);
     min-height: 100vh;
     display: flex;
     justify-content: center;
+    font-family: var(--font-primary);
 }
 
 .user-information-content {
@@ -13,12 +13,12 @@
     max-width: 1100px;
 }
 
-/* Tab Navigation Styling */
+/* ── Tab navigation ── */
 .update-selection {
     display: flex;
     gap: var(--space-sm);
     margin-bottom: var(--space-md);
-    border-bottom: 2px solid var(--color-gray);
+    border-bottom: 2px solid var(--color-gray-light);
     padding-bottom: var(--space-md);
 }
 
@@ -28,22 +28,20 @@
     border: 1px solid var(--color-primary);
     background: var(--color-white);
     font-family: var(--font-primary);
-    font-weight: bold;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--color-primary);
     cursor: pointer;
-    transition: 0.2s;
+    transition: background 0.2s, color 0.2s;
 }
 
-.tab-btn.active {
-    background: var(--color-primary-light);
-    color: var(--color-white);
-}
-
+.tab-btn.active,
 .tab-btn:hover:not(.active) {
     background: var(--color-primary-light);
     color: var(--color-white);
 }
 
-/* Card Styling */
+/* ── Card ── */
 .user-information-update-group {
     background: var(--color-white);
     border-radius: var(--radius-md);
@@ -61,7 +59,7 @@
     color: var(--color-black);
 }
 
-/* Form Grid & Input Styling */
+/* ── Form grid — consistent with sign-in/sign-up inputs ── */
 .input-row {
     display: flex;
     gap: var(--space-lg);
@@ -75,22 +73,33 @@
 }
 
 .input-field-wrapper label {
-    font-family: var(--font-primary);
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
     font-size: var(--text-sm);
-    font-weight: bold;
-    margin-bottom: var(--space-sm);
-    color: var(--color-black);
+    color: var(--text-dark);
 }
 
 .input-field-wrapper input {
-    padding: var(--space-md);
-    border: 1px solid var(--color-gray);
-    border-radius: var(--radius-lg);
-    background: var(--color-white);
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #D1D1D1;
+    border-radius: 12px;
+    box-sizing: border-box;
     font-size: var(--text-md);
-    color: var(--color-gray-dark);
-    /* Mimicking the inset shadow from image_d2dcd5.png */
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    outline: none;
+    transition: border-color 0.3s;
+    font-family: var(--font-primary);
+    color: var(--text-dark);
+}
+
+.input-field-wrapper input::placeholder {
+    color: #BDBDBD;
+}
+
+.input-field-wrapper input:focus {
+    border-color: var(--color-primary);
 }
 
 .input-field-wrapper .helper-text {

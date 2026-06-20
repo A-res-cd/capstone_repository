@@ -1,4 +1,5 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
+from flask_mail import Message
 
 from app.config.mysql import (
     create_user,
@@ -9,9 +10,7 @@ from app.config.mysql import (
     verify_otp,
     change_password,
 )
-
 from app import mail
-from flask_mail import Message
 
 auth = Blueprint("auth", __name__)
 
@@ -23,8 +22,10 @@ def signin():
         password = request.form.get("password", "").strip()
 
         errors = []
-        if not username: errors.append("Username is required.")
-        if not password: errors.append("Password is required.")
+        if not username:
+            errors.append("Username is required.")
+        if not password:
+            errors.append("Password is required.")
 
         if errors:
             for e in errors:
@@ -54,17 +55,14 @@ def signin():
 @auth.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        first_name    = request.form.get("first_name")
-        middle_name   = request.form.get("middle_name")
-        last_name     = request.form.get("last_name")
-        university_no = request.form.get("university_no")
-        email         = request.form.get("email")
-        username      = request.form.get("username")
-        password      = request.form.get("password")
-
         success, message = create_user(
-            first_name, middle_name, last_name,
-            university_no, email, username, password,
+            request.form.get("first_name"),
+            request.form.get("middle_name"),
+            request.form.get("last_name"),
+            request.form.get("university_no"),
+            request.form.get("email"),
+            request.form.get("username"),
+            request.form.get("password"),
         )
 
         if success:
@@ -83,12 +81,9 @@ def signup():
 @auth.route("/logout")
 def logout():
     user_id = session.get("user_id")
-
     if user_id:
         device_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
-        success, error = sign_out(user_id, device_ip=device_ip)
-        if not success:
-            print("Logout DB error:", error)
+        sign_out(user_id, device_ip=device_ip)
 
     session.clear()
     flash("You have been logged out.", "success")
@@ -102,8 +97,10 @@ def forgot_password():
         email    = request.form.get("email",    "").strip()
 
         errors = []
-        if not username: errors.append("Username is required.")
-        if not email:    errors.append("Email is required.")
+        if not username:
+            errors.append("Username is required.")
+        if not email:
+            errors.append("Email is required.")
 
         if errors:
             for e in errors:
@@ -112,7 +109,6 @@ def forgot_password():
                                    hide_nav=True, hide_header=True)
 
         contact_id, user_id, error = lookup_user_for_reset(username, email)
-
         if error:
             flash(error, "danger")
             return render_template("authentication/forgot_password.html",
@@ -126,25 +122,22 @@ def forgot_password():
                                    hide_nav=True, hide_header=True)
 
         try:
-            msg = Message(
+            mail.send(Message(
                 subject="Your password reset OTP",
                 recipients=[email],
                 body=(
                     f"Your one-time password (OTP) is: {otp}\n\n"
-                    f"It expires in 5 minutes. Do not share it with anyone.\n\n"
-                    f"If you did not request this, ignore this email."
+                    "It expires in 5 minutes. Do not share it with anyone.\n\n"
+                    "If you did not request this, ignore this email."
                 ),
-            )
-            mail.send(msg)
-        except Exception as e:
-            print("MAIL ERROR:", e)
+            ))
+        except Exception:
             flash("Could not send email. Please try again later.", "danger")
             return render_template("authentication/forgot_password.html",
                                    hide_nav=True, hide_header=True)
 
         session["reset_id"]      = reset_id
         session["reset_user_id"] = user_id
-
         flash("OTP sent! Check your email.", "success")
         return redirect(url_for("auth.verify_otp_route"))
 
@@ -161,14 +154,12 @@ def verify_otp_route():
 
     if request.method == "POST":
         otp_entered = request.form.get("otp", "").strip()
-
         if not otp_entered:
             flash("Please enter the OTP.", "danger")
             return render_template("authentication/verify_otp.html",
                                    hide_nav=True, hide_header=True)
 
         valid, error = verify_otp(reset_id, otp_entered)
-
         if valid:
             session["otp_verified"] = True
             return redirect(url_for("auth.reset_password_route"))
@@ -187,7 +178,6 @@ def reset_password_route():
 
     reset_id = session.get("reset_id")
     user_id  = session.get("reset_user_id")
-
     if not reset_id or not user_id:
         flash("Session expired. Please start again.", "danger")
         return redirect(url_for("auth.forgot_password"))
@@ -209,7 +199,6 @@ def reset_password_route():
                                    hide_nav=True, hide_header=True)
 
         success, error = change_password(reset_id, user_id, new_password)
-
         if success:
             session.pop("reset_id",      None)
             session.pop("reset_user_id", None)

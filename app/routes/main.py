@@ -1,9 +1,8 @@
-from flask import Blueprint, flash, render_template, request, redirect, url_for, session
-from flask_mail import Mail, Message
-from ..variables.variable import get_nav_links, get_role_meta, resolve_title
-from app import mail
+from flask import Blueprint, render_template, request, redirect, url_for, session
+from app.variables.variable import get_nav_links, get_role_meta, resolve_title
 
 main = Blueprint("main", __name__)
+
 
 @main.app_context_processor
 def inject_global_template_vars():
@@ -11,10 +10,10 @@ def inject_global_template_vars():
 
     if not role:
         return {
-            "nav_links": [],
+            "nav_links":    [],
             "nav_sections": {},
-            "role_meta": {},
-            "page_title": None,
+            "role_meta":    {},
+            "page_title":   None,
             "is_logged_in": False,
             "current_user": {"username": None, "user_id": None},
             "current_path": request.path,
@@ -23,27 +22,27 @@ def inject_global_template_vars():
     nav_links, nav_sections = get_nav_links(role)
     role_meta = get_role_meta(role)
 
-    # Resolve endpoint names to real URLs
     for link in nav_links:
         try:
             link["url"] = url_for(link["url"])
         except Exception:
-            link["url"] = "#"  # visibly broken instead of silently broken
+            link["url"] = "#"
 
     page_title = resolve_title(nav_sections, nav_links, request.path)
 
     return {
-        "nav_links": nav_links,
+        "nav_links":    nav_links,
         "nav_sections": nav_sections,
-        "role_meta": role_meta,
-        "page_title": page_title,
+        "role_meta":    role_meta,
+        "page_title":   page_title,
         "is_logged_in": True,
         "current_user": {
             "username": session.get("username"),
-            "user_id": session.get("user_id"),
+            "user_id":  session.get("user_id"),
         },
         "current_path": request.path,
     }
+
 
 @main.route("/")
 def home():

@@ -4,11 +4,6 @@ import psycopg2.extras
 from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
-# from dbconnect import DABOL_CONEK
-
-# connection and stuff
-# JABOL_CONEK = DABOL_CONEK()
-
 
 def db_connect():
     conn = psycopg2.connect(

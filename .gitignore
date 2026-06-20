@@ -34,3 +34,4 @@ uploads/
 seeder.py
 
 capreDB.sql
+capreDB.session.sql
