@@ -92,7 +92,7 @@
             {# ── Sidebar ── #}
             <aside class="archive-sidebar">
                 {% if sidebar_project %}
-                <div class="sidebar-card" id="sidebar-card">
+                <div class="sidebar-card" id="sidebar-card" data-capstone-id="{{ sidebar_project.capstone_id }}">
                     <h3 id="sb-title">{{ sidebar_project.capstone_title }}</h3>
                     <div class="sidebar-meta">
                         <label>Program</label>
@@ -118,9 +118,29 @@
                         </p>
                     </div>
                     <div class="sidebar-actions">
-                        <button class="btn-abstract">View Abstract</button>
-                        <button class="btn-manuscript">Request Full Manuscript</button>
+                        {% if session.get('role_name') == 'Admin' %}
+                        <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
+                            id="sb-abstract-link" 
+                            class="btn-abstract"
+                            data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
+                            target="_blank"
+                            rel="noopener noreferrer">
+                            View Abstract
+                        </a>
+                        {% else %}
+                        <button class="btn-abstract" disabled title="Admin only">View Abstract</button>
+                        {% endif %}
+
+                        <a id="sb-request-link"
+                           class="btn-manuscript"
+                           href="{{ url_for('pages.manuscript_request_page', capstone_id=sidebar_project.capstone_id) }}"
+                           data-base-url="{{ url_for('pages.manuscript_request_page', capstone_id=0) }}">
+                            Request Full Manuscript
+                        </a>
                     </div>
+                    <button type="button" id="sb-cite-btn" class="btn-cite">
+                        Cite
+                    </button>
                 </div>
                 {% else %}
                 <div class="sidebar-card sidebar-empty">
@@ -130,27 +150,25 @@
                 {% endif %}
             </aside>
 
+            {# ── pop up citation ── #}
+            <div id="cite-modal-overlay">
+                <div id="cite-modal">
+                    <button type="button" id="cite-modal-close" aria-label="Close">&times;</button>
+                    <h3>APA 7 Citation</h3>
+                    <p id="cite-modal-text"></p>
+                    <div class="sidebar-actions">
+                        <button type="button" id="cite-modal-copy" class="btn-manuscript">Copy</button>
+                    </div>
+                    <p id="cite-modal-copied">Copied!</p>
+                </div>
+            </div>
+
         </div>{# end archive-layout-wrapper #}
     </div>
 </section>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-// Click any row → update the sidebar without a page reload
-document.querySelectorAll('.archive-card').forEach(card => {
-    card.addEventListener('click', () => {
-        document.querySelectorAll('.archive-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
 
-        document.getElementById('sb-title').textContent     = card.dataset.title;
-        document.getElementById('sb-program').textContent   = card.dataset.program;
-        document.getElementById('sb-spec').textContent      = card.dataset.spec;
-        document.getElementById('sb-keywords').textContent  = card.dataset.keywords;
-        document.getElementById('sb-year').textContent      = card.dataset.year;
-        document.getElementById('sb-term').textContent      = card.dataset.semester + ' – ' + card.dataset.term;
-        document.getElementById('sb-citations').textContent = card.dataset.citations;
-    });
-});
-</script>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/archive_sidebar.js') }}"></script>
 {% endblock %}

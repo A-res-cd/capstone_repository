@@ -11,58 +11,82 @@ from app.config.mysql import (
     change_password,
 )
 from app import mail
+from flask_mail import Message
+
+from app.routes.forms import(SigninForm, SignupForm, ForgotPasswordForm, ResetPasswordForm, VerifyOTPForm)
 
 auth = Blueprint("auth", __name__)
 
 
 @auth.route("/signin", methods=["GET", "POST"])
 def signin():
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-
-        errors = []
-        if not username:
-            errors.append("Username is required.")
-        if not password:
-            errors.append("Password is required.")
-
-        if errors:
-            for e in errors:
-                flash(e, "error")
-            return render_template("authentication/signin.html",
-                                   hide_nav=True, hide_header=True)
-
+    locked_until = None
+    form = SigninForm()
+    
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
         device_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+
         user, error = sign_in(username, password, device_ip=device_ip)
 
+        if error:
+            if "locked" in error.lower():
+                locked_until = None
+                from app.config.mysql import db_connect
+                import psycopg2.extras
+                conn = db_connect()
+                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cur.execute("""
+                    SELECT u.locked_until
+                    FROM "user" u
+                    JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
+                    JOIN kappa k ON k.username_id = sl.username_id
+                    WHERE k.username = %s
+                    LIMIT 1
+                """, (username,))
+                row = cur.fetchone()
+                cur.close()
+                conn.close()
+                if row and row["locked_until"]:
+                    locked_until = row["locked_until"].isoformat()
+            else:
+                flash(error, "error")
+
+            return render_template("authentication/signin.html",form=form , hide_nav=True, hide_header=True, locked_until=locked_until)
         if user:
             session["user_id"]   = user["user_id"]
             session["username"]  = user["username"]
             session["role_id"]   = user["role_id"]
             session["role_name"] = user["role_name"]
 
-            if user["role_id"] == 1:    # Admin
+            if user["role_id"] == 3:    # Admin
                 return redirect(url_for("admin.analytics"))
-            elif user["role_id"] == 4:  # Student
+            elif user["role_id"] == 4:  # Capstone Professor
+                return redirect(url_for("admin.view_capstone_repository"))
+            elif user["role_id"] == 2:  # Faculty
+                return redirect(url_for("pages.browse"))
+            else:                        # Student (1)
                 return redirect(url_for("pages.browse"))
         else:
             flash(error, "error")
 
-    return render_template("authentication/signin.html", hide_nav=True, hide_header=True)
+    return render_template("authentication/signin.html", form=form, hide_nav=True, hide_header=True)
 
 
 @auth.route("/signup", methods=["GET", "POST"])
 def signup():
-    if request.method == "POST":
+    form = SignupForm()
+
+    if form.validate_on_submit():
         success, message = create_user(
-            request.form.get("first_name"),
-            request.form.get("middle_name"),
-            request.form.get("last_name"),
-            request.form.get("university_no"),
-            request.form.get("email"),
-            request.form.get("username"),
-            request.form.get("password"),
+            form.first_name.data,
+            form.middle_name.data,
+            form.last_name.data,
+            form.university_no.data,
+            form.email.data,
+            form.username.data,
+            form.password.data,
         )
 
         if success:
@@ -70,11 +94,11 @@ def signup():
             return redirect(url_for("auth.signin"))
         else:
             flash(message, "danger")
-            return render_template("authentication/signup.html",
+            return render_template("authentication/signup.html", form=form,
                                    hide_nav=True, hide_header=True,
                                    form_data=request.form)
 
-    return render_template("authentication/signup.html",
+    return render_template("authentication/signup.html", form=form,
                            hide_nav=True, hide_header=True, form_data={})
 
 
@@ -92,33 +116,27 @@ def logout():
 
 @auth.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        email    = request.form.get("email",    "").strip()
+    form = ForgotPasswordForm()
+
+    if form.validate_on_submit():
+        username = form.username.data
+        email = form.email.data
 
         errors = []
-        if not username:
-            errors.append("Username is required.")
-        if not email:
-            errors.append("Email is required.")
-
-        if errors:
-            for e in errors:
-                flash(e, "danger")
-            return render_template("authentication/forgot_password.html",
-                                   hide_nav=True, hide_header=True)
+        if not username: errors.append("Username is required.")
+        if not email:    errors.append("Email is required.")
 
         contact_id, user_id, error = lookup_user_for_reset(username, email)
         if error:
             flash(error, "danger")
-            return render_template("authentication/forgot_password.html",
+            return render_template("authentication/forgot_password.html", form=form,
                                    hide_nav=True, hide_header=True)
 
         try:
             otp, reset_id = create_otp(contact_id)
         except RuntimeError as e:
             flash(str(e), "danger")
-            return render_template("authentication/forgot_password.html",
+            return render_template("authentication/forgot_password.html", form=form,
                                    hide_nav=True, hide_header=True)
 
         try:
@@ -133,15 +151,14 @@ def forgot_password():
             ))
         except Exception:
             flash("Could not send email. Please try again later.", "danger")
-            return render_template("authentication/forgot_password.html",
+            return render_template("authentication/forgot_password.html", form=form,
                                    hide_nav=True, hide_header=True)
 
         session["reset_id"]      = reset_id
         session["reset_user_id"] = user_id
         flash("OTP sent! Check your email.", "success")
         return redirect(url_for("auth.verify_otp_route"))
-
-    return render_template("authentication/forgot_password.html",
+    return render_template("authentication/forgot_password.html", form=form,
                            hide_nav=True, hide_header=True)
 
 
@@ -152,13 +169,10 @@ def verify_otp_route():
         flash("Session expired. Please start again.", "danger")
         return redirect(url_for("auth.forgot_password"))
 
-    if request.method == "POST":
-        otp_entered = request.form.get("otp", "").strip()
-        if not otp_entered:
-            flash("Please enter the OTP.", "danger")
-            return render_template("authentication/verify_otp.html",
-                                   hide_nav=True, hide_header=True)
+    form = VerifyOTPForm()
 
+    if form.validate_on_submit():
+        otp_entered = form.otp.data
         valid, error = verify_otp(reset_id, otp_entered)
         if valid:
             session["otp_verified"] = True
@@ -167,7 +181,7 @@ def verify_otp_route():
             flash(error, "danger")
 
     return render_template("authentication/verify_otp.html",
-                           hide_nav=True, hide_header=True)
+                           form=form, hide_nav=True, hide_header=True)
 
 
 @auth.route("/reset_password", methods=["GET", "POST"])
@@ -181,24 +195,12 @@ def reset_password_route():
     if not reset_id or not user_id:
         flash("Session expired. Please start again.", "danger")
         return redirect(url_for("auth.forgot_password"))
+    
+    form = ResetPasswordForm()
 
-    if request.method == "POST":
-        new_password     = request.form.get("new_password",     "").strip()
-        confirm_password = request.form.get("confirm_password", "").strip()
+    if form.validate_on_submit():
+        success, error = change_password(reset_id, user_id, form.new_password.data)
 
-        errors = []
-        if not new_password or len(new_password) < 6:
-            errors.append("Password must be at least 6 characters.")
-        if new_password != confirm_password:
-            errors.append("Passwords do not match.")
-
-        if errors:
-            for e in errors:
-                flash(e, "danger")
-            return render_template("authentication/reset_password.html",
-                                   hide_nav=True, hide_header=True)
-
-        success, error = change_password(reset_id, user_id, new_password)
         if success:
             session.pop("reset_id",      None)
             session.pop("reset_user_id", None)
@@ -208,5 +210,5 @@ def reset_password_route():
         else:
             flash(error, "danger")
 
-    return render_template("authentication/reset_password.html",
+    return render_template("authentication/reset_password.html", form=form,
                            hide_nav=True, hide_header=True)

@@ -48,7 +48,7 @@ def get_nav_links(role):
         {
             "name": "Requests",
             "title": "Requests",
-            "url": "admin.requests",
+            "url": "admin.view_requests",
             "icon": "bx bx-file-blank",
             "roles": ["Admin"],
             "section": "Management"

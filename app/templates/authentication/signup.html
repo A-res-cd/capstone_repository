@@ -24,57 +24,61 @@
         {% endwith %}
 
         <form action="{{ url_for('auth.signup') }}" method="POST" class="sign-in-form" novalidate>
-            
+            {{ form.hidden_tag() }}
             <div class="form-group">
-                <label for="first_name">First name</label>
-                <input type="text" id="first_name" name="first_name" 
-                        placeholder="Type here" value="{{ form_data.get('first_name', '') }}" 
-                        autocomplete="given-name" required>
+                {{ form.first_name.label }}
+                {{ form.first_name(id="first_name", placeholder="Type here", autocomplete="given-name") }}
+                {% for error in form.first_name.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
             </div>
 
             <div class="form-group">
-                <label for="middle_name">Middle name <span class="optional">(optional)</span></label>
-                <input type="text" id="middle_name" name="middle_name" 
-                        placeholder="Type here" value="{{ form_data.get('middle_name', '') }}" 
-                        autocomplete="additional-name">
+                {{ form.middle_name.label }} <span class="optional"></span>
+                {{ form.middle_name(id="middle_name", placeholder="Type here", autocomplete="additional-name") }}
             </div>
 
             <div class="form-group">
-                <label for="last_name">Last name</label>
-                <input type="text" id="last_name" name="last_name" 
-                        placeholder="Type here" value="{{ form_data.get('last_name', '') }}" 
-                        autocomplete="family-name" required>
+                {{ form.last_name.label }}
+                {{ form.last_name(id="last_name", placeholder="Type here", autocomplete="family-name") }}
+                {% for error in form.last_name.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
             </div>
 
             <div class="form-group">
-                <label for="university_no">University ID</label>
-                <input type="text" id="university_no" name="university_no" 
-                        placeholder="e.g. SUM2024-00123" value="{{ form_data.get('university_no', '') }}" 
-                        autocomplete="off" required>
+                {{ form.university_no.label }}
+                {{ form.university_no(id="university_no", placeholder="e.g. SUM2024-00123", autocomplete="off") }}
                 <p class="field-hint" style="font-size: 0.8rem; margin-top: 4px; opacity: 0.8;">
-                    Format: SUM&lt;year&gt;-&lt;5-digit number&gt;
+                    Format: &lt;year&gt;-&lt;5-digit number&gt;
                 </p>
+                {% for error in form.university_no.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
             </div>
 
             <div class="form-group half-width">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" 
-                        placeholder="Type here" value="{{ form_data.get('email', '') }}" 
-                        autocomplete="email" required>
+                {{ form.email.label }}
+                {{ form.email(id="email", placeholder="Type here", autocomplete="email") }}
+                {% for error in form.email.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
             </div>
 
             <div class="form-group half-width">
-                <label for="username">User name</label>
-                <input type="text" id="username" name="username" 
-                        placeholder="Type here" value="{{ form_data.get('username', '') }}" 
-                        autocomplete="username" required>
+                {{ form.username.label }}
+                {{ form.username(id="username", placeholder="Type here", autocomplete="username") }}
+                {% for error in form.username.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
             </div>
 
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" 
-                        placeholder="Min. 6 characters" autocomplete="new-password" 
-                        required minlength="6">
+                {{ form.password.label }}
+                {{ form.password(id="password", placeholder="Min. 6 characters", autocomplete="new-password") }}
+                {% for error in form.password.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
             </div>
 
             <button type="submit" class="btn btn-primary">Sign up</button>

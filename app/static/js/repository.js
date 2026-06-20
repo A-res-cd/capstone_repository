@@ -1,8 +1,16 @@
 function confirmDelete(id) {
     if (!confirm('Delete this capstone? This cannot be undone.')) return;
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
     const f = document.createElement('form');
     f.method = 'POST';
     f.action = '/delete_capstone/' + id;
+    if (token) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'csrf_token';
+        input.value = token;
+        f.appendChild(input);
+    }
     document.body.appendChild(f);
     f.submit();
 }
@@ -36,7 +44,6 @@ function openEdit(btn) {
     const spec     = btn.dataset.spec;
     const year     = btn.dataset.year;
     const semester = btn.dataset.semester;
-    const term     = btn.dataset.term;
     const citations = btn.dataset.citations;
     const file     = btn.dataset.file;
 
@@ -44,7 +51,6 @@ function openEdit(btn) {
     document.getElementById('capstone_title').value      = title;
     document.getElementById('capstone_keywords').value   = keywords;
     document.getElementById('capstone_year').value       = year;
-    document.getElementById('term').value                = term;
     document.getElementById('citation_count').value      = citations || 0;
 
     // select dropdowns

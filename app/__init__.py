@@ -1,14 +1,18 @@
 from flask import Flask
 from flask_mail import Mail
 from config import Config
+from flask_wtf.csrf import CSRFProtect
 
 mail = Mail()
+
+csrf = CSRFProtect()
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
     mail.init_app(app)
+    csrf.init_app(app)
     
     app.secret_key = app.config["SECRET_KEY"]
 

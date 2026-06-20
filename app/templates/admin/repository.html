@@ -74,12 +74,13 @@
                                     data-spec="{{ c.specialization_id }}"
                                     data-year="{{ c.capstone_year }}"
                                     data-semester="{{ c.semester }}"
+                                    data-term="{{ c.term }}"
                                     data-citations="{{ c.citation_count }}"
                                     data-file="{{ c.capstone_file }}">
                                     <i class="bx bx-edit-alt"></i> Edit
                                 </button>
                                 <button class="btn-row btn-row--delete"
-                                    onclick="confirmDelete({{ c.capstone_id }})">
+                                    onclick="confirmDelete('{{ c.capstone_id }}')">
                                     <i class="bx bx-trash"></i> Delete
                                 </button>
                             </div>
@@ -118,7 +119,8 @@
                   enctype="multipart/form-data"
                   class="capstone-form"
                   novalidate>
-
+                
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="capstone_id" id="field-capstone-id">
 
                 <div class="form-row">
@@ -195,6 +197,45 @@
                         </p>
                     </div>
                 </div>
+                
+                <fieldset class="form-group form-group--full">
+                    <legend>Authors (up to 4)</legend>
+                    {% for i in range(1, 5) %}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="author_first_{{ i }}">Author {{ i }} — First</label>
+                            <input type="text" id="author_first_{{ i }}" name="author_first_{{ i }}" placeholder="First name">
+                        </div>
+                        <div class="form-group">
+                            <label for="author_middle_{{ i }}">Middle</label>
+                            <input type="text" id="author_middle_{{ i }}" name="author_middle_{{ i }}" placeholder="Middle name">
+                        </div>
+                        <div class="form-group">
+                            <label for="author_last_{{ i }}">Last</label>
+                            <input type="text" id="author_last_{{ i }}" name="author_last_{{ i }}" placeholder="Last name">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </fieldset>
+
+                <fieldset class="form-group form-group--full">
+                    <legend>Adviser <span class="req">*</span></legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adviser_first">First <span class="req">*</span></label>
+                            <input type="text" id="adviser_first" name="adviser_first" placeholder="First name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adviser_middle">Middle</label>
+                            <input type="text" id="adviser_middle" name="adviser_middle" placeholder="Middle name">
+                        </div>
+                        <div class="form-group">
+                            <label for="adviser_last">Last <span class="req">*</span></label>
+                            <input type="text" id="adviser_last" name="adviser_last" placeholder="Last name" required>
+                        </div>
+                    </div>
+                </fieldset>
+
 
                 <div class="form-actions">
                     <button type="submit" class="btn-repo btn-repo--primary" id="btn-submit">
