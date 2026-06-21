@@ -2,7 +2,7 @@
 {% block title %}Browse Capstones{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/archive.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_archive.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -60,7 +60,6 @@
                              data-keywords="{{ project.capstone_keywords }}"
                              data-year="{{ project.capstone_year }}"
                              data-semester="{{ project.semester }}"
-                             data-term="{{ project.term }}"
                              data-citations="{{ project.citation_count }}">
                             <div class="col-title">
                                 <strong>{{ project.capstone_title }}</strong>
@@ -68,7 +67,7 @@
                             <div class="col-program">{{ project.program_name }}</div>
                             <div class="col-spec">{{ project.specialization_name }}</div>
                             <div class="col-year">{{ project.capstone_year }}</div>
-                            <div class="col-term">{{ project.semester }} – {{ project.term }}</div>
+                            <div class="col-term">{{ project.semester }}</div>
                         </div>
                         {% endfor %}
                     </div>
@@ -109,8 +108,8 @@
                             <span id="sb-year">{{ sidebar_project.capstone_year }}</span>
                         </p>
                         <p>
-                            <label>Term:</label>
-                            <span id="sb-term">{{ sidebar_project.semester }} – {{ sidebar_project.term }}</span>
+                            <label>Semester:</label>
+                            <span id="sb-term">{{ sidebar_project.semester }}</span>
                         </p>
                         <p>
                             <label>Citations:</label>

@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('sb-spec').textContent = card.dataset.spec;
             document.getElementById('sb-keywords').textContent = card.dataset.keywords;
             document.getElementById('sb-year').textContent = card.dataset.year;
-            document.getElementById('sb-term').textContent = `${card.dataset.semester} – ${card.dataset.term}`;
+            document.getElementById('sb-term').textContent = card.dataset.semester;
             document.getElementById('sb-citations').textContent = card.dataset.citations;
 
             const id = card.dataset.id;

@@ -1,11 +1,20 @@
 {% extends "base.html" %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_view-capstone.css') }}">
+{% endblock %}
+
 {% block content %}
 
 <div class="view-capstone-container">
 
   <!-- Left: Metadata panel -->
   <div class="meta-panel">
+    {% if session.get('role_name') == 'Admin' %}
     <a href="{{ url_for('admin.view_capstone_repository') }}" class="back-link">← Back to Repository</a>
+    {% else %}
+    <a href="{{ url_for('pages.manuscript_request_page', capstone_id=capstone.capstone_id) }}" class="back-link">← Back to My Requests</a>
+    {% endif %}
 
     <h1 class="capstone-title">{{ capstone.capstone_title }}</h1>
 

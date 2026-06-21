@@ -1,7 +1,8 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
 from flask_mail import Message
+import psycopg2.extras
 
-from app.config.mysql import (
+from app.db.database import (
     create_user,
     sign_in,
     sign_out,
@@ -9,9 +10,10 @@ from app.config.mysql import (
     create_otp,
     verify_otp,
     change_password,
+    db_connect,
+    OTP_EXPIRY_MINUTES,
 )
 from app import mail
-from flask_mail import Message
 
 from app.routes.forms import(SigninForm, SignupForm, ForgotPasswordForm, ResetPasswordForm, VerifyOTPForm)
 
@@ -33,8 +35,6 @@ def signin():
         if error:
             if "locked" in error.lower():
                 locked_until = None
-                from app.config.mysql import db_connect
-                import psycopg2.extras
                 conn = db_connect()
                 cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
                 cur.execute("""
@@ -145,7 +145,7 @@ def forgot_password():
                 recipients=[email],
                 body=(
                     f"Your one-time password (OTP) is: {otp}\n\n"
-                    "It expires in 5 minutes. Do not share it with anyone.\n\n"
+                    f"It expires in {OTP_EXPIRY_MINUTES} minutes. Do not share it with anyone.\n\n"
                     "If you did not request this, ignore this email."
                 ),
             ))
@@ -181,7 +181,8 @@ def verify_otp_route():
             flash(error, "danger")
 
     return render_template("authentication/verify_otp.html",
-                           form=form, hide_nav=True, hide_header=True)
+                           form=form, hide_nav=True, hide_header=True,
+                           otp_expiry_minutes=OTP_EXPIRY_MINUTES)
 
 
 @auth.route("/reset_password", methods=["GET", "POST"])

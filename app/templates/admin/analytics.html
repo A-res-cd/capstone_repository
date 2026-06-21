@@ -1,11 +1,21 @@
 {% extends 'base.html' %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_analytics.css') }}">
 {% endblock %}
 
 {% block title %}Analytics{% endblock %}
 
 {% block content %}
+<section class="analytics-section">
+    <div class="analytics-page-header">
+        <h2>Analytics &amp; Reports</h2>
+        <p>Repository usage and request trends will appear here.</p>
+    </div>
 
+    <div class="analytics-placeholder">
+        <i class="bx bx-line-chart"></i>
+        <p>Analytics dashboard coming soon.</p>
+    </div>
+</section>
 {% endblock %}

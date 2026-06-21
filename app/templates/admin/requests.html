@@ -2,7 +2,7 @@
 {% block title %}Manuscript Requests{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/archive.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_archive.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -11,9 +11,13 @@
         <h2 class="section-title">Manuscript Requests</h2>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                <p><strong>{{ message }}</strong></p>
-            {% endfor %}
+            {% if messages %}
+            <ul class="flash-list">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
         {% endwith %}
 
         <div class="archive-layout-wrapper">
@@ -21,7 +25,7 @@
             <!-- Left: Requests list -->
             <div class="archive-main-content">
                 {% if requests %}
-                <div class="archive-table-header">
+                <div class="archive-table-header request-row-header">
                     <span class="col-title">Requester</span>
                     <span class="col-program">Capstone Title</span>
                     <span class="col-year">Date Submitted</span>
@@ -106,5 +110,5 @@
 <script>
     const BASE_DECIDE_URL = "{{ url_for('admin.decide_request', request_id=0) }}";
 </script>
-<script src="{{ url_for('static', filename='js/reqeust_sidebar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/request_sidebar.js') }}"></script>
 {% endblock %}

@@ -496,18 +496,18 @@ def sign_out(user_id, device_ip=None):
 
 def create_capstone_project(keyword_id, specialization_id, program_id,
                             capstone_title, capstone_year, capstone_file,
-                            citation_count, semester):
+                            citation_count, semester, term=None):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
         mithrix.execute("""
             INSERT INTO capstone(keyword_id, specialization_id, program_id,
                         capstone_title, capstone_year, capstone_file,
-                        citation_count, semester)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        citation_count, semester, term)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING capstone_id
         """, (keyword_id, specialization_id, program_id, capstone_title,
-              capstone_year, capstone_file, citation_count, semester))
+              capstone_year, capstone_file, citation_count, semester, term))
         capstone_id = mithrix.fetchone()[0]
         conn.commit()
         return True, capstone_id
@@ -607,7 +607,7 @@ def get_capstone_details(capstone_id):
     try:
         mithrix.execute("""
             SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
-                   c.citation_count, c.semester,
+                   c.citation_count, c.semester, c.term,
                    k.keyword_id, k.capstone_keywords,
                    s.specialization_id, s.specialization_name,
                    p.program_id, p.program_name
@@ -627,7 +627,7 @@ def get_capstone_details(capstone_id):
 
 def update_capstone_record(capstone_id, keyword_id, specialization_id, program_id,
                            capstone_title, capstone_year, capstone_file,
-                           citation_count, semester):
+                           citation_count, semester, term=None):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -640,10 +640,11 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
                 capstone_year = %s,
                 capstone_file = %s,
                 citation_count = %s,
-                semester = %s
+                semester = %s,
+                term = %s
             WHERE capstone_id = %s
         """, (keyword_id, specialization_id, program_id, capstone_title,
-              capstone_year, capstone_file, citation_count, semester, capstone_id))
+              capstone_year, capstone_file, citation_count, semester, term, capstone_id))
         conn.commit()
         return True, None
     except Exception as exc:
@@ -663,7 +664,7 @@ def get_all_capstones():
     try:
         mithrix.execute("""
             SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
-                   c.citation_count, c.semester,
+                   c.citation_count, c.semester, c.term,
                    k.keyword_id, k.capstone_keywords,
                    s.specialization_id, s.specialization_name,
                    p.program_id, p.program_name
@@ -774,6 +775,7 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12):
                 c.capstone_file,
                 c.citation_count,
                 c.semester,
+                c.term,
                 k.capstone_keywords,
                 s.specialization_name,
                 p.program_name

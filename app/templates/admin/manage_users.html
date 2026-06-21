@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/manage_users.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_manage-users.css') }}">
 {% endblock %}
 
 {% block title %}Manage Users{% endblock %}
@@ -20,7 +20,7 @@
     {# ── Flash Messages ── #}
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <ul class="mu-flash-list">
+    <ul class="flash-list">
         {% for category, message in messages %}
         <li class="flash-{{ category }}">{{ message }}</li>
         {% endfor %}
@@ -34,8 +34,8 @@
     <div class="mu-panel" id="panel-list">
 
         {% if users %}
-        <div class="mu-table-wrap">
-            <table class="mu-table">
+        <div class="table-wrap">
+            <table class="data-table data-table--striped">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -54,7 +54,10 @@
                         <td class="cell-mono">{{ u.university_no }}</td>
                         <td>{{ u.email or '—' }}</td>
                         <td>
-                            <span class="role-pill role-pill--{{ u.role | lower }}">
+                            <span class="pill
+                                {% if u.role == 'Admin' %}pill--admin
+                                {% elif u.role == 'Faculty' %}pill--faculty
+                                {% else %}pill--student{% endif %}">
                                 {{ u.role }}
                             </span>
                         </td>
@@ -74,7 +77,7 @@
             </table>
         </div>
         {% else %}
-        <div class="mu-empty">
+        <div class="empty-state">
             <i class="bx bx-group"></i>
             <p>No users found in the system.</p>
         </div>
@@ -86,10 +89,10 @@
        PANEL B — EDIT FORM (hidden by default)
     ══════════════════════════════════════════════════════ #}
     <div class="mu-panel mu-panel--hidden" id="panel-edit">
-        <div class="edit-card">
+        <div class="detail-card detail-card--compact">
 
             {# Card header #}
-            <div class="edit-card__header">
+            <div class="detail-card__header">
                 <div>
                     <h3>Edit User</h3>
                     <p id="edit-subheading">Update role or remove account.</p>
@@ -100,7 +103,7 @@
             </div>
 
             {# Read-only user info strip #}
-            <div class="edit-user-info">
+            <div class="info-strip">
                 <div class="info-chip">
                     <span class="info-label">Name</span>
                     <span class="info-value" id="info-name">—</span>
@@ -123,30 +126,28 @@
             <form id="form-role"
                   method="POST"
                   action="{{ url_for('admin.update_role', user_id=0) }}"
-                  class="edit-form">
+                  class="detail-card__body detail-card__body--bordered">
 
                 <input type="hidden" name="acting_admin_id"
                        value="{{ session.get('user_id', '') }}">
 
-                <div class="edit-form__row">
-                    <div class="form-group">
-                        <label for="role_id">
-                            Assign New Role <span class="req">*</span>
-                        </label>
-                        <select id="role_id" name="role_id" required>
-                            <option value="" disabled selected>Select a role</option>
-                            {% for r in roles %}
-                            <option value="{{ r[0] }}">{{ r[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="role_id">
+                        Assign New Role <span class="req">*</span>
+                    </label>
+                    <select id="role_id" name="role_id" required>
+                        <option value="" disabled selected>Select a role</option>
+                        {% for r in roles %}
+                        <option value="{{ r[0] }}">{{ r[1] }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
-                <div class="edit-form__actions">
-                    <button type="submit" class="btn-mu btn-mu--primary">
+                <div class="form-actions">
+                    <button type="submit" class="btn-pill btn-pill--primary">
                         <i class="bx bx-save"></i> Save Role
                     </button>
-                    <button type="button" class="btn-mu btn-mu--ghost" id="btn-back-role">
+                    <button type="button" class="btn-pill btn-pill--ghost" id="btn-back-role">
                         <i class="bx bx-arrow-back"></i> Cancel
                     </button>
                 </div>
@@ -166,7 +167,7 @@
                       onsubmit="return confirmDelete(event)">
                     <input type="hidden" name="acting_admin_id"
                            value="{{ session.get('user_id', '') }}">
-                    <button type="submit" class="btn-mu btn-mu--danger">
+                    <button type="submit" class="btn-pill btn-pill--danger">
                         <i class="bx bx-trash"></i> Delete Account
                     </button>
                 </form>
@@ -217,7 +218,6 @@ document.querySelectorAll('.btn-row--edit').forEach(btn => {
 
         // reset role select
         document.getElementById('role_id').value = '';
-        console.log(document.getElementById('role_id').value);
         showEdit();
     });
 });

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/repository.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_repository.css') }}">
 {% endblock %}
 
 {% block title %}Repository Management{% endblock %}
@@ -16,7 +16,7 @@
             <p>Manage capstone projects — create, edit, or remove records from the archive.</p>
         </div>
         {# Only show "New Capstone" when not already on create/edit tab #}
-        <button class="btn-repo btn-repo--primary" id="btn-open-create">
+        <button class="btn-pill btn-pill--primary" id="btn-open-create">
             <i class="bx bx-plus"></i> New Capstone
         </button>
     </div>
@@ -38,8 +38,8 @@
     <div class="repo-panel" id="panel-list">
 
         {% if capstones %}
-        <div class="repo-table-wrap">
-            <table class="repo-table">
+        <div class="table-wrap">
+            <table class="data-table data-table--striped">
                 <thead>
                     <tr>
                         <th>Title</th>
@@ -74,7 +74,6 @@
                                     data-spec="{{ c.specialization_id }}"
                                     data-year="{{ c.capstone_year }}"
                                     data-semester="{{ c.semester }}"
-                                    data-term="{{ c.term }}"
                                     data-citations="{{ c.citation_count }}"
                                     data-file="{{ c.capstone_file }}">
                                     <i class="bx bx-edit-alt"></i> Edit
@@ -91,10 +90,10 @@
             </table>
         </div>
         {% else %}
-        <div class="repo-empty">
+        <div class="empty-state">
             <i class="bx bx-folder-open"></i>
             <p>No capstone records yet.</p>
-            <button class="btn-repo btn-repo--primary" onclick="openCreate()">
+            <button class="btn-pill btn-pill--primary" onclick="openCreate()">
                 <i class="bx bx-plus"></i> Add the First One
             </button>
         </div>
@@ -102,8 +101,8 @@
 
     </div>
     <div class="repo-panel repo-panel--hidden" id="panel-form">
-        <div class="form-card">
-            <div class="form-card__header">
+        <div class="detail-card">
+            <div class="detail-card__header">
                 <div>
                     <h3 id="form-heading">New Capstone</h3>
                     <p id="form-subheading">Fill in the details to add a capstone to the archive.</p>
@@ -238,14 +237,14 @@
 
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-repo btn-repo--primary" id="btn-submit">
+                    <button type="submit" class="btn-pill btn-pill--primary" id="btn-submit">
                         <i class="bx bx-save"></i>
                         <span id="btn-submit-label">Submit Capstone</span>
                     </button>
-                    <button type="reset" class="btn-repo btn-repo--ghost" id="btn-reset">
+                    <button type="reset" class="btn-pill btn-pill--ghost" id="btn-reset">
                         <i class="bx bx-revision"></i> Clear
                     </button>
-                    <button type="button" class="btn-repo btn-repo--secondary" id="btn-cancel">
+                    <button type="button" class="btn-pill btn-pill--secondary" id="btn-cancel">
                         <i class="bx bx-arrow-back"></i> Cancel
                     </button>
                 </div>

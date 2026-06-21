@@ -1,3 +1,11 @@
+/* ============================================================
+   PAGE: Home (landing page hero)
+   Only the bits unique to the marketing hero section live here now.
+   The .btn-primary / .btn-outline pair below is intentionally scoped
+   to this page only — see BUGS.md #5 for why auth pages used to
+   accidentally inherit this style.
+============================================================ */
+@import url('../base/root.css');
 
 .hero {
     min-height: 90vh;
@@ -63,6 +71,9 @@
     color: #555;
 }
 
+/* Homepage-only buttons. These are intentionally NOT named .btn-primary
+   on a shared/global class — keeping them scoped here means no other
+   page can accidentally inherit this orange-gradient look. */
 .btn {
     padding: 12px 26px;
     border-radius: 20px;
@@ -72,7 +83,6 @@
     transition: all 0.3s ease;
 }
 
-/* Primary (Sign In) */
 .btn-primary {
     background: linear-gradient(135deg, #ff9800, #ffb347);
     color: white;
@@ -84,7 +94,6 @@
     box-shadow: 0 8px 20px rgba(255, 152, 0, 0.5);
 }
 
-/* Outline (Sign Up) */
 .btn-outline {
     border: 2px solid var(--color-primary);
     color: var(--color-primary);

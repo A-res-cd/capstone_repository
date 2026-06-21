@@ -1,4 +1,9 @@
-@import url('root.css');
+/* ============================================================
+   COMPONENT: Top header bar
+   The blue strip showing the current page title, next to the
+   sidebar toggle. Loaded on every page via base.html.
+============================================================ */
+@import url('../base/root.css');
 
 .header-container {
     display: flex;

@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/signup.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_auth.css') }}">
 {% endblock %}
 
 {% block title %}Sign Up{% endblock %}
 
 {% block content %}
-<section class="sign-in-section">
-    <div class="sign-in-container">
+<section class="auth-section">
+    <div class="auth-card auth-card--wide">
         <h2>Sign up</h2>
         <p class="subtitle">Create your university account</p>
 
@@ -23,7 +23,7 @@
             {% endif %}
         {% endwith %}
 
-        <form action="{{ url_for('auth.signup') }}" method="POST" class="sign-in-form" novalidate>
+        <form action="{{ url_for('auth.signup') }}" method="POST" class="auth-form auth-form--grid" novalidate>
             {{ form.hidden_tag() }}
             <div class="form-group">
                 {{ form.first_name.label }}
@@ -34,7 +34,7 @@
             </div>
 
             <div class="form-group">
-                {{ form.middle_name.label }} <span class="optional"></span>
+                {{ form.middle_name.label }} <span class="label-note">(optional)</span>
                 {{ form.middle_name(id="middle_name", placeholder="Type here", autocomplete="additional-name") }}
             </div>
 
@@ -49,7 +49,7 @@
             <div class="form-group">
                 {{ form.university_no.label }}
                 {{ form.university_no(id="university_no", placeholder="e.g. SUM2024-00123", autocomplete="off") }}
-                <p class="field-hint" style="font-size: 0.8rem; margin-top: 4px; opacity: 0.8;">
+                <p class="field-hint field-hint--inline">
                     Format: &lt;year&gt;-&lt;5-digit number&gt;
                 </p>
                 {% for error in form.university_no.errors %}
@@ -81,9 +81,9 @@
                 {% endfor %}
             </div>
 
-            <button type="submit" class="btn btn-primary">Sign up</button>
-            
-            <p class="sign-up-link">
+            <button type="submit" class="btn-auth-primary">Sign up</button>
+
+            <p class="auth-link">
                 Already a user? <a href="{{ url_for('auth.signin') }}">Sign in</a>
             </p>
         </form>

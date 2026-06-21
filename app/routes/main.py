@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session
-from app.variables.variable import get_nav_links, get_role_meta, resolve_title
+from app.constants.nav import get_nav_links, get_role_meta, resolve_title
 
 main = Blueprint("main", __name__)
 

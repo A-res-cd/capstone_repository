@@ -1,0 +1,101 @@
+/* ============================================================
+   COMPONENT: Data table
+   The header/row/zebra-stripe pattern shared by the repository
+   table and the manage-users table (previously .repo-table and
+   .mu-table, defined twice with the same rules).
+
+   Usage:
+     <div class="table-wrap">
+       <table class="data-table">
+         <thead>...</thead>
+         <tbody>...</tbody>
+       </table>
+     </div>
+============================================================ */
+@import url('../base/root.css');
+
+.table-wrap {
+    border: var(--border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+.data-table thead {
+    background: var(--color-primary);
+    color: var(--color-white);
+}
+
+.data-table th {
+    padding: var(--space-sm) var(--space-md);
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: var(--border-light);
+    color: var(--text-dark);
+    vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: #f5f7ff; }
+
+/* zebra striping — only the manage-users table originally had this,
+   it's offered here as an opt-in modifier so repository's table can
+   skip it if that's the intended look */
+.data-table--striped tbody tr:nth-child(even) { background: #e4e9ff; }
+.data-table--striped tbody tr:nth-child(odd)  { background: var(--color-white); }
+
+.cell-id      { color: var(--color-gray-dark); font-size: var(--text-xs); }
+.cell-mono    { font-family: monospace; font-size: var(--text-xs); letter-spacing: 0.05em; }
+.cell-keywords{ color: var(--color-gray-dark); font-size: var(--text-xs); }
+.cell-center  { text-align: center; }
+.col-center,
+.col-actions  { text-align: center; }
+
+.row-actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: center;
+}
+
+/* ── Status / role pills ── */
+.pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: capitalize;
+    letter-spacing: 0.03em;
+}
+
+.pill--admin   { background: #fde8d8; color: #c0392b; }
+.pill--faculty { background: #d6eaf8; color: #1a5276; }
+.pill--student { background: #d5f5e3; color: #1e8449; }
+
+/* ── Empty state (no rows) ── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-xl) var(--space-lg);
+    border: 2px dashed var(--color-gray-light);
+    border-radius: var(--radius-lg);
+    color: var(--color-gray-dark);
+    text-align: center;
+}
+
+.empty-state i { font-size: 48px; color: var(--color-gray); }
+.empty-state p { font-size: var(--text-md); margin: 0; }

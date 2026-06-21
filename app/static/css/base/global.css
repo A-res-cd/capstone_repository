@@ -1,0 +1,29 @@
+/* ============================================================
+   GLOBAL / PAGE SHELL
+   Base element resets and the outer app layout (sidebar + main).
+   Loaded on every page via base.html.
+============================================================ */
+@import url('root.css');
+
+body {
+    margin: 0;
+    font-family: var(--font-primary);
+    background-color: var(--color-white);
+    color: var(--text-dark);
+}
+
+/* LAYOUT */
+.layout {
+    display: flex;
+}
+
+/* MAIN CONTENT WRAPPER */
+.main-wrapper {
+    flex: 1;
+    transition: margin-left 0.3s ease, all 0.3s ease;
+}
+
+/* MAIN */
+main {
+    padding: 20px;
+}

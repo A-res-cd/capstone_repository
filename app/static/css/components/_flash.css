@@ -1,0 +1,64 @@
+/* ============================================================
+   COMPONENT: Flash messages
+   One definition used everywhere — replaces the slightly-different
+   copies that used to live in base.css, repository.css, and
+   manage_users.css (see BUGS.md #15).
+
+   Two shapes are supported:
+     <ul class="flash-list">    <li class="flash-success">...
+     <ul class="mu-flash-list"> <li class="flash-success">...
+   (both class names are kept so existing templates don't need
+   their wrapper markup changed — only the category classes matter)
+============================================================ */
+@import url('../base/root.css');
+
+.flash-list,
+.mu-flash-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.flash-list li,
+.mu-flash-list li {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    animation: flash-fade-slide 0.25s ease;
+}
+
+@keyframes flash-fade-slide {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.flash-success {
+    background: #D4EDDA;
+    color: #155724;
+    border: 1px solid #C3E6CB;
+}
+
+.flash-danger,
+.flash-error {
+    background: #F8D7DA;
+    color: #721C24;
+    border: 1px solid #F5C6CB;
+}
+
+.flash-warning {
+    background: #FFF3CD;
+    color: #856404;
+    border: 1px solid #FFEAA7;
+}
+
+.flash-info {
+    background: #D1ECF1;
+    color: #0C5460;
+    border: 1px solid #BEE5EB;
+}

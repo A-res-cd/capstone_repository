@@ -1,0 +1,133 @@
+/* ============================================================
+   COMPONENT: Auth card
+   The centered white card shell shared by sign-in, sign-up,
+   forgot-password, verify-OTP, and reset-password — previously
+   defined three separate times (.sign-in-*, .forgot-password-*)
+   with near-identical rules across signin.css / signup.css / fp.css.
+
+   Usage:
+     <section class="auth-section">
+       <div class="auth-card">
+         <h2>...</h2>
+         <form class="auth-form"> ... </form>
+       </div>
+     </section>
+============================================================ */
+@import url('../base/root.css');
+
+.auth-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--space-md);
+    font-family: var(--font-primary);
+}
+
+.auth-card {
+    background-color: var(--color-white);
+    padding: var(--space-xl);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+}
+
+/* sign-up has more fields, so it gets a wider card */
+.auth-card--wide {
+    max-width: 550px;
+}
+
+.auth-card h2 {
+    margin-bottom: var(--space-lg);
+    color: var(--color-black);
+    font-size: var(--text-xxl);
+    font-weight: 600;
+}
+
+.auth-card .subtitle {
+    display: block;
+    margin-top: calc(var(--space-lg) * -1 + 8px);
+    margin-bottom: var(--space-lg);
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* sign-up lays its fields out in a wrapping grid instead of a single column */
+.auth-form--grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: space-between;
+}
+
+.auth-form--grid .form-group {
+    width: 100%;
+}
+
+.auth-form--grid .form-group.half-width {
+    width: calc(50% - 8px);
+}
+
+.auth-footer {
+    margin-top: 1.5rem;
+}
+
+.divider {
+    height: 1px;
+    background: var(--color-gray-light);
+    margin: var(--space-md) 0;
+}
+
+.auth-link {
+    font-size: var(--text-sm);
+    color: var(--color-black);
+    font-weight: 600;
+}
+
+.auth-link a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
+}
+
+/* ── Account-lockout banner (sign-in) ── */
+.lockout-banner {
+    margin-bottom: var(--space-md);
+}
+
+/* ── OTP-specific bits (verify-otp page) ── */
+.otp-input {
+    height: 60px !important;
+    text-align: center;
+    font-size: var(--text-xxl) !important;
+    font-weight: 700;
+    letter-spacing: var(--space-sm);
+    color: var(--color-primary);
+}
+
+.otp-timer {
+    text-align: center;
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin-top: var(--space-sm);
+}
+
+.otp-timer span {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.otp-timer.expired span {
+    color: #A32D2D;
+}

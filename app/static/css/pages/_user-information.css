@@ -1,4 +1,12 @@
-@import url('root.css');
+/* ============================================================
+   PAGE: User Information
+   Currently a static profile-info mockup (see BUGS.md notes on
+   this page being unfinished — tabs and inputs aren't wired up
+   to any backend yet). Styling kept as-is, with the shared
+   .form-group input styling now coming from components/_forms.css
+   where it overlaps.
+============================================================ */
+@import url('../base/root.css');
 
 .user-information-section {
     padding: var(--space-xl);

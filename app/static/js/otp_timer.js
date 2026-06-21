@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
-    let seconds = 5 * 60;
     const countdownEl = document.getElementById('countdown');
     const submitBtn   = document.getElementById('submit-btn');
-    
+
     if (!countdownEl || !submitBtn) return;
 
+    const minutes = parseInt(countdownEl.dataset.expiryMinutes, 10) || 5;
+    let seconds = minutes * 60;
     const timerEl = countdownEl.closest('.otp-timer');
 
     const tick = setInterval(() => {

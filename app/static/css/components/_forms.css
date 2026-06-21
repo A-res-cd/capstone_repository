@@ -1,0 +1,145 @@
+/* ============================================================
+   COMPONENT: Form fields
+   The label + input + placeholder + focus pattern that used to be
+   copy-pasted (with tiny variations) across signin.css, signup.css,
+   fp.css, repository.css, manage_users.css, and user_information.css.
+
+   Usage:
+     <div class="form-group">
+       <label>Label</label>
+       <input type="text" placeholder="...">
+     </div>
+
+   Variants:
+     .form-group--full   grid-column: 1 / -1   (inside a .form-row grid)
+     .form-group--inline  used by signup's half-width fields
+============================================================ */
+@import url('../base/root.css');
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 700;
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+}
+
+.form-group .req {
+    color: #dc3545;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #D1D1D1;
+    border-radius: var(--radius-md);
+    box-sizing: border-box;
+    font-size: var(--text-md);
+    font-family: var(--font-primary);
+    background: #FAFAFA;
+    color: var(--text-dark);
+    outline: none;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: var(--color-gray);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--color-primary);
+    background-color: var(--color-white);
+    box-shadow: 0 0 0 3px rgba(74, 94, 209, 0.12);
+}
+
+.form-group select option {
+    color: var(--color-black);
+}
+
+.form-group--full {
+    grid-column: 1 / -1;
+}
+
+/* Two-column grid of fields — used by repository + signup forms */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+}
+
+.label-note {
+    font-size: var(--text-xs);
+    font-weight: 400;
+    color: var(--color-gray-dark);
+    margin-left: 4px;
+}
+
+.field-hint,
+.helper-text {
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin-top: var(--space-xs);
+    font-weight: 500;
+}
+
+/* File upload field — used by the repository create/edit form */
+.file-upload-wrapper input[type="file"] {
+    padding: var(--space-md);
+    background: #F8F9FA;
+    border: 2px dashed #D1D1D1;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    transition: border-color 0.2s, background 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.file-upload-wrapper input[type="file"]::file-selector-button {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+    padding: 6px var(--space-md);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: var(--text-xs);
+    margin-right: var(--space-md);
+    transition: background 0.2s, color 0.2s;
+}
+
+.file-upload-wrapper input[type="file"]:hover {
+    border-color: var(--color-primary-light);
+    background: rgba(46, 63, 146, 0.02);
+}
+
+.file-upload-wrapper input[type="file"]:hover::file-selector-button {
+    background: var(--color-primary);
+    color: var(--color-white);
+}
+
+.file-hint {
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin: var(--space-sm) 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.current-file {
+    color: var(--color-primary);
+    font-style: italic;
+}

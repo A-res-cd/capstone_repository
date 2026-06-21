@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, flash, session, redirect, url_for, jsonify
-from app.config.mysql import (
+from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors
 )
@@ -61,7 +61,7 @@ def request_manuscript(capstone_id):
     ok, err = request_fullview(user_id, capstone_id, reason)
     flash("request submitted successfully" 
           if ok else f"Error: {err}","success" if ok else "danger") 
-    return redirect(url_for(("pages.manuscript_request_page"), capstone_id=capstone_id))
+    return redirect(url_for("pages.manuscript_request_page", capstone_id=capstone_id))
 
 
 @pages.route("/requests/<int:capstone_id>", methods=["GET"])
@@ -79,6 +79,33 @@ def manuscript_request_page(capstone_id):
     
     user_requests = get_user_requests(user_id)
     return render_template("global/manuscript_request.html", capstone = capstone, user_requests = user_requests, hide_nav = False, )
+
+@pages.route("/manuscript/view/<int:capstone_id>")
+def view_approved_manuscript(capstone_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("You must be logged in to view this manuscript.", "warning")
+        return redirect(url_for("auth.signin"))
+
+    # Confirm this user actually has an approved request for this capstone
+    # before letting them view it — otherwise this would just be a second
+    # admin-only route under a different name. See BUGS.md #1.
+    user_requests = get_user_requests(user_id)
+    has_access = any(
+        r["capstone_id"] == capstone_id and r["request_status"] == "approved"
+        for r in user_requests
+    )
+    if not has_access:
+        flash("You don't have an approved request for this manuscript.", "danger")
+        return redirect(url_for("pages.browse"))
+
+    capstone = get_capstone_details(capstone_id)
+    if not capstone:
+        flash("Capstone not found.", "danger")
+        return redirect(url_for("pages.browse"))
+
+    return render_template("admin/view_capstone.html", capstone=capstone, max_pages=None)
+
 
 @pages.route("/cancel_request/<int:request_id>", methods=["POST"])
 def cancel_request(request_id):

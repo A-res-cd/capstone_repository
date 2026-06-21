@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash
 from werkzeug.utils import secure_filename
 import os
-from app.config.mysql import (
+from app.db.database import (
     delete_user_account, get_all_capstones, get_programs, get_specializations,
     get_used_keyword, insert_keywords, create_capstone_project,
     get_capstone_details, update_capstone_record, update_keyword,
