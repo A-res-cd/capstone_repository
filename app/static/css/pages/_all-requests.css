@@ -1,8 +1,16 @@
 /* ============================================================
-   PAGE: Manuscript Request
-   This page previously had no stylesheet at all — every element
-   was unstyled raw HTML. Reuses the shared detail-card, buttons,
-   forms, flash, and table (.pill, .empty-state) components.
+   PAGE: All Requests (global/all_requests.html)
+   Merged page — reached either from the sidebar "My Requests" link
+   (capstone-agnostic, form hidden) or from "Request Full Manuscript"
+   on a specific capstone (form shown above the list, unless an
+   active request already exists for that capstone).
+
+   Class names below kept their original "manuscript-request-*"
+   prefix from before the merge — renaming every selector wasn't
+   worth re-touching the template for no visible difference.
+
+   Reuses the shared detail-card, buttons, forms, flash, and table
+   (.pill, .empty-state) components.
 ============================================================ */
 @import url('../base/root.css');
 @import url('../components/_detail-card.css');

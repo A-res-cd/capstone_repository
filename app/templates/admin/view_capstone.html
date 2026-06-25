@@ -13,7 +13,7 @@
     {% if session.get('role_name') == 'Admin' %}
     <a href="{{ url_for('admin.view_capstone_repository') }}" class="back-link">← Back to Repository</a>
     {% else %}
-    <a href="{{ url_for('pages.manuscript_request_page', capstone_id=capstone.capstone_id) }}" class="back-link">← Back to My Requests</a>
+    <a href="{{ url_for('pages.all_requests') }}" class="back-link">← Back to My Requests</a>
     {% endif %}
 
     <h1 class="capstone-title">{{ capstone.capstone_title }}</h1>

@@ -42,6 +42,21 @@ def get_nav_links(role):
             "section": "Capstone"
         },
 
+        # --- Sub-process 4.5 (Level3ViewCapstoneData): Manuscript access requests — Student only ---
+        # Capstone-agnostic — lists every request the student has made,
+        # across all capstones. (The per-capstone request form lives at
+        # pages.request_capstone, which needs a capstone_id and can't be
+        # a standalone nav target — both routes render the same merged
+        # template, app/templates/global/all_requests.html.)
+        {
+            "name": "My Requests",
+            "title": "My Requests",
+            "url": "pages.all_requests",
+            "icon": "bx bx-file-blank",
+            "roles": ["Student"],
+            "section": "Capstone"
+        },
+
         # --- Sub-process 4.5 (Level3ViewCapstoneData): Request approval — Admin only ---
         # Students submit access requests; Admin reviews and decides.
         # Shown as an Admin nav item for managing incoming requests.

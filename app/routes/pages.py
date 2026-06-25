@@ -46,26 +46,56 @@ def browse():
 def user_info():
     return render_template("global/user_information.html", hide_nav=False)
 
+
+@pages.route("/my-requests")
+def all_requests():
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("you must log in", "warning")
+        return redirect(url_for("auth.signin"))
+
+    user_requests = get_user_requests(user_id)
+    return render_template(
+        "global/all_requests.html",
+        user_requests=user_requests,
+        capstone=None,
+        has_active_request=False,
+        hide_nav=False,
+    )
+
+
 @pages.route("/request_manuscript/<int:capstone_id>", methods=['POST'])
 def request_manuscript(capstone_id):
     user_id = session.get("user_id")
     if not user_id:
         flash("You must be logged in to request a manuscript", "warning")
         return redirect(url_for("auth.signin"))
-    
+
+    # Guard against duplicate requests — the form is hidden client-side
+    # once one exists, but a direct POST could still slip through.
+    existing = get_user_requests(user_id)
+    if any(r["capstone_id"] == capstone_id and r["request_status"] in ("pending", "approved")
+           for r in existing):
+        flash("You already have a request for this capstone.", "warning")
+        return redirect(url_for("pages.all_requests"))
+
     reason = request.form.get("request_reason", "").strip()
     if not reason:
         flash("Please give a reason for your request", "danger")
-        return redirect(url_for("pages.manuscript_request_page", capstone_id=capstone_id))
+        # Validation failed — send them back to the form itself, not the
+        # all-requests list, so they don't lose their place.
+        return redirect(url_for("pages.request_capstone", capstone_id=capstone_id))
     
     ok, err = request_fullview(user_id, capstone_id, reason)
     flash("request submitted successfully" 
-          if ok else f"Error: {err}","success" if ok else "danger") 
-    return redirect(url_for("pages.manuscript_request_page", capstone_id=capstone_id))
+          if ok else f"Error: {err}","success" if ok else "danger")
+    # Submission is done (success or failure past validation) — the
+    # action is complete, so land on the all-requests view.
+    return redirect(url_for("pages.all_requests"))
 
 
 @pages.route("/requests/<int:capstone_id>", methods=["GET"])
-def manuscript_request_page(capstone_id):
+def request_capstone(capstone_id):
     user_id = session.get("user_id")
     
     if not user_id:
@@ -78,7 +108,23 @@ def manuscript_request_page(capstone_id):
         return redirect(url_for("pages.browse"))
     
     user_requests = get_user_requests(user_id)
-    return render_template("global/manuscript_request.html", capstone = capstone, user_requests = user_requests, hide_nav = False, )
+
+    # If there's already a pending or approved request for this exact
+    # capstone, don't show the form — there's nothing to submit. A
+    # rejected request is the one case that should still show the form,
+    # since "Resubmit" needs somewhere to resubmit to.
+    has_active_request = any(
+        r["request_status"] in ("pending", "approved") and r["capstone_id"] == capstone_id
+        for r in user_requests
+    )
+
+    return render_template(
+        "global/all_requests.html",
+        capstone=capstone,
+        user_requests=user_requests,
+        has_active_request=has_active_request,
+        hide_nav=False,
+    )
 
 @pages.route("/manuscript/view/<int:capstone_id>")
 def view_approved_manuscript(capstone_id):
@@ -119,7 +165,7 @@ def cancel_request(request_id):
 
     flash("request cancelled" 
           if ok else f"Error: {err}","success" if ok else "danger") 
-    return redirect(request.referrer or url_for("pages.browse"))
+    return redirect(url_for("pages.all_requests"))
 
 @pages.route("/cite/<int:capstone_id>", methods=["POST"])
 def cite_capstone(capstone_id):

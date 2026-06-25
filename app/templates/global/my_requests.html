@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_manuscript-request.css') }}">
 {% endblock %}
 
-{% block title %}Request Manuscript{% endblock %}
+{% block title %}My Requests{% endblock %}
 
 {% block content %}
 <section class="manuscript-request-section">
@@ -20,36 +20,12 @@
         {% endif %}
     {% endwith %}
 
-    <div class="manuscript-request-layout">
+    <div class="manuscript-request-layout manuscript-request-layout--single">
 
-        <!-- Left: Request Form -->
         <div class="detail-card">
             <div class="detail-card__header">
                 <div>
-                    <h3>Full Manuscript Access Request</h3>
-                    <p>{{ capstone.capstone_title }}</p>
-                </div>
-            </div>
-
-            <form method="POST" action="{{ url_for('pages.request_manuscript', capstone_id=capstone.capstone_id) }}" class="detail-card__body">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="form-group">
-                    <label for="request_reason">Request Reason</label>
-                    <textarea id="request_reason" name="request_reason"
-                              rows="6" placeholder="Type here" required></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-pill btn-pill--primary">Submit Request</button>
-                    <a href="{{ url_for('pages.browse') }}" class="btn-pill btn-pill--secondary">Cancel</a>
-                </div>
-            </form>
-        </div>
-
-        <!-- Right: Request History -->
-        <div class="detail-card">
-            <div class="detail-card__header">
-                <div>
-                    <h3>Your Manuscript Access Requests</h3>
+                    <h3>My Manuscript Access Requests</h3>
                     <p>{{ user_requests | length }} total</p>
                 </div>
             </div>
@@ -97,7 +73,8 @@
                     {% endfor %}
                 {% else %}
                     <div class="empty-state">
-                        <p>No requests yet.</p>
+                        <p>You haven't requested any manuscripts yet.</p>
+                        <a href="{{ url_for('pages.browse') }}" class="btn-pill btn-pill--ghost">Browse the Archive</a>
                     </div>
                 {% endif %}
             </div>

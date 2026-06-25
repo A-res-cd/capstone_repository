@@ -221,3 +221,17 @@
 
 .btn-auth-primary:hover  { background-color: var(--color-primary-dark); }
 .btn-auth-primary:active { transform: translateY(1px); }
+
+.btn-auth-accent {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--color-accent);
+    color: var(--color-white);
+    font-weight: 600;
+    font-size: var(--text-md);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background-color 0.2s, opacity 0.2s, transform 0.1s;
+}
