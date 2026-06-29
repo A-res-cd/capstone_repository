@@ -6,7 +6,8 @@ from app.db.database import (
     get_used_keyword, insert_keywords, create_capstone_project,
     get_capstone_details, update_capstone_record, update_keyword,
     delete_capstone, get_users, update_user_role, get_all_roles,
-    get_all_requests, review_request, set_capstone_people, get_capstone_people
+    get_all_requests, review_request, set_capstone_people, get_capstone_people,
+    get_capstones_by_program, get_requests_by_status, get_top_cited_capstones
 )
 from app.routes.decorators import role_required
 
@@ -53,7 +54,24 @@ def _parse_capstone_people(form):
 
 @admin.route("/analytics")
 def analytics():
-    return render_template("admin/analytics.html")
+    by_program = get_capstones_by_program()
+    by_status  = get_requests_by_status()
+    top_cited  = get_top_cited_capstones(limit=5)
+
+    program_labels = [row["program_name"] for row in by_program]
+    program_totals = [row["total"] for row in by_program]
+
+    status_labels = [row["request_status"].capitalize() for row in by_status]
+    status_totals = [row["total"] for row in by_status]
+
+    return render_template(
+        "admin/analytics.html",
+        program_labels=program_labels,
+        program_totals=program_totals,
+        status_labels=status_labels,
+        status_totals=status_totals,
+        top_cited=top_cited,
+    )
 
 
 # ── User management ───────────────────────────────────────────────────────────

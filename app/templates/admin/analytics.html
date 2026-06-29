@@ -10,12 +10,158 @@
 <section class="analytics-section">
     <div class="analytics-page-header">
         <h2>Analytics &amp; Reports</h2>
-        <p>Repository usage and request trends will appear here.</p>
+        <p>Repository usage and request trends.</p>
     </div>
 
+    {% if not program_totals and not status_totals and not top_cited %}
     <div class="analytics-placeholder">
         <i class="bx bx-line-chart"></i>
-        <p>Analytics dashboard coming soon.</p>
+        <p>No data yet — analytics will populate once capstones and requests are added.</p>
     </div>
+    {% else %}
+    <div class="analytics-grid">
+
+        {# ── Capstones by Program ── #}
+        <div class="detail-card analytics-card">
+            <div class="detail-card__header">
+                <div>
+                    <h3>Capstones by Program</h3>
+                    <p>Total archived capstones per program</p>
+                </div>
+            </div>
+            <div class="detail-card__body">
+                {% if program_totals %}
+                <canvas id="chart-by-program"></canvas>
+                {% else %}
+                <div class="empty-state"><p>No capstone records yet.</p></div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ── Requests by Status ── #}
+        <div class="detail-card analytics-card">
+            <div class="detail-card__header">
+                <div>
+                    <h3>Manuscript Requests by Status</h3>
+                    <p>Where every request currently stands</p>
+                </div>
+            </div>
+            <div class="detail-card__body">
+                {% if status_totals %}
+                <canvas id="chart-by-status"></canvas>
+                {% else %}
+                <div class="empty-state"><p>No requests yet.</p></div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# ── Top Cited Capstones ── #}
+        <div class="detail-card analytics-card analytics-card--wide">
+            <div class="detail-card__header">
+                <div>
+                    <h3>Most Cited Capstones</h3>
+                    <p>Top 5 by citation count</p>
+                </div>
+            </div>
+            <div class="detail-card__body">
+                {% if top_cited %}
+                <div class="table-wrap">
+                    <table class="data-table data-table--striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Title</th>
+                                <th>Program</th>
+                                <th class="col-center">Citations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in top_cited %}
+                            <tr>
+                                <td class="cell-id">{{ loop.index }}</td>
+                                <td><strong>{{ row.capstone_title }}</strong></td>
+                                <td>{{ row.program_name }}</td>
+                                <td class="col-center">{{ row.citation_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <p>No capstones have been cited yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Pull the design tokens straight from the page so the charts match
+    // the rest of the app instead of Chart.js's defaults.
+    const styles = getComputedStyle(document.documentElement);
+    const primary     = styles.getPropertyValue('--color-primary').trim()       || '#2E3F92';
+    const primaryLight= styles.getPropertyValue('--color-primary-light').trim()|| '#4A5ED1';
+    const accent      = styles.getPropertyValue('--color-accent').trim()       || '#F39C12';
+    const gray        = styles.getPropertyValue('--color-gray-light').trim()   || '#E5E7EB';
+
+    const byProgramCanvas = document.getElementById('chart-by-program');
+    if (byProgramCanvas) {
+        new Chart(byProgramCanvas, {
+            type: 'bar',
+            data: {
+                labels: {{ program_labels | tojson }},
+                datasets: [{
+                    label: 'Capstones',
+                    data: {{ program_totals | tojson }},
+                    backgroundColor: primary,
+                    borderRadius: 6,
+                    maxBarThickness: 48,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gray } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    const byStatusCanvas = document.getElementById('chart-by-status');
+    if (byStatusCanvas) {
+        const statusColors = {
+            'Pending':   accent,
+            'Approved':  '#2ecc71',
+            'Rejected':  '#e74c3c',
+            'Cancelled': gray,
+        };
+        const labels = {{ status_labels | tojson }};
+        new Chart(byStatusCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: {{ status_totals | tojson }},
+                    backgroundColor: labels.map(l => statusColors[l] || primaryLight),
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

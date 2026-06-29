@@ -20,7 +20,14 @@
         {% endif %}
     {% endwith %}
 
-    <div class="manuscript-request-layout {% if not capstone or has_active_request %}manuscript-request-layout--single{% endif %}">
+    {# Reached two ways:
+       1. Sidebar "My Requests" -> capstone is None -> form never shows,
+          this is purely the all-requests list.
+       2. "Request Full Manuscript" on a capstone -> capstone is set ->
+          form shows by itself; the all-requests list only appears once
+          the form's job is done (an active request now exists, or
+          there's no capstone in context at all). #}
+    <div class="manuscript-request-layout manuscript-request-layout--single">
 
         {% if capstone and not has_active_request %}
         <div class="detail-card">
@@ -44,8 +51,10 @@
                 </div>
             </form>
         </div>
+
         {% else %}
 
+        {# ── All Requests section — shown once the form's job is done ── #}
         <div class="detail-card">
             <div class="detail-card__header">
                 <div>
@@ -103,6 +112,7 @@
                 {% endif %}
             </div>
         </div>
+
         {% endif %}
 
     </div>

@@ -122,22 +122,20 @@
                             id="sb-abstract-link" 
                             class="btn-abstract"
                             data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
-                            target="_top"
+                            target="_blank"
                             rel="noopener noreferrer">
-                            View Full Manuscript
+                            View Abstract
                         </a>
                         {% else %}
                         <button class="btn-abstract" disabled title="Admin only">View Abstract</button>
                         {% endif %}
 
-                        {% if session.get('role_name') == 'Student' %}
                         <a id="sb-request-link"
                            class="btn-manuscript"
                            href="{{ url_for('pages.request_capstone', capstone_id=sidebar_project.capstone_id) }}"
                            data-base-url="{{ url_for('pages.request_capstone', capstone_id=0) }}">
                             Request Full Manuscript
                         </a>
-                        {% endif %}
                     </div>
                     <button type="button" id="sb-cite-btn" class="btn-cite">
                         Cite

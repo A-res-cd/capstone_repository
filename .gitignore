@@ -36,6 +36,5 @@ seeder.py
 capreDB.sql
 capreDB.session.sql
 
-data_seeder.py
-
 TODO.md
+data_seeder.py

@@ -1039,6 +1039,68 @@ def get_user_requests(user_id):
         conn.close()
 
 
+# ______________________________Admin Analytics___________________________
+
+def get_capstones_by_program():
+    """Capstone count grouped by program — for the Analytics bar chart."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT p.program_name, COUNT(*) AS total
+            FROM capstone c
+            JOIN program p ON p.program_id = c.program_id
+            GROUP BY p.program_name
+            ORDER BY total DESC
+        """)
+        return mithrix.fetchall()
+    except Exception:
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def get_requests_by_status():
+    """Request count grouped by status — for the Analytics donut chart."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT request_status, COUNT(*) AS total
+            FROM request
+            GROUP BY request_status
+            ORDER BY total DESC
+        """)
+        return mithrix.fetchall()
+    except Exception:
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def get_top_cited_capstones(limit=5):
+    """Highest citation_count capstones — for the Analytics leaderboard."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT c.capstone_id, c.capstone_title, c.citation_count, p.program_name
+            FROM capstone c
+            JOIN program p ON p.program_id = c.program_id
+            WHERE c.citation_count > 0
+            ORDER BY c.citation_count DESC, c.capstone_title ASC
+            LIMIT %s
+        """, (limit,))
+        return mithrix.fetchall()
+    except Exception:
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
 #FAHHHHH ANG DAMI FUNCTIONSSSSSSSS IM SICK AND TIRED OF THISSSSSSS
 def cancel_manuscript_request(request_id, user_id):
     conn = db_connect()
