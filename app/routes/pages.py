@@ -3,6 +3,7 @@ from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors
 )
+from app.routes.decorators import login_required
 
 pages = Blueprint("pages", __name__)
 
@@ -10,6 +11,7 @@ PAGE_SIZE = 12
 
 
 @pages.route("/archive")
+@login_required
 def browse():
     search      = request.args.get("search", "").strip()
     year        = request.args.get("year", "").strip()
@@ -43,6 +45,7 @@ def browse():
 
 
 @pages.route("/user-info")
+@login_required
 def user_info():
     return render_template("global/user_information.html", hide_nav=False)
 

@@ -53,6 +53,7 @@ def _parse_capstone_people(form):
 # ── Static pages ──────────────────────────────────────────────────────────────
 
 @admin.route("/analytics")
+@role_required(3)
 def analytics():
     by_program = get_capstones_by_program()
     by_status  = get_requests_by_status()

@@ -83,7 +83,7 @@ def signup():
             form.first_name.data,
             form.middle_name.data,
             form.last_name.data,
-            form.university_no.data,
+            None,
             form.email.data,
             form.username.data,
             form.password.data,

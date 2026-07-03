@@ -69,13 +69,13 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     first_name    = first_name.strip()    if first_name    else ""
     middle_name   = middle_name.strip()   if middle_name   else ""
     last_name     = last_name.strip()     if last_name     else ""
-    university_no = university_no.strip() if university_no else ""
+    university_no = university_no.strip() if university_no else None
     email         = email.strip()         if email         else ""
     username      = username.strip()      if username      else ""
-    role_name = detect_role(university_no)
+    role_name = detect_role(university_no) if university_no else "Student"
 
     #validation
-    if not all([first_name, last_name, university_no, email, username, password]):
+    if not all([first_name, last_name, email, username, password]):
         return False, "All required fields must be filled in."
     if len(password) < 6:
         return False, "Password must be at least 6 characters."
@@ -84,7 +84,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     if not USERNAME_PATTERN.match(username):
         return False, "Username must be 3-30 characters, letters, numbers, and underscores only."
     
-    if role_name is None:
+    if university_no and role_name is None:
         print(f"University number '{university_no}' did not match any known patterns.")
         return False, ("University number format not recognized")
 

@@ -46,17 +46,6 @@
                 {% endfor %}
             </div>
 
-            <div class="form-group">
-                {{ form.university_no.label }}
-                {{ form.university_no(id="university_no", placeholder="e.g. SUM2024-00123", autocomplete="off") }}
-                <p class="field-hint field-hint--inline">
-                    Format: &lt;year&gt;-&lt;5-digit number&gt;
-                </p>
-                {% for error in form.university_no.errors %}
-                    <span class="flash-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
-
             <div class="form-group half-width">
                 {{ form.email.label }}
                 {{ form.email(id="email", placeholder="Type here", autocomplete="email") }}

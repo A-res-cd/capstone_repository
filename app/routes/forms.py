@@ -10,7 +10,6 @@ class SignupForm(FlaskForm):
     first_name = StringField("First Name", validators=[DataRequired(message = "Firt Name is required."), Length(max=50)])
     middle_name = StringField("Middle Name", validators=[Optional(), Length(max=50)])
     last_name = StringField("Last Name", validators=[DataRequired(message = "Last Name is required")])
-    university_no = StringField("ID", validators=[DataRequired(message = "ID is required.")])
     email = StringField("Email", validators=[DataRequired(message = "Email is required."), Email(message="Invalid Email format.")])
     username = StringField("Username", validators=[DataRequired(message = "Username is required."), 
                                                    Regexp(r'^[a-zA-Z0-9_]{3,30}$', 
