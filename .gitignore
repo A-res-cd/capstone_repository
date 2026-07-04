@@ -29,8 +29,6 @@ Thumbs.db
 # configuration files
 config.py
 
-uploads/
+static/uploads/
 
-seeder.py
-
-capreDB.sql
+CAPRE.sql

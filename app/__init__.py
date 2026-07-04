@@ -1,16 +1,16 @@
 from flask import Flask
-from flask_mail import Mail
+from flask_pymongo import PyMongo
 from config import Config
 
-mail = Mail()
+mongo = PyMongo()
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    mail.init_app(app)
-    
     app.secret_key = app.config["SECRET_KEY"]
+
+    mongo.init_app(app)
 
     from .routes import main
     app.register_blueprint(main)
