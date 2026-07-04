@@ -1,0 +1,114 @@
+/* ============================================================
+   PAGE: All Requests (global/all_requests.html)
+   Merged page — reached either from the sidebar "My Requests" link
+   (capstone-agnostic, form hidden) or from "Request Full Manuscript"
+   on a specific capstone (form shown above the list, unless an
+   active request already exists for that capstone).
+
+   Class names below kept their original "manuscript-request-*"
+   prefix from before the merge — renaming every selector wasn't
+   worth re-touching the template for no visible difference.
+
+   Reuses the shared detail-card, buttons, forms, flash, and table
+   (.pill, .empty-state) components.
+============================================================ */
+@import url('../base/root.css');
+@import url('../components/_detail-card.css');
+@import url('../components/_table.css');
+
+.manuscript-request-section {
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.manuscript-request-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: var(--space-lg);
+    align-items: start;
+}
+
+/* Applied when the form panel isn't rendered (an active request already
+   exists for this capstone) — the history panel takes the full row
+   instead of sitting in a half-empty grid. */
+.manuscript-request-layout--single {
+    grid-template-columns: 1fr;
+}
+
+.manuscript-request-layout--single .detail-card {
+    max-width: 640px;
+}
+
+.manuscript-request-layout textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #D1D1D1;
+    border-radius: var(--radius-md);
+    box-sizing: border-box;
+    font-size: var(--text-md);
+    font-family: var(--font-primary);
+    background: #FAFAFA;
+    color: var(--text-dark);
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.manuscript-request-layout textarea:focus {
+    border-color: var(--color-primary);
+    background-color: var(--color-white);
+}
+
+/* ── Request history list ── */
+.request-history-item {
+    padding: var(--space-md) 0;
+    border-bottom: var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.request-history-item:last-child { border-bottom: none; }
+
+.request-history-item__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.request-history-item__meta {
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+.request-history-item__note {
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.request-history-item__hint {
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    font-style: italic;
+    margin: 0;
+}
+
+.request-history-item form,
+.request-history-item a.btn-pill {
+    align-self: flex-start;
+    margin-top: var(--space-xs);
+}
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .manuscript-request-layout {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,124 @@
+/* ============================================================
+   COMPONENT: Detail card
+   The white card-with-header shell used for the repository
+   create/edit form and the manage-users edit panel (previously
+   .form-card / .edit-card with duplicated header/body rules).
+
+   Usage:
+     <div class="detail-card">
+       <div class="detail-card__header">
+         <div><h3>...</h3><p>...</p></div>
+         <button class="btn-icon">x</button>
+       </div>
+       <div class="detail-card__body"> ... </div>
+     </div>
+============================================================ */
+@import url('../base/root.css');
+
+.detail-card {
+    background: var(--color-white);
+    border: var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+/* manage-users keeps its edit card narrower than the page */
+.detail-card--compact {
+    max-width: 680px;
+}
+
+.detail-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: var(--border-light);
+    background: var(--bg-card-neutral);
+}
+
+.detail-card__header h3 {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 0 0 4px;
+}
+
+.detail-card__header p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+.detail-card__body {
+    padding: var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.detail-card__body--bordered {
+    border-bottom: var(--border-light);
+}
+
+/* read-only info strip (manage-users "Name / ID / Email / Role" row) */
+.info-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm) var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: var(--border-light);
+    background: #fafbff;
+}
+
+.info-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.info-label {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--color-gray-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.info-value {
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.info-value--mono {
+    font-family: monospace;
+    letter-spacing: 0.05em;
+}
+
+/* danger zone (delete-account section) */
+.danger-zone {
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.danger-zone__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: #c0392b;
+}
+
+.danger-zone__header i { font-size: 18px; }
+
+.danger-zone p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    margin: 0 0 var(--space-sm);
+    line-height: 1.5;
+}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_auth.css') }}">
+{% endblock %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <h2>Sign In</h2>
+
+        {# Flash Messages #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-list">
+                    {% for category, message in messages %}
+                        <li class="flash-{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        {% if locked_until %}
+            <div class="lockout-banner" id="lockout-banner">
+                <ul class="flash-list">
+                    <li class="flash-danger">
+                        Account locked. Try again in <strong id="lockout-timer">--:--</strong>
+                    </li>
+                </ul>
+            </div>
+            <script>
+                const unlocksAt = new Date("{{ locked_until }}");
+                function updateTimer() {
+                    const now = new Date();
+                    const diff = Math.max(0, Math.floor((unlocksAt - now) / 1000));
+                    if (diff === 0) {
+                        document.getElementById("lockout-banner").innerHTML =
+                            "&#128275; Account unlocked. You may try again.";
+                        return;
+                    }
+                    const mins = String(Math.floor(diff / 60)).padStart(2, "0");
+                    const secs = String(diff % 60).padStart(2, "0");
+                    document.getElementById("lockout-timer").textContent = `${mins}:${secs}`;
+                    setTimeout(updateTimer, 1000);
+                }
+                updateTimer();
+            </script>
+        {% endif %}
+
+        <form action="{{ url_for('auth.signin') }}" method="POST" class="auth-form" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="form-group">
+                {{ form.username.label }}
+                {{ form.username(id="username", placeholder="Type here", autocomplete="username", class="") }}
+                {% for error in form.username.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                {{ form.password.label }}
+                {{ form.password(id="password", placeholder="Type here", autocomplete="current-password", class="") }}
+                {% for error in form.password.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn-auth-primary">Sign In</button>
+        </form>
+
+        <div class="auth-footer">
+            <p class="auth-link">
+                Don't have an account? <a href="{{ url_for('auth.signup') }}">Sign Up</a>
+            </p>
+            <a href="{{ url_for('auth.forgot_password') }}" class="auth-link">Forgot password?</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

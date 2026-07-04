@@ -3,15 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %}</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base/global.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/index.css') }}">
+
+    {% block extra_css %}{% endblock %}
+
+    <title>{% block title %}My App{% endblock %}</title>
 </head>
 <body>
+    <div class="layout">
 
-    {% include 'partials/navbar.html' %}
+        {% if not hide_nav %}
+            {% include 'partials/navbar.html' %}
+        {% endif %}
 
-    <main>
-        {% block content %} {% endblock %}
-    </main>
+        <div class="main-wrapper">
+            {% if not hide_header %}
+                {% include 'partials/header.html' %}
+            {% endif %}
+            <main>
+                {% block content %}{% endblock %}
+            </main>
+        </div>
 
+    </div>
+
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

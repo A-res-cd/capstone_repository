@@ -1,0 +1,28 @@
+/* ============================================================
+   COMPONENT: Top header bar
+   The blue strip showing the current page title, next to the
+   sidebar toggle. Loaded on every page via base.html.
+============================================================ */
+@import url('../base/root.css');
+
+.header-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 20px;
+    color: var(--color-white);
+    background-color: var(--color-primary);
+    border-bottom-left-radius: var(--radius-lg);
+}
+
+/* toggle icon */
+#nav-toggle {
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.burger-menu {
+    display: flex;
+    justify-content: flex-end;
+    align-self: flex-end;
+}

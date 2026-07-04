@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_repository.css') }}">
+{% endblock %}
+
+{% block title %}Repository Management{% endblock %}
+
+{% block content %}
+<section class="repo-section">
+
+    {# ── Page Header ── #}
+    <div class="repo-page-header">
+        <div class="repo-page-header__text">
+            <h2>Capstone Repository</h2>
+            <p>Manage capstone projects — create, edit, or remove records from the archive.</p>
+        </div>
+        {# Only show "New Capstone" when not already on create/edit tab #}
+        <button class="btn-pill btn-pill--primary" id="btn-open-create">
+            <i class="bx bx-plus"></i> New Capstone
+        </button>
+    </div>
+
+    {# ── Flash Messages ── #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flash-list">
+        {% for category, message in messages %}
+        <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    {# ══════════════════════════════════════════════════════
+       PANEL A — CAPSTONE LIST
+    ══════════════════════════════════════════════════════ #}
+    <div class="repo-panel" id="panel-list">
+
+        {% if capstones %}
+        <div class="table-wrap">
+            <table class="data-table data-table--striped">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Program</th>
+                        <th>Specialization</th>
+                        <th>Year</th>
+                        <th>Semester</th>
+                        <th>Keywords</th>
+                        <th>Citations</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in capstones %}
+                    <tr>
+                        <td><strong>{{ c.capstone_title }}</strong></td>
+                        <td>{{ c.program_name }}</td>
+                        <td>{{ c.specialization_name }}</td>
+                        <td>{{ c.capstone_year }}</td>
+                        <td>{{ ('Sem ' ~ c.semester) if c.semester else '—' }}</td>
+                        <td class="cell-keywords">
+                            {{ c.capstone_keywords[:40] }}{% if c.capstone_keywords|length > 40 %}…{% endif %}
+                        </td>
+                        <td class="cell-center">{{ c.citation_count or 0 }}</td>
+                        <td class="cell-center">
+                            <div class="row-actions">
+                                <button class="btn-row btn-row--edit"
+                                    data-id="{{ c.capstone_id }}"
+                                    data-title="{{ c.capstone_title }}"
+                                    data-keywords="{{ c.capstone_keywords }}"
+                                    data-program="{{ c.program_id }}"
+                                    data-spec="{{ c.specialization_id }}"
+                                    data-year="{{ c.capstone_year }}"
+                                    data-semester="{{ c.semester }}"
+                                    data-citations="{{ c.citation_count }}"
+                                    data-file="{{ c.capstone_file }}">
+                                    <i class="bx bx-edit-alt"></i> Edit
+                                </button>
+                                <button class="btn-row btn-row--delete"
+                                    onclick="confirmDelete('{{ c.capstone_id }}')">
+                                    <i class="bx bx-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bx bx-folder-open"></i>
+            <p>No capstone records yet.</p>
+            <button class="btn-pill btn-pill--primary" onclick="openCreate()">
+                <i class="bx bx-plus"></i> Add the First One
+            </button>
+        </div>
+        {% endif %}
+
+    </div>
+    <div class="repo-panel repo-panel--hidden" id="panel-form">
+        <div class="detail-card">
+            <div class="detail-card__header">
+                <div>
+                    <h3 id="form-heading">New Capstone</h3>
+                    <p id="form-subheading">Fill in the details to add a capstone to the archive.</p>
+                </div>
+                <button class="btn-icon" id="btn-close-form" title="Back to list">
+                    <i class="bx bx-x"></i>
+                </button>
+            </div>
+
+            <form id="capstone-form"
+                  action="{{ url_for('admin.admin_create_capstone') }}"
+                  method="POST"
+                  enctype="multipart/form-data"
+                  class="capstone-form"
+                  novalidate>
+                
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="capstone_id" id="field-capstone-id">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="capstone_title">Capstone Title <span class="req">*</span></label>
+                        <input type="text" id="capstone_title" name="capstone_title"
+                               placeholder="Enter the full project title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="capstone_year">Year <span class="req">*</span></label>
+                        <input type="number" id="capstone_year" name="capstone_year"
+                               placeholder="e.g. 2024" min="2000" max="2099" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="program_id">Program <span class="req">*</span></label>
+                        <select id="program_id" name="program_id" required>
+                            <option value="" disabled selected>Select program</option>
+                            {% for prog in programs %}
+                            <option value="{{ prog[0] }}">{{ prog[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="specialization_id">Specialization <span class="req">*</span></label>
+                        <select id="specialization_id" name="specialization_id" required>
+                            <option value="" disabled selected>Select specialization</option>
+                            {% for spec in specializations %}
+                            <option value="{{ spec[0] }}">{{ spec[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="semester">Semester <span class="req">*</span></label>
+                        <select id="semester" name="semester" required>
+                            <option value="" disabled selected>Select semester</option>
+                            <option value="1st">1st Semester</option>
+                            <option value="2nd">2nd Semester</option>
+                            <option value="summer">Summer</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="citation_count">Citation Count</label>
+                        <input type="number" id="citation_count" name="citation_count"
+                               placeholder="0" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="capstone_keywords">Keywords <span class="req">*</span></label>
+                        <input type="text" id="capstone_keywords" name="capstone_keywords"
+                               placeholder="e.g. machine learning, neural networks" required>
+                    </div>
+                </div>
+
+                <div class="form-group form-group--full">
+                    <label for="capstone_file">
+                        Capstone File
+                        <span id="file-label-note" class="label-note">(required)</span>
+                    </label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="capstone_file" name="capstone_file"
+                               accept=".pdf,.doc,.docx">
+                        <p class="file-hint">
+                            <i class="bx bx-info-circle"></i>
+                            Accepted: PDF, DOC, DOCX &nbsp;·&nbsp; Max 50 MB
+                            <span id="current-file-note" class="current-file"></span>
+                        </p>
+                    </div>
+                </div>
+                
+                <fieldset class="form-group form-group--full">
+                    <legend>Authors (up to 4)</legend>
+                    {% for i in range(1, 5) %}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="author_first_{{ i }}">Author {{ i }} — First</label>
+                            <input type="text" id="author_first_{{ i }}" name="author_first_{{ i }}" placeholder="First name">
+                        </div>
+                        <div class="form-group">
+                            <label for="author_middle_{{ i }}">Middle</label>
+                            <input type="text" id="author_middle_{{ i }}" name="author_middle_{{ i }}" placeholder="Middle name">
+                        </div>
+                        <div class="form-group">
+                            <label for="author_last_{{ i }}">Last</label>
+                            <input type="text" id="author_last_{{ i }}" name="author_last_{{ i }}" placeholder="Last name">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </fieldset>
+
+                <fieldset class="form-group form-group--full">
+                    <legend>Adviser <span class="req">*</span></legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="adviser_first">First <span class="req">*</span></label>
+                            <input type="text" id="adviser_first" name="adviser_first" placeholder="First name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="adviser_middle">Middle</label>
+                            <input type="text" id="adviser_middle" name="adviser_middle" placeholder="Middle name">
+                        </div>
+                        <div class="form-group">
+                            <label for="adviser_last">Last <span class="req">*</span></label>
+                            <input type="text" id="adviser_last" name="adviser_last" placeholder="Last name" required>
+                        </div>
+                    </div>
+                </fieldset>
+
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-pill btn-pill--primary" id="btn-submit">
+                        <i class="bx bx-save"></i>
+                        <span id="btn-submit-label">Submit Capstone</span>
+                    </button>
+                    <button type="reset" class="btn-pill btn-pill--ghost" id="btn-reset">
+                        <i class="bx bx-revision"></i> Clear
+                    </button>
+                    <button type="button" class="btn-pill btn-pill--secondary" id="btn-cancel">
+                        <i class="bx bx-arrow-back"></i> Cancel
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/repository.js') }}"></script>
+{% endblock %}

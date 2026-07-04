@@ -1,0 +1,79 @@
+/* ============================================================
+   COMPONENT: Sidebar detail card
+   The sticky right-hand "click a row to see details" card shared
+   by the Explore Archive page and the Admin Requests page.
+============================================================ */
+@import url('../base/root.css');
+
+.archive-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+
+.sidebar-card {
+    background: var(--bg-card-neutral);
+    border: var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    position: sticky;
+    top: 0;
+}
+
+.sidebar-card h3 {
+    font-size: var(--text-md);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.sidebar-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-meta label {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--color-gray-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sidebar-meta p {
+    font-size: var(--text-sm);
+    margin: 0;
+    color: var(--text-dark);
+}
+
+.sidebar-card hr {
+    border: none;
+    border-top: var(--border-light);
+    margin: var(--space-xs) 0;
+}
+
+.sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.sidebar-empty {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--color-gray-dark);
+    min-height: 200px;
+}
+
+.sidebar-empty i {
+    font-size: 36px;
+    color: var(--color-gray);
+    margin-bottom: var(--space-sm);
+}

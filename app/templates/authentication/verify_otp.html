@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_auth.css') }}">
+{% endblock %}
+
+{% block title %}Verify OTP{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="auth-card">
+        <h2>Enter OTP</h2>
+        <p class="subtitle">Check your email for the 6-digit code. It expires in {{ otp_expiry_minutes or 4 }} minutes.</p>
+
+        {# Flash Messages #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-list">
+                    {% for category, message in messages %}
+                        <li class="flash-{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('auth.verify_otp_route') }}" method="POST" class="auth-form" novalidate>
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.otp.label }}
+                {{ form.otp(id="otp", class="otp-input", placeholder="000000", maxlength="6", inputmode="numeric", autocomplete="one-time-code") }}
+                <p class="otp-timer">Time remaining:
+                    <span id="countdown" data-expiry-minutes="{{ otp_expiry_minutes or 4 }}">{{ otp_expiry_minutes or 4 }}:00</span>
+                </p>
+                {% for error in form.otp.errors %}
+                    <span class="flash-danger">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn-auth-primary" id="submit-btn">Verify OTP</button>
+        </form>
+
+        <div class="divider"></div>
+
+        <div class="auth-footer">
+            <p class="auth-link">Didn't get a code? <a href="{{ url_for('auth.forgot_password') }}">Request again</a></p>
+            <p class="auth-link"><a href="{{ url_for('auth.signin') }}">Back to sign in</a></p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ url_for('static', filename='js/otp_timer.js') }}"></script>
+{% endblock %}

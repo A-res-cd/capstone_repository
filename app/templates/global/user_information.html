@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/pages/_user-information.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="user-information-section">
+    <div class="user-information-content">
+        <!-- Tab Navigation -->
+        <div class="update-selection">
+            <button class="tab-btn active">Personal info</button>
+            <button class="tab-btn">Contact info</button>
+        </div>
+
+        <!-- Section 1: Basic Info -->
+        <div class="user-information-update-group">
+            <h2>Basic Information</h2>
+            
+            <div class="input-row">
+                <div class="input-field-wrapper">
+                    <label>First name</label>
+                    <input type="text" placeholder="Juan">
+                </div>
+                <div class="input-field-wrapper">
+                    <label>Middle name</label>
+                    <input type="text" placeholder="Dela Cruz">
+                </div>
+                <div class="input-field-wrapper">
+                    <label>Last name</label>
+                    <input type="text" placeholder="Miguel">
+                </div>
+            </div>
+
+            <div class="input-row">
+                <div class="input-field-wrapper">
+                    <label>User name</label>
+                    <input type="text" placeholder="juanDaMan">
+                    <span class="helper-text">This cannot be changed</span>
+                </div>
+                <div class="input-field-wrapper">
+                    <label>University ID</label>
+                    <input type="text" placeholder="SUM2020-01055">
+                    <span class="helper-text">Assigned by university</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Replicated for footer info if needed -->
+        <div class="user-information-update-group">
+            <h2>Basic Information</h2>
+            <!-- Additional rows here -->
+        </div>
+    </div>
+</section>
+{% endblock %}

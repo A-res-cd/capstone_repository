@@ -1,4 +1,63 @@
-<nav>
-    <a href="/">Home</a>
-    <a href="/login">login</a>
+<nav class="nav-container">
+
+    <!-- HEADER -->
+    <div class="nav-container-header">
+        <img src="{{ url_for('static', filename='images/capre-logo.png') }}" alt="CAPRE" class="logo">
+    </div>
+
+    <!-- BODY -->
+    <div class="nav-container-body">
+
+        <div class="burger-menu">
+            <i class='bx bx-menu' id="nav-toggle"></i>
+        </div>
+
+        <!-- USER -->
+        <div class="nav-container-user">
+            <div class="avatar"></div>
+            <div class="username"></div>
+            {% if role_meta %}
+            <div class="role-badge {{ role_meta.badge_class }}">
+                <i class="{{ role_meta.icon }}"></i>
+                <span class="role-label">{{ role_meta.label }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- LINKS -->
+        <div class="nav-links">
+            {% if nav_sections %}
+                {% for section_name, section_links in nav_sections.items() %}
+                    <div class="nav-section">
+                        <span class="nav-section-label">{{ section_name }}</span>
+                        {% for link in section_links %}
+                            <a href="{{ link.url }}"
+                               class="nav-item {% if current_path == link.url %}active{% endif %}">
+                                <i class="{{ link.icon }}"></i>
+                                <span>{{ link.name }}</span>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                {% for link in nav_links %}
+                    <a href="{{ link.url }}"
+                       class="nav-item {% if current_path == link.url %}active{% endif %}">
+                        <i class="{{ link.icon }}"></i>
+                        <span>{{ link.name }}</span>
+                    </a>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="nav-container-footer">
+        <a href="/logout" class="nav-item logout">
+            <i class="bx bx-log-out"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+
 </nav>

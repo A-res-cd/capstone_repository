@@ -4,6 +4,7 @@
     --color-primary: #2E3F92;        /* Main header blue */
     --color-primary-dark: #1B1C8F;   /* Navigation bar blue */
     --color-primary-light: #4A5ED1;  /* Lighter blue variant */
+    --color-primary-soft:  #b1b8e0;
 
     /* ========== ACCENT COLORS ========== */
     --color-accent: #F39C12;         /* Orange (active Home button) */
@@ -15,6 +16,7 @@
     --color-gray-light: #E5E5E5;
     --color-gray: #BDBDBD;
     --color-gray-dark: #4F4F4F;
+    --color-red: #E74C3C;
 
     /* ========== TEXT COLORS ========== */
     --text-primary: #FFFFFF;
@@ -59,5 +61,8 @@
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
     --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
     --shadow-lg: 0 6px 12px rgba(0,0,0,0.2);
+
+    --bg-card-neutral: #F1F3F2;
+    --bg-button-light: #E8F3EC;
 
 }

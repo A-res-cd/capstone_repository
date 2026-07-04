@@ -1,18 +1,23 @@
 from flask import Flask
-from flask_pymongo import PyMongo
+from flask_mail import Mail
 from config import Config
+from flask_wtf.csrf import CSRFProtect
 
-mongo = PyMongo()
+mail = Mail()
+
+csrf = CSRFProtect()
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    mail.init_app(app)
+    csrf.init_app(app)
+    
     app.secret_key = app.config["SECRET_KEY"]
 
-    mongo.init_app(app)
-
-    from .routes import main
-    app.register_blueprint(main)
+    from .routes import blueprints
+    for bp in blueprints:
+        app.register_blueprint(bp)
 
     return app

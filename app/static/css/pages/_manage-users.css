@@ -1,0 +1,59 @@
+/* ============================================================
+   PAGE: Manage Users
+   List + edit-panel switching. Shared table look comes from
+   components/_table.css, the edit-card shell from
+   components/_detail-card.css, fields from components/_forms.css,
+   and buttons from components/_buttons.css.
+============================================================ */
+@import url('../base/root.css');
+@import url('../components/_table.css');
+@import url('../components/_detail-card.css');
+
+main { padding: 0; }
+
+.mu-section {
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+}
+
+/* ── Page header ── */
+.mu-page-header {
+    flex-shrink: 0;
+}
+
+.mu-page-header h2 {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 0 0 4px;
+}
+
+.mu-page-header p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+/* ── Panel visibility ── */
+.mu-panel { flex: 1; min-height: 0; }
+.mu-panel--hidden { display: none; }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .mu-section { padding: var(--space-md); }
+
+    .info-strip { grid-template-columns: 1fr; }
+
+    .detail-card__header,
+    .detail-card__body,
+    .danger-zone { padding: var(--space-lg); }
+
+    .edit-form__actions { flex-direction: column; align-items: stretch; }
+    .btn-pill { justify-content: center; }
+}

@@ -1,0 +1,25 @@
+/* ============================================================
+   PAGE: Authentication (sign in, sign up, forgot password,
+   verify OTP, reset password)
+
+   The shared card/form/button look now lives in:
+     components/_auth-card.css
+     components/_forms.css
+     components/_buttons.css   (.btn-auth-primary)
+
+   This file only holds the handful of rules that are specific
+   to one auth page and don't belong in a shared component.
+============================================================ */
+@import url('../base/root.css');
+@import url('../components/_auth-card.css');
+
+main {
+    padding: 0;
+}
+
+/* sign-up's university-number format hint */
+.field-hint--inline {
+    font-size: 0.8rem;
+    margin-top: 4px;
+    opacity: 0.8;
+}

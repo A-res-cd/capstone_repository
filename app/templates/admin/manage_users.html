@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_manage-users.css') }}">
+{% endblock %}
+
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<section class="mu-section">
+
+    {# ── Page Header ── #}
+    <div class="mu-page-header">
+        <div>
+            <h2>Manage Users</h2>
+            <p>View all registered users. Select a user to edit their role or delete their account.</p>
+        </div>
+    </div>
+
+    {# ── Flash Messages ── #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flash-list">
+        {% for category, message in messages %}
+        <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    {# ══════════════════════════════════════════════════════
+       PANEL A — USER LIST
+    ══════════════════════════════════════════════════════ #}
+    <div class="mu-panel" id="panel-list">
+
+        {% if users %}
+        <div class="table-wrap">
+            <table class="data-table data-table--striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full Name</th>
+                        <th>University No.</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th class="col-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td class="cell-id">{{ u.user_id }}</td>
+                        <td><strong>{{ u.full_name }}</strong></td>
+                        <td class="cell-mono">{{ u.university_no }}</td>
+                        <td>{{ u.email or '—' }}</td>
+                        <td>
+                            <span class="pill
+                                {% if u.role == 'Admin' %}pill--admin
+                                {% elif u.role == 'Faculty' %}pill--faculty
+                                {% else %}pill--student{% endif %}">
+                                {{ u.role }}
+                            </span>
+                        </td>
+                        <td class="col-center">
+                            <button class="btn-row btn-row--edit"
+                                data-id="{{ u.user_id }}"
+                                data-name="{{ u.full_name }}"
+                                data-univ="{{ u.university_no }}"
+                                data-email="{{ u.email or '' }}"
+                                data-role="{{ u.role }}">
+                                <i class="bx bx-edit-alt"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bx bx-group"></i>
+            <p>No users found in the system.</p>
+        </div>
+        {% endif %}
+
+    </div>{# end panel-list #}
+
+    {# ══════════════════════════════════════════════════════
+       PANEL B — EDIT FORM (hidden by default)
+    ══════════════════════════════════════════════════════ #}
+    <div class="mu-panel mu-panel--hidden" id="panel-edit">
+        <div class="detail-card detail-card--compact">
+
+            {# Card header #}
+            <div class="detail-card__header">
+                <div>
+                    <h3>Edit User</h3>
+                    <p id="edit-subheading">Update role or remove account.</p>
+                </div>
+                <button class="btn-icon" id="btn-close-edit" title="Back to list">
+                    <i class="bx bx-x"></i>
+                </button>
+            </div>
+
+            {# Read-only user info strip #}
+            <div class="info-strip">
+                <div class="info-chip">
+                    <span class="info-label">Name</span>
+                    <span class="info-value" id="info-name">—</span>
+                </div>
+                <div class="info-chip">
+                    <span class="info-label">University No.</span>
+                    <span class="info-value info-value--mono" id="info-univ">—</span>
+                </div>
+                <div class="info-chip">
+                    <span class="info-label">Email</span>
+                    <span class="info-value" id="info-email">—</span>
+                </div>
+                <div class="info-chip">
+                    <span class="info-label">Current Role</span>
+                    <span class="info-value" id="info-role">—</span>
+                </div>
+            </div>
+
+            {# ── Role Change Form ── #}
+            <form id="form-role"
+                  method="POST"
+                  action="{{ url_for('admin.update_role', user_id=0) }}"
+                  class="detail-card__body detail-card__body--bordered">
+
+                <input type="hidden" name="acting_admin_id"
+                       value="{{ session.get('user_id', '') }}">
+
+                <div class="form-group">
+                    <label for="role_id">
+                        Assign New Role <span class="req">*</span>
+                    </label>
+                    <select id="role_id" name="role_id" required>
+                        <option value="" disabled selected>Select a role</option>
+                        {% for r in roles %}
+                        <option value="{{ r[0] }}">{{ r[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-pill btn-pill--primary">
+                        <i class="bx bx-save"></i> Save Role
+                    </button>
+                    <button type="button" class="btn-pill btn-pill--ghost" id="btn-back-role">
+                        <i class="bx bx-arrow-back"></i> Cancel
+                    </button>
+                </div>
+            </form>
+
+            {# ── Danger Zone ── #}
+            <div class="danger-zone">
+                <div class="danger-zone__header">
+                    <i class="bx bx-error-circle"></i>
+                    <span>Danger Zone</span>
+                </div>
+                <p>Permanently deletes the user account and all associated data. This action <strong>cannot be undone</strong>.</p>
+
+                <form id="form-delete"
+                      method="POST"
+                      action="{{ url_for('admin.delete_user', user_id=0) }}"
+                      onsubmit="return confirmDelete(event)">
+                    <input type="hidden" name="acting_admin_id"
+                           value="{{ session.get('user_id', '') }}">
+                    <button type="submit" class="btn-pill btn-pill--danger">
+                        <i class="bx bx-trash"></i> Delete Account
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </div>{# end panel-edit #}
+
+</section>
+
+<script>
+const panelList = document.getElementById('panel-list');
+const panelEdit = document.getElementById('panel-edit');
+
+function showEdit() {
+    panelList.classList.add('mu-panel--hidden');
+    panelEdit.classList.remove('mu-panel--hidden');
+    panelEdit.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function showList() {
+    panelEdit.classList.add('mu-panel--hidden');
+    panelList.classList.remove('mu-panel--hidden');
+}
+
+// Wire Edit buttons
+document.querySelectorAll('.btn-row--edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const id    = btn.dataset.id;
+        const name  = btn.dataset.name;
+        const univ  = btn.dataset.univ;
+        const email = btn.dataset.email;
+        const role  = btn.dataset.role;
+
+        // populate info strip
+        document.getElementById('info-name').textContent  = name;
+        document.getElementById('info-univ').textContent  = univ;
+        document.getElementById('info-email').textContent = email || '—';
+        document.getElementById('info-role').textContent  = role;
+        document.getElementById('edit-subheading').textContent =
+            `Editing: ${name}`;
+
+        // update form actions to include the correct user_id
+        document.getElementById('form-role').action =
+            `/manage_users/update_role/${id}`;
+        document.getElementById('form-delete').action =
+            `/manage_users/delete/${id}`;
+
+        // reset role select
+        document.getElementById('role_id').value = '';
+        showEdit();
+    });
+});
+
+document.getElementById('btn-close-edit').addEventListener('click', showList);
+document.getElementById('btn-back-role').addEventListener('click', showList);
+
+function confirmDelete(e) {
+    const name = document.getElementById('info-name').textContent;
+    if (!confirm(`Delete account for "${name}"?\n\nThis will permanently remove their account and cannot be undone.`)) {
+        e.preventDefault();
+        return false;
+    }
+    return true;
+}
+</script>
+{% endblock %}

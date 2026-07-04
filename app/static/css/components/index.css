@@ -1,0 +1,10 @@
+/* ============================================================
+   COMPONENTS — single entry point
+   Imports every shared component once. base.html links just this
+   one file instead of four separate <link> tags.
+============================================================ */
+@import url('_header.css');
+@import url('_nav.css');
+@import url('_flash.css');
+@import url('_buttons.css');
+@import url('_forms.css');
