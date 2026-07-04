@@ -36,5 +36,7 @@ seeder.py
 capreDB.sql
 capreDB.session.sql
 
+# extras
 TODO.md
 data_seeder.py
+AGENTS.md
