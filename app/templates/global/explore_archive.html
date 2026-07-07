@@ -117,29 +117,32 @@
                         </p>
                     </div>
                     <div class="sidebar-actions">
-                        {% if session.get('role_name') == 'Admin' %}
+                        {% if session.get('role_name') in ['Admin', 'Faculty'] %}
                         <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
                             id="sb-abstract-link" 
                             class="btn-abstract"
                             data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
                             target="_blank"
                             rel="noopener noreferrer">
-                            View Abstract
+                            View PDF
                         </a>
                         {% else %}
                         <button class="btn-abstract" disabled title="Admin only">View Abstract</button>
                         {% endif %}
-
+                        
+                        {% if session.get('role_name') == 'Student' %}
                         <a id="sb-request-link"
                            class="btn-manuscript"
                            href="{{ url_for('pages.request_capstone', capstone_id=sidebar_project.capstone_id) }}"
                            data-base-url="{{ url_for('pages.request_capstone', capstone_id=0) }}">
                             Request Full Manuscript
                         </a>
+                        
+                        <button type="button" id="sb-cite-btn" class="btn-cite">
+                            Cite
+                        </button>
                     </div>
-                    <button type="button" id="sb-cite-btn" class="btn-cite">
-                        Cite
-                    </button>
+                    {% endif %}
                 </div>
                 {% else %}
                 <div class="sidebar-card sidebar-empty">

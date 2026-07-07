@@ -85,7 +85,7 @@ def manage_users():
     return render_template("admin/manage_users.html", users=users, roles=roles)
 
 
-@admin.route("/manage_users/update_role/<int:user_id>", methods=["POST"])
+@admin.route("/manage_users/update_role/<int:user_id>", methods=["GET","POST"])
 @role_required(3)
 def update_role(user_id):
     new_role_id     = request.form.get("role_id")

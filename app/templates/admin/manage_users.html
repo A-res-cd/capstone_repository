@@ -128,6 +128,8 @@
                   action="{{ url_for('admin.update_role', user_id=0) }}"
                   class="detail-card__body detail-card__body--bordered">
 
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <input type="hidden" name="acting_admin_id"
                        value="{{ session.get('user_id', '') }}">
 
