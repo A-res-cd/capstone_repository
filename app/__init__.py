@@ -2,7 +2,8 @@ from flask import Flask
 from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect
-from .routes.decorators import load_current_user
+
+from .auth_utils import load_current_user
 
 mail = Mail()
 

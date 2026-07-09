@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
 from flask_mail import Message
 import psycopg2.extras
+from app.db.database import db_connect
 
 from app.db.database import (
     create_user,
@@ -10,7 +11,6 @@ from app.db.database import (
     create_otp,
     verify_otp,
     change_password,
-    db_connect,
     OTP_EXPIRY_MINUTES,
 )
 from app import mail

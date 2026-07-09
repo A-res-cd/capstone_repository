@@ -1,6 +1,5 @@
 from functools import wraps
-from flask import session, redirect, url_for, flash, g
-from .authentication import get_current_user
+from flask import session, g, redirect, url_for, flash
 
 
 def login_required(f):
@@ -23,7 +22,9 @@ def role_required(*allowed_roles):
                 flash("You must be logged in.", "warning")
                 return redirect(url_for("auth.signin"))
 
-            user_role = session.get("role_id")
+            user_role = None
+            if getattr(g, 'user', None):
+                user_role = g.user.get("role_id")
             if user_role not in allowed_roles:
                 flash("You don't have permission to access that page.", "danger")
                 return redirect(url_for("auth.signin"))
@@ -31,14 +32,3 @@ def role_required(*allowed_roles):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
-
-
-def load_current_user():
-    """load current user from postgresql every request"""
-
-    user_id = session.get("user_id")
-    if not user_id:
-        g.user = None
-        return
-
-    g.user = get_current_user(user_id)

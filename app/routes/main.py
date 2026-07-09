@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, g
 from app.constants.nav import get_nav_links, get_role_meta, resolve_title
 
 main = Blueprint("main", __name__)
@@ -6,7 +6,9 @@ main = Blueprint("main", __name__)
 
 @main.app_context_processor
 def inject_global_template_vars():
-    role = session.get("role_name")
+    role = None
+    if getattr(g, 'user', None):
+        role = g.user.get("role_name")
 
     if not role:
         return {
