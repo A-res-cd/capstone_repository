@@ -8,25 +8,44 @@
 
 {% block content %}
 <section class="analytics-section">
+
+    {# Flash Messages — shows the exact DB error so it's actionable #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flash-list">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
     {% if not program_totals and not status_totals and not top_cited %}
-    <div class="analytics-placeholder">
-        <i class="bx bx-line-chart"></i>
-        <p>No data yet — analytics will populate once capstones and requests are added.</p>
-    </div>
+        {% if has_db_errors %}
+        <div class="analytics-placeholder">
+            <i class="bx bx-error-circle" style="color: #e74c3c;"></i>
+            <p>Could not load analytics data. Check the error above for details.</p>
+        </div>
+        {% else %}
+        <div class="analytics-placeholder">
+            <i class="bx bx-line-chart"></i>
+            <p>No data yet — analytics will populate once capstones and requests are added.</p>
+        </div>
+        {% endif %}
     {% else %}
     <div class="analytics-grid">
 
-        {# ── Capstones by Program ── #}
+        {# ── Capstones by Specialization ── #}
         <div class="detail-card analytics-card">
             <div class="detail-card__header">
                 <div>
-                    <h3>Capstones by Program</h3>
-                    <p>Total archived capstones per program</p>
+                    <h3>Capstones by Specialization</h3>
+                    <p>Total archived capstones per specialization</p>
                 </div>
             </div>
             <div class="detail-card__body">
-                {% if program_totals %}
-                <canvas id="chart-by-program"></canvas>
+                {% if specialization_totals %}
+                <canvas id="chart-by-specialization"></canvas>
                 {% else %}
                 <div class="empty-state"><p>No capstone records yet.</p></div>
                 {% endif %}
@@ -96,14 +115,17 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <script>
     window.chartData = {
-        program_labels: {{ program_labels | default([]) | tojson }},
-        program_totals: {{ program_totals | default([]) | tojson }},
+        specialization_labels: {{ specialization_labels | default([]) | tojson }},
+        specialization_totals: {{ specialization_totals | default([]) | tojson }},
         status_labels: {{ status_labels | default([]) | tojson }},
         status_totals: {{ status_totals | default([]) | tojson }}
     };
+
+    console.log('Chart data:', window.chartData);
 </script>
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 {% endblock %}

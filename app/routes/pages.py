@@ -3,7 +3,8 @@ from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors
 )
-from app.routes.decorators import login_required
+from app.routes.decorators import login_required, role_required
+from app.utils.pdf_extractor import extract_capstone_data
 
 pages = Blueprint("pages", __name__)
 
@@ -48,6 +49,22 @@ def browse():
 @login_required
 def user_info():
     return render_template("global/user_information.html", hide_nav=False)
+
+
+@pages.route("/repository/pdf/<int:capstone_id>")
+@role_required(1)
+def view_capstone_abstract(capstone_id):
+    capstone = get_capstone_details(capstone_id)
+    if not capstone:
+        flash("capstone not found", "danger")
+        return redirect(url_for("pages.browse"))
+
+    return render_template(
+        "admin/view_capstone.html",
+        hide_nav=False,
+        capstone=capstone,
+        max_pages=None
+    )
 
 
 @pages.route("/my-requests")

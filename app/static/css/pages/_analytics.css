@@ -63,8 +63,18 @@
     grid-column: 1 / -1;
 }
 
-.analytics-card canvas {
-    max-height: 320px;
+/* Height is set here via CSS so Chart.js (maintainAspectRatio: false)
+   has a real pixel value to fill. The canvas itself must NOT have an
+   explicit height — it fills its parent via responsive: true. */
+.analytics-card .detail-card__body {
+    height: 320px;
+    position: relative;
+}
+
+/* The leaderboard card body is a table, not a chart — let it size naturally */
+.analytics-card--wide .detail-card__body {
+    height: auto;
+    position: static;
 }
 
 /* ══════════════════════════════════════════════════════

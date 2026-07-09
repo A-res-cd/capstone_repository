@@ -126,8 +126,15 @@
                             rel="noopener noreferrer">
                             View PDF
                         </a>
-                        {% else %}
-                        <button class="btn-abstract" disabled title="Admin only">View Abstract</button>
+                        {% elif session.get('role_name') == 'Student' %}
+                        <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
+                            id="sb-abstract-link" 
+                            class="btn-abstract"
+                            data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
+                            target="_blank"
+                            rel="noopener noreferrer">
+                            View Abstract
+                        </a>
                         {% endif %}
                         
                         {% if session.get('role_name') == 'Student' %}

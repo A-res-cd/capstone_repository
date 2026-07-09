@@ -7,10 +7,10 @@ from app.db.database import (
     get_capstone_details, update_capstone_record, update_keyword,
     delete_capstone, get_users, update_user_role, get_all_roles,
     get_all_requests, review_request, set_capstone_people, get_capstone_people,
-    get_capstones_by_program, get_requests_by_status, get_top_cited_capstones
+    get_capstones_by_specialization, get_requests_by_status, get_top_cited_capstones
 )
 from app.routes.decorators import role_required
-from app.utils.pdf_extractor import extract_capstone_data
+from app.utils.pdf_extractor import extract_capstone_data, _parse_abstract_page
 
 admin = Blueprint("admin", __name__)
 
@@ -104,23 +104,38 @@ def _parse_capstone_people(form):
 @admin.route("/analytics")
 @role_required(3)
 def analytics():
-    by_program = get_capstones_by_program()
-    by_status  = get_requests_by_status()
-    top_cited  = get_top_cited_capstones(limit=5)
+    db_errors = []
 
-    program_labels = [row["program_name"] for row in by_program]
-    program_totals = [row["total"] for row in by_program]
+    by_specialization, err = get_capstones_by_specialization()
+    if err:
+        db_errors.append(f"Capstones by specialization: {err}")
 
-    status_labels = [row["request_status"].capitalize() for row in by_status]
-    status_totals = [row["total"] for row in by_status]
+    by_status, err = get_requests_by_status()
+    if err:
+        db_errors.append(f"Requests by status: {err}")
+
+    top_cited, err = get_top_cited_capstones(limit=5)
+    if err:
+        db_errors.append(f"Top cited capstones: {err}")
+
+    if db_errors:
+        for msg in db_errors:
+            flash(f"Analytics query failed — {msg}", "danger")
+
+    specialization_labels = [row["specialization_name"] for row in by_specialization]
+    specialization_totals = [row["total"] for row in by_specialization]
+
+    status_labels  = [row["request_status"].capitalize() for row in by_status]
+    status_totals  = [row["total"]                       for row in by_status]
 
     return render_template(
         "admin/analytics.html",
-        program_labels=program_labels,
-        program_totals=program_totals,
+        specialization_labels=specialization_labels,
+        specialization_totals=specialization_totals,
         status_labels=status_labels,
         status_totals=status_totals,
         top_cited=top_cited,
+        has_db_errors=bool(db_errors),
     )
 
 
@@ -410,9 +425,10 @@ def view_capstone(capstone_id):
 
 #this is new
 @admin.route("/repository/pdf/<int:capstone_id>")
-@role_required(3)
+@role_required(1, 3)
 def view_capstone_pdf(capstone_id):
     capstone = get_capstone_details(capstone_id)
+    print(f"Viewing capstone PDF for ID {capstone_id}: {capstone}")
     if not capstone:
         flash("Capstone not found.", "danger")
         return redirect(url_for("admin.view_capstone_repository"))

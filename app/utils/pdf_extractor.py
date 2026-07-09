@@ -34,6 +34,36 @@ except ImportError:
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _parse_abstract_page(pages):
+    """
+    Returns (page_number, abstract_text) for the actual Abstract page.
+    Ignores the Table of Contents.
+    """
+    toc_found = False
+
+    for page_num, page in enumerate(pages, start=1):
+        text = page.extract_text() or ""
+
+        # Detect the Table of Contents page
+        if not toc_found and re.search(r"TABLE\s+OF\s+CONTENTS", text, re.IGNORECASE):
+            toc_found = True
+            continue
+
+        # Don't look for ABSTRACT until after the TOC
+        if not toc_found:
+            continue
+
+        lines = text.splitlines()
+
+        for i, line in enumerate(lines):
+            if re.fullmatch(r"\s*ABSTRACT\s*", line, re.IGNORECASE):
+                abstract = "\n".join(lines[i + 1:]).strip()
+                return page_num, abstract
+
+    return None, ""
+
+
+
 def _parse_name_string(raw: str) -> dict | None:
     """
     Parse 'LAST, FIRST [MIDDLE_WORDS...]' (all-caps, cover-page format)
@@ -161,9 +191,6 @@ def extract_capstone_data(pdf_path: str) -> dict:
                     if parsed:
                         result['authors'].append(parsed)
 
-            # ── Page 2: Title Page ────────────────────────────────
-            p2_text = pdf.pages[1].extract_text() or ''
-
             # ── Page 3: Approval Sheet ────────────────────────────
             p3_lines = [
                 l.strip()
@@ -173,23 +200,9 @@ def extract_capstone_data(pdf_path: str) -> dict:
             result['adviser'] = _parse_adviser_from_approval(p3_lines)
 
             # ── Abstract page: scan all pages ─────────────────────
-            abstract_full_text = ''
-            for i, page in enumerate(pdf.pages):
-                t = page.extract_text() or ''
-                if re.search(r'^\s*ABSTRACT\s*$', t, re.MULTILINE):
-                    result['abstract_page'] = i + 1  # 1-based
+            abstract_page, abstract_full_text = _parse_abstract_page(pdf.pages)
+            result['abstract_page'] = abstract_page
 
-                    # Keywords from explicit 'Keywords:' line
-                    kw_match = re.search(r'Keywords?:?\s*(.+?)(?:\n\f|$)', t, re.DOTALL)
-                    if kw_match:
-                        kw_raw = kw_match.group(1).strip()
-                        sep    = ';' if ';' in kw_raw else ','
-                        result['keywords'] = [
-                            k.strip().replace('\n', ' ')
-                            for k in kw_raw.split(sep) if k.strip()
-                        ]
-                    abstract_full_text = t
-                    break
 
             # YAKE fallback: if no explicit keywords line was found
             if not result['keywords'] and abstract_full_text:
@@ -198,5 +211,6 @@ def extract_capstone_data(pdf_path: str) -> dict:
     except Exception as exc:
         # Return whatever was collected before the error; never crash the route
         result['_error'] = str(exc)
-
+    print(f"Extracted capstone data: {result}")
     return result
+    

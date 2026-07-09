@@ -714,9 +714,9 @@ def delete_capstone(capstone_id):
             return False, "Capstone not found."
         keyword_id = row[0]
 
-        # delete related capAuth entries first (authors/advisers)
+        # delete related capauth entries first (authors/advisers)
         mithrix.execute("""
-            DELETE FROM capAuth WHERE capstone_id = %s
+            DELETE FROM capauth WHERE capstone_id = %s
         """, (capstone_id,))
 
         mithrix.execute("""
@@ -1067,22 +1067,21 @@ def get_user_requests(user_id):
 
 # ______________________________Admin Analytics___________________________
 
-def get_capstones_by_program():
-    """Capstone count grouped by program — for the Analytics bar chart."""
+def get_capstones_by_specialization():
+    """Capstone count grouped by specialization — for the Analytics bar chart."""
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         mithrix.execute("""
-            SELECT p.program_name, COUNT(*) AS total
+            SELECT s.specialization_name, COUNT(c.capstone_id) AS total
             FROM capstone c
-            JOIN program p ON p.program_id = c.program_id
-            GROUP BY p.program_name
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            GROUP BY s.specialization_name
             ORDER BY total DESC
         """)
-        return mithrix.fetchall()
+        return mithrix.fetchall(), None
     except Exception as exc:
-        print(f"Database error: {exc}")
-        return []
+        return [], str(exc)
     finally:
         mithrix.close()
         conn.close()
@@ -1099,10 +1098,9 @@ def get_requests_by_status():
             GROUP BY request_status
             ORDER BY total DESC
         """)
-        return mithrix.fetchall()
+        return mithrix.fetchall(), None
     except Exception as exc:
-        print(f"Database error: {exc}")
-        return []
+        return [], str(exc)
     finally:
         mithrix.close()
         conn.close()
@@ -1121,10 +1119,9 @@ def get_top_cited_capstones(limit=5):
             ORDER BY c.citation_count DESC, c.capstone_title ASC
             LIMIT %s
         """, (limit,))
-        return mithrix.fetchall()
+        return mithrix.fetchall(), None
     except Exception as exc:
-        print(f"Database error: {exc}")
-        return []
+        return [], str(exc)
     finally:
         mithrix.close()
         conn.close()
@@ -1184,9 +1181,9 @@ def get_capstone_authors(casptone_id):
     try:
         mithrix.execute("""
             SELECT a.aut_first_name, a.aut_middle_name, a.aut_last_name, ca.author_order
-            FROM capAuth ca
-            JOIN Author a On a.author_id = ca.author_id
-            WHERE ca.capstone_id = %s AND ca.role = 'Author'
+            FROM capauth ca
+            JOIN author a On a.author_id = ca.author_id
+            WHERE ca.capstone_id = %s AND ca.role = 'author'
             ORDER BY ca.author_order ASC
         """, (casptone_id,))
 
@@ -1207,8 +1204,8 @@ def get_capstone_people(capstone_id):
     try:
         mithrix.execute("""
             SELECT a.aut_first_name, a.aut_middle_name, a.aut_last_name, ca.author_order, ca.role
-            FROM capAuth ca
-            JOIN Author a ON a.author_id = ca.author_id
+            FROM capauth ca
+            JOIN author a ON a.author_id = ca.author_id
             WHERE ca.capstone_id = %s
             ORDER BY ca.author_order ASC
         """, (capstone_id, )) 
@@ -1229,7 +1226,7 @@ def set_capstone_people(capstone_id, authors, adviser):
 
     try:
         mithrix.execute("""
-            DELETE FROM capAuth WHERE capstone_id = %s
+            DELETE FROM capauth WHERE capstone_id = %s
                         
         """, (capstone_id, ))
 
@@ -1243,7 +1240,7 @@ def set_capstone_people(capstone_id, authors, adviser):
                 continue
 
             mithrix.execute("""
-                INSERT INTO Author (aut_first_name, aut_middle_name, aut_last_name)
+                INSERT INTO author (aut_first_name, aut_middle_name, aut_last_name)
                 VALUES (%s, %s, %s)
                 RETURNING author_id
             """, (first, middle or None, last))
@@ -1251,8 +1248,8 @@ def set_capstone_people(capstone_id, authors, adviser):
             author_id = mithrix.fetchone()[0]
 
             mithrix.execute("""
-                INSERT INTO capAuth (capstone_id, author_id, author_order, role)
-                VALUES (%s, %s, %s, 'Author')
+                INSERT INTO capauth (capstone_id, author_id, author_order, role)
+                VALUES (%s, %s, %s, 'author')
             """, (capstone_id, author_id, order))
 
             order += 1
@@ -1262,14 +1259,14 @@ def set_capstone_people(capstone_id, authors, adviser):
         adv_last = (adviser.get("last") or "").strip()
 
         mithrix.execute("""
-            INSERT INTO Author (aut_first_name, aut_middle_name, aut_last_name)
+            INSERT INTO author (aut_first_name, aut_middle_name, aut_last_name)
             VALUES (%s, %s, %s)
             RETURNING author_id
         """, (adv_first, adv_middle or None, adv_last))
         adviser_id = mithrix.fetchone()[0]
 
         mithrix.execute("""
-            INSERT INTO capAuth (capstone_id, author_id, author_order, role)
+            INSERT INTO capauth (capstone_id, author_id, author_order, role)
             VALUES (%s, %s, %s, 'Adviser')
         """, (capstone_id, adviser_id, order))
 

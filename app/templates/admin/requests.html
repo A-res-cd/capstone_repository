@@ -110,5 +110,8 @@
 <script>
     const BASE_DECIDE_URL = "{{ url_for('admin.decide_request', request_id=0) }}";
 </script>
+{% endblock %}
+
+{% block extra_js %}
 <script src="{{ url_for('static', filename='js/request_sidebar.js') }}"></script>
 {% endblock %}
