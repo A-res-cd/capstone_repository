@@ -2,10 +2,12 @@ from flask import Flask
 from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect
+from .routes.decorators import load_current_user
 
 mail = Mail()
 
 csrf = CSRFProtect()
+
 
 def create_app():
     app = Flask(__name__)
@@ -13,8 +15,10 @@ def create_app():
 
     mail.init_app(app)
     csrf.init_app(app)
-    
+
     app.secret_key = app.config["SECRET_KEY"]
+
+    app.before_request(load_current_user)
 
     from .routes import blueprints
     for bp in blueprints:
