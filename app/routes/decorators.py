@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import session, redirect, url_for, flash, g
-from authentication import get_current_user
+from .authentication import get_current_user
 
 
 def login_required(f):

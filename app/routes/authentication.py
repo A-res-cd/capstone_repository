@@ -220,16 +220,15 @@ def reset_password_route():
                            hide_nav=True, hide_header=True)
 
 
-def get_current_user():
+def get_current_user(user_id):
     """Get the current logged-in user from the session."""
-    user_id = session.get("user_id")
     if not user_id:
         return None
 
     conn = db_connect()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("""
-        SELECT u.user_id, u.first_name, u.middle_name, u.last_name, u.email, u.role_id, r.role_name
+        SELECT u.user_id, u.first_name, u.middle_name, u.last_name, u.email, u.role_id, r.role_name, u.locked_until
         FROM "user" u
         JOIN role r ON u.role_id = r.role_id
         WHERE u.user_id = %s
