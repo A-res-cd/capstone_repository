@@ -6,12 +6,6 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY")
 
-    # MySQL connection (must be edited to match your MySQL configuration)
-    MYSQL_HOST = os.getenv("MYSQL_HOST")
-    MYSQL_USER = os.getenv("MYSQL_USER")
-    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
-    MYSQL_DB = os.getenv("MYSQL_DB")
-
     PG_HOST = os.getenv("PG_HOST")
     PG_PORT = int(os.getenv("PG_PORT", "5432"))
     PG_USER = os.getenv("PG_USER")
@@ -24,4 +18,5 @@ class Config:
     MAIL_USERNAME       = os.environ.get("MAIL_USERNAME")   
     MAIL_PASSWORD       = os.environ.get("MAIL_PASSWORD")   
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_USERNAME")
-    UPLOAD_FOLDER = 'app/static/uploads'
+    
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER")

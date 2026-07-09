@@ -10,8 +10,11 @@
 
   <!-- Left: Metadata panel -->
   <div class="meta-panel">
-    {% if session.get('role_name') == 'Admin' %}
+    {% set role = session.get('role_name') %}
+    {% if role == 'Admin' or role == 'Capstone Professor' %}
     <a href="{{ url_for('admin.view_capstone_repository') }}" class="back-link">← Back to Repository</a>
+    {% elif role == 'Faculty' %}
+    <a href="{{ url_for('pages.browse') }}" class="back-link">← Back to Archive</a>
     {% else %}
     <a href="{{ url_for('pages.all_requests') }}" class="back-link">← Back to My Requests</a>
     {% endif %}

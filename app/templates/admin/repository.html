@@ -121,6 +121,27 @@
                 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="capstone_id" id="field-capstone-id">
+                <input type="hidden" name="extracted_filename" id="extracted-filename">
+
+                {# ── Step 0: Upload PDF for auto-extraction ──
+                   This sits above the fields and auto-fills them on upload.
+                   Only shown when creating (not editing). #}
+                <div class="form-group form-group--full" id="extract-section">
+                    <label>
+                        Upload PDF to Auto-fill Fields
+                        <span class="label-note">(optional — PDF only)</span>
+                    </label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="extract-file-input" accept=".pdf"
+                               data-extract-url="{{ url_for('admin.extract_capstone_pdf') }}">
+                        <p class="file-hint">
+                            <i class="bx bx-info-circle"></i>
+                            Upload the capstone PDF first — the form will pre-fill automatically.
+                            You can still edit anything before submitting.
+                        </p>
+                    </div>
+                    <div id="extract-status" class="extract-status" style="display:none;"></div>
+                </div>
 
                 <div class="form-row">
                     <div class="form-group">
@@ -178,25 +199,14 @@
                         <label for="capstone_keywords">Keywords <span class="req">*</span></label>
                         <input type="text" id="capstone_keywords" name="capstone_keywords"
                                placeholder="e.g. machine learning, neural networks" required>
+                        {# Keyword suggestion chips appear here after extraction #}
+                        <div id="keyword-chips" class="keyword-chips" style="display:none;">
+                            <p class="field-hint">Suggested — click to add:</p>
+                            <div id="keyword-chips-list"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group form-group--full">
-                    <label for="capstone_file">
-                        Capstone File
-                        <span id="file-label-note" class="label-note">(required)</span>
-                    </label>
-                    <div class="file-upload-wrapper">
-                        <input type="file" id="capstone_file" name="capstone_file"
-                               accept=".pdf,.doc,.docx">
-                        <p class="file-hint">
-                            <i class="bx bx-info-circle"></i>
-                            Accepted: PDF, DOC, DOCX &nbsp;·&nbsp; Max 50 MB
-                            <span id="current-file-note" class="current-file"></span>
-                        </p>
-                    </div>
-                </div>
-                
                 <fieldset class="form-group form-group--full">
                     <legend>Authors (up to 4)</legend>
                     {% for i in range(1, 5) %}

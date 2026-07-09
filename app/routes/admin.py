@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for, flash
+from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify
 from werkzeug.utils import secure_filename
 import os
 from app.db.database import (
@@ -10,6 +10,7 @@ from app.db.database import (
     get_capstones_by_program, get_requests_by_status, get_top_cited_capstones
 )
 from app.routes.decorators import role_required
+from app.utils.pdf_extractor import extract_capstone_data
 
 admin = Blueprint("admin", __name__)
 
@@ -19,6 +20,54 @@ ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
 
 def _allowed(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+# ── PDF auto-extract ───────────────────────────────────────────────────────
+
+@admin.route("/repository/extract", methods=["POST"])
+@role_required(3)
+def extract_capstone_pdf():
+    """
+    Step 1 of the two-step "New Capstone" flow.
+
+    Admin uploads the PDF here first. The server extracts what it can
+    (title, year, authors, adviser, keywords, abstract page) and returns
+    it as JSON. The browser JS pre-fills the capstone form fields so the
+    Admin only has to review and correct, not type everything from scratch.
+
+    Response shape:
+      { success: true, data: { title, year, program, specialization,
+                                authors: [{first,middle,last},...],
+                                adviser: {first,middle,last},
+                                keywords: [...],
+                                abstract_page: int,
+                                temp_filename: "..." } }
+    or:
+      { success: false, error: "..." }
+    """
+    file = request.files.get('capstone_file')
+    if not file or file.filename == '':
+        return jsonify({'success': False, 'error': 'No file uploaded.'}), 400
+
+    if not _allowed(file.filename):
+        return jsonify({'success': False, 'error': 'Only PDF, DOC, and DOCX files are accepted.'}), 400
+
+    filename = secure_filename(file.filename)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    temp_path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(temp_path)
+
+    # Only PDF files can be parsed for metadata — DOC/DOCX silently skip
+    if filename.lower().endswith('.pdf'):
+        data = extract_capstone_data(temp_path)
+    else:
+        data = {}
+
+    return jsonify({
+        'success':       True,
+        'data':          data,
+        'temp_filename': filename,
+    })
 
 
 def _save_file(file_obj):
@@ -142,9 +191,12 @@ def view_capstone_repository():
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@admin.route("/repository/create", methods=["POST"])
+@admin.route("/repository/create", methods=["GET", "POST"])
 @role_required(3)
 def admin_create_capstone():
+    if request.method == "GET":
+        return redirect(url_for("admin.view_capstone_repository"))
+
     programs        = get_programs()
     specializations = get_specializations()
     try:
@@ -153,18 +205,30 @@ def admin_create_capstone():
             program = request.form.get('program_id')
             capstone_title = request.form.get('capstone_title')
             capstone_year = request.form.get('capstone_year')
-            capstone_file = request.files.get('capstone_file').filename
             citation = request.form.get('citation_count')
             sem = request.form.get('semester')
 
             file = request.files.get('capstone_file')
-            if not file or not allowed_file(file.filename):
-                flash(
-                    "Invalid file type. Only PDF, DOC, and DOCX are allowed.", "danger")
+            extracted_filename = request.form.get("extracted_filename")
+
+            if file and file.filename:
+                if not allowed_file(file.filename):
+                    flash(
+                        "Invalid file type. Only PDF, DOC, and DOCX are allowed.", "danger")
+                    return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
+                filename = secure_filename(file.filename)
+                os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                file.save(os.path.join(UPLOAD_FOLDER, filename))
+            elif extracted_filename:
+                filename = secure_filename(extracted_filename)
+                if not allowed_file(filename):
+                    flash(
+                        "Invalid file type. Only PDF, DOC, and DOCX are allowed.", "danger")
+                    return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
+            else:
+                flash("Upload a capstone file first.", "danger")
                 return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
-            filename = secure_filename(file.filename)
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-            file.save(os.path.join(UPLOAD_FOLDER, filename))
+
             file_path = f"uploads/{filename}"
 
             success, result = insert_keywords(
