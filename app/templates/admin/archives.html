@@ -4,7 +4,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_repository.css') }}">
 {% endblock %}
 
-{% block title %}Archive Management{% endblock %}
+{% block title %}Recycle Bin{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/repository.js') }}"></script>
+{% endblock %}
 
 {% block content %}
 <section class="repo-section">
@@ -12,8 +16,8 @@
     {# ── Page Header ── #}
     <div class="repo-page-header">
         <div class="repo-page-header__text">
-            <h2>Archived Capstones</h2>
-            <p>Review the archived repository records, inspect stored metadata, and reopen capstone details when needed.</p>
+            <h2>Recycle Bin</h2>
+            <p>Review archived repository records and inspect stored metadata for previously removed capstones.</p>
         </div>
     </div>
 
@@ -59,7 +63,7 @@
                         </td>
                         <td class="cell-center">{{ c.citation_count or 0 }}</td>
                         <td class="cell-center">
-                            {{ c.archived_at.strftime('%b %d, %Y') if c.archived_at else '—' }}
+                            {{ c.is_archived.strftime('%b %d, %Y') if c.is_archived else '—' }}
                         </td>
                         <td class="cell-center">
                             <div class="row-actions">
@@ -67,6 +71,10 @@
                                    href="{{ url_for('admin.view_capstone', capstone_id=c.capstone_id) }}">
                                     <i class="bx bx-show-alt"></i> View
                                 </a>
+                                <button class="btn-row btn-row--delete"
+                                    onclick="confirmDelete('{{ c.capstone_id }}', '/delete_capstone/', 'Permanently delete this capstone? This cannot be undone.')">
+                                    <i class="bx bx-trash"></i> Delete
+                                </button>
                             </div>
                         </td>
                     </tr>

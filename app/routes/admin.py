@@ -141,7 +141,7 @@ def view_capstone_repository():
     )
 
 
-@admin.route("/archives")
+@admin.route("/recyclebin")
 @role_required(3)
 def view_archived_capstones():
     archived_capstones = get_archived_capstones()
