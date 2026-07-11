@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_repository.css') }}">
+{% endblock %}
+
+{% block title %}Archive Management{% endblock %}
+
+{% block content %}
+<section class="repo-section">
+
+    {# ── Page Header ── #}
+    <div class="repo-page-header">
+        <div class="repo-page-header__text">
+            <h2>Archived Capstones</h2>
+            <p>Review the archived repository records, inspect stored metadata, and reopen capstone details when needed.</p>
+        </div>
+    </div>
+
+    {# ── Flash Messages ── #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flash-list">
+        {% for category, message in messages %}
+        <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    {# ── Archived Capstones List ── #}
+    <div class="repo-panel" id="panel-list">
+        {% if archived_capstones %}
+        <div class="table-wrap">
+            <table class="data-table data-table--striped">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Program</th>
+                        <th>Specialization</th>
+                        <th>Year</th>
+                        <th>Semester</th>
+                        <th>Keywords</th>
+                        <th>Citations</th>
+                        <th>Archived On</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in archived_capstones %}
+                    <tr>
+                        <td><strong>{{ c.capstone_title }}</strong></td>
+                        <td>{{ c.program_name }}</td>
+                        <td>{{ c.specialization_name }}</td>
+                        <td>{{ c.capstone_year }}</td>
+                        <td>{{ ('Sem ' ~ c.semester) if c.semester else '—' }}</td>
+                        <td class="cell-keywords">
+                            {{ c.capstone_keywords[:40] }}{% if c.capstone_keywords|length > 40 %}…{% endif %}
+                        </td>
+                        <td class="cell-center">{{ c.citation_count or 0 }}</td>
+                        <td class="cell-center">
+                            {{ c.archived_at.strftime('%b %d, %Y') if c.archived_at else '—' }}
+                        </td>
+                        <td class="cell-center">
+                            <div class="row-actions">
+                                <a class="btn-row btn-row--edit"
+                                   href="{{ url_for('admin.view_capstone', capstone_id=c.capstone_id) }}">
+                                    <i class="bx bx-show-alt"></i> View
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bx bx-folder-open"></i>
+            <p>No archived capstones yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</section>
+{% endblock %}

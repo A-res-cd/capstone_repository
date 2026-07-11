@@ -2,18 +2,18 @@ from flask import Blueprint, render_template, request, redirect, session, url_fo
 from werkzeug.utils import secure_filename
 import os
 from app.db.database import (
-    delete_user_account, get_all_capstones, get_programs, get_specializations,
+    delete_user_account, get_all_capstones, get_archived_capstones, get_programs, get_specializations,
     get_used_keyword, insert_keywords, create_capstone_project,
     get_capstone_details, update_capstone_record, update_keyword,
     delete_capstone, get_users, update_user_role, get_all_roles,
     get_all_requests, review_request, set_capstone_people, get_capstone_people,
-    get_capstones_by_program, get_requests_by_status, get_top_cited_capstones
+    get_capstones_by_program, get_requests_by_status, get_top_cited_capstones, add_to_archive
 )
 from app.routes.decorators import role_required
 
 admin = Blueprint("admin", __name__)
 
-UPLOAD_FOLDER      = os.path.join("app", "static", "uploads")
+UPLOAD_FOLDER = os.path.join("app", "static", "uploads")
 ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
 
 
@@ -32,7 +32,9 @@ def _save_file(file_obj):
     file_obj.save(os.path.join(UPLOAD_FOLDER, filename))
     return filename
 
-#this is new
+# this is new
+
+
 def _parse_capstone_people(form):
     authors = []
     for i in range(1, 5):
@@ -49,15 +51,14 @@ def _parse_capstone_people(form):
     return authors, adviser
 
 
-
 # ── Static pages ──────────────────────────────────────────────────────────────
 
 @admin.route("/analytics")
 @role_required(3)
 def analytics():
     by_program = get_capstones_by_program()
-    by_status  = get_requests_by_status()
-    top_cited  = get_top_cited_capstones(limit=5)
+    by_status = get_requests_by_status()
+    top_cited = get_top_cited_capstones(limit=5)
 
     program_labels = [row["program_name"] for row in by_program]
     program_totals = [row["total"] for row in by_program]
@@ -88,7 +89,7 @@ def manage_users():
 @admin.route("/manage_users/update_role/<int:user_id>", methods=["POST"])
 @role_required(3)
 def update_role(user_id):
-    new_role_id     = request.form.get("role_id")
+    new_role_id = request.form.get("role_id")
     acting_admin_id = request.form.get("acting_admin_id")
 
     if not new_role_id:
@@ -129,8 +130,8 @@ def view_requests():
 @admin.route("/repository")
 @role_required(3)
 def view_capstone_repository():
-    capstones       = get_all_capstones()
-    programs        = get_programs()
+    capstones = get_all_capstones()
+    programs = get_programs()
     specializations = get_specializations()
     return render_template(
         "admin/repository.html",
@@ -139,13 +140,25 @@ def view_capstone_repository():
         specializations=specializations,
     )
 
+
+@admin.route("/archives")
+@role_required(3)
+def view_archived_capstones():
+    archived_capstones = get_archived_capstones()
+    return render_template(
+        "admin/archives.html",
+        archived_capstones=archived_capstones,
+    )
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 @admin.route("/repository/create", methods=["POST"])
 @role_required(3)
 def admin_create_capstone():
-    programs        = get_programs()
+    programs = get_programs()
     specializations = get_specializations()
     try:
         if request.method == 'POST':
@@ -182,14 +195,16 @@ def admin_create_capstone():
                     new_capstone_id = message
 
                     authors, adviser = _parse_capstone_people(request.form)
-                    
+
                     if not (adviser["first"] and adviser["last"]):
                         flash("Adviser information is required.", "danger")
                         return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
-                    
-                    ok, err = set_capstone_people(new_capstone_id, authors, adviser)
+
+                    ok, err = set_capstone_people(
+                        new_capstone_id, authors, adviser)
                     if not ok:
-                        flash(f"Capstone created, but author/adviser save failed: {err}", "warning")
+                        flash(
+                            f"Capstone created, but author/adviser save failed: {err}", "warning")
                     else:
                         flash("Capstone created successfully!", "success")
 
@@ -211,10 +226,10 @@ def admin_create_capstone():
 @admin.route("/repository/update/<int:capstone_id>", methods=["POST"])
 @role_required(3)
 def update_capstone(capstone_id):
-    programs        = get_programs()
+    programs = get_programs()
     specializations = get_specializations()
-    used_keywords   = get_used_keyword()
-    capstone        = get_capstone_details(capstone_id)
+    used_keywords = get_used_keyword()
+    capstone = get_capstone_details(capstone_id)
 
     if not capstone:
         flash("Capstone not found.", "danger")
@@ -269,11 +284,12 @@ def update_capstone(capstone_id):
 
                 ok, err = set_capstone_people(capstone_id, authors, adviser)
                 if not ok:
-                    flash(f"Capstone updated, but author/adviser save failed: {err}", "warning")
+                    flash(
+                        f"Capstone updated, but author/adviser save failed: {err}", "warning")
                 else:
                     flash("Capstone updated successfully!", "success")
                 return redirect(url_for("admin.view_capstone_repository"))
-        keyword_id   = capstone["keyword_id"]
+        keyword_id = capstone["keyword_id"]
         new_keywords = request.form.get("capstone_keywords", "").strip()
         if new_keywords and new_keywords != capstone["capstone_keywords"]:
             ok, err = update_keyword(keyword_id, new_keywords)
@@ -326,7 +342,7 @@ def delete_capstone_route(capstone_id):
         success, message = delete_capstone(capstone_id)
         flash(message, "success" if success else "danger")
     except Exception as e:
-        flash(f"Error: {e}", "danger") 
+        flash(f"Error: {e}", "danger")
 
     return redirect(url_for("admin.view_capstone_repository"))
 
@@ -337,14 +353,16 @@ def view_capstone(capstone_id):
     capstone = get_capstone_details(capstone_id)
     is_admin = session.get("role_id") == 3
     max_pages = None if is_admin else 1  # Non-admin sees only page 1
-    
+
     return render_template(
         "admin/view_capstone.html",
         capstone=capstone,
         max_pages=max_pages
     )
 
-#this is new
+# this is new
+
+
 @admin.route("/repository/pdf/<int:capstone_id>")
 @role_required(3)
 def view_capstone_pdf(capstone_id):
@@ -356,7 +374,7 @@ def view_capstone_pdf(capstone_id):
 
 
 @admin.route("/repository/decide/<int:request_id>", methods=["POST"])
-@role_required(3)   
+@role_required(3)
 def decide_request(request_id):
     status = request.form.get("status")
     status_reason = request.form.get("status_reason", "")
@@ -366,3 +384,13 @@ def decide_request(request_id):
     flash("Request updated." if ok else f"Error: {err}",
           "success" if ok else "danger")
     return redirect(url_for("admin.view_requests"))
+
+# ==========add the capstone to the archive and prepare for fetus deletus==========
+
+
+@admin.route("/repository/archive/<int:capstone_id>", methods=["POST"])
+@role_required(3)
+def archive_capstone(capstone_id):
+    success, message = add_to_archive(capstone_id)
+    flash(message, "success" if success else "danger")
+    return redirect(url_for("admin.view_capstone_repository"))

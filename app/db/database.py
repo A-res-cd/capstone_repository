@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
 
+
 def db_connect():
     conn = psycopg2.connect(
         host=Config.PG_HOST,
@@ -17,15 +18,15 @@ def db_connect():
     return conn
 
 
-
 # student and faculty auto detection role pattern
-STUDENT_PATTERN = re.compile(r'^2\d{9}$|^2\d{3}-\d{5}$|^[A-Z]{2,4}\d{4}-\d{5}$', re.IGNORECASE)
+STUDENT_PATTERN = re.compile(
+    r'^2\d{9}$|^2\d{3}-\d{5}$|^[A-Z]{2,4}\d{4}-\d{5}$', re.IGNORECASE)
 PROFESSOR_PATTERN = re.compile(r'^\d{4}$')
 ADMIN_PATTERN = re.compile(r'^admin\d{3}$', re.IGNORECASE)
 # this should detect the role thingy
 
 # validation patterns
-EMAIL_PATTERN    = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]{3,30}$')
 
 
@@ -65,16 +66,16 @@ def log_audit(mithrix, user_id, action_type, affected_table, affected_record_id,
 # ___________________________________this be the sign up i think maybe______________________________
 def create_user(first_name, middle_name, last_name, university_no, email, username, password):
 
-    #strip and basic validation
-    first_name    = first_name.strip()    if first_name    else ""
-    middle_name   = middle_name.strip()   if middle_name   else ""
-    last_name     = last_name.strip()     if last_name     else ""
+    # strip and basic validation
+    first_name = first_name.strip() if first_name else ""
+    middle_name = middle_name.strip() if middle_name else ""
+    last_name = last_name.strip() if last_name else ""
     university_no = university_no.strip() if university_no else None
-    email         = email.strip()         if email         else ""
-    username      = username.strip()      if username      else ""
+    email = email.strip() if email else ""
+    username = username.strip() if username else ""
     role_name = detect_role(university_no) if university_no else "Student"
 
-    #validation
+    # validation
     if not all([first_name, last_name, email, username, password]):
         return False, "All required fields must be filled in."
     if len(password) < 6:
@@ -83,9 +84,10 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         return False, "Invalid email format."
     if not USERNAME_PATTERN.match(username):
         return False, "Username must be 3-30 characters, letters, numbers, and underscores only."
-    
+
     if university_no and role_name is None:
-        print(f"University number '{university_no}' did not match any known patterns.")
+        print(
+            f"University number '{university_no}' did not match any known patterns.")
         return False, ("University number format not recognized")
 
     conn = db_connect()
@@ -168,9 +170,11 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         mithrix.close()
         conn.close()
 
+
 # ____________________________sign in or authentication idk_______________________
-LOCKOUT_THRESHOLD = 5 # number of allowed failed attempts before lockout
-LOCKOUT_DURATION = 20 # lockout duration in minutes
+LOCKOUT_THRESHOLD = 5  # number of allowed failed attempts before lockout
+LOCKOUT_DURATION = 20  # lockout duration in minutes
+
 
 def sign_in(username, password, device_ip=None):
     conn = db_connect()
@@ -193,8 +197,8 @@ def sign_in(username, password, device_ip=None):
 
         if not row:
             return None, "Invalid username or password."
-        
-#start of new sign in with lockout and audit logging (if the bruth force defence is not needed delete the code from here to the end of the next comment)        
+
+# start of new sign in with lockout and audit logging (if the bruth force defence is not needed delete the code from here to the end of the next comment)
         if row["locked_until"]:
             locked_until = row["locked_until"]
             if locked_until.tzinfo is None:
@@ -239,7 +243,7 @@ def sign_in(username, password, device_ip=None):
             conn.commit()
             remaining_attempts = LOCKOUT_THRESHOLD - fails
             return None, f"Invalid username or password. {remaining_attempts} attempt(s) remaining before lockout."
-        
+
         user_id = row["user_id"]
 
         mithrix.execute("""
@@ -273,9 +277,7 @@ def sign_in(username, password, device_ip=None):
     finally:
         mithrix.close()
         conn.close()
-#end of new sign in with lockout and audit logging
-
-
+# end of new sign in with lockout and audit logging
 
 
 # _______________forgot password stuffs_____________
@@ -672,7 +674,37 @@ def get_all_capstones():
             JOIN keyword k ON c.keyword_id = k.keyword_id
             JOIN specialization s ON c.specialization_id = s.specialization_id
             JOIN program p ON c.program_id = p.program_id
+            WHERE c.is_archived = FALSE
             ORDER BY c.capstone_year DESC, c.capstone_id DESC
+        """)
+        return mithrix.fetchall()
+    except Exception as exc:
+        print(f'Error: {exc}')
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def get_archived_capstones():
+    """
+    Retrieve archived capstone projects for the admin archive management page.
+    """
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
+                   c.citation_count, c.semester, c.term,
+                   k.keyword_id, k.capstone_keywords,
+                   s.specialization_id, s.specialization_name,
+                   p.program_id, p.program_name, c.archived_at
+            FROM capstone c
+            JOIN keyword k ON c.keyword_id = k.keyword_id
+            JOIN specialization s ON c.specialization_id = s.specialization_id
+            JOIN program p ON c.program_id = p.program_id
+            WHERE c.is_archived = TRUE
+            ORDER BY c.archived_at DESC NULLS LAST, c.capstone_year DESC, c.capstone_id DESC
         """)
         return mithrix.fetchall()
     except Exception as exc:
@@ -707,8 +739,8 @@ def delete_capstone(capstone_id):
         mithrix.execute("""
             DELETE FROM capstone WHERE capstone_id = %s
         """, (capstone_id,))
-        
-        #delete the keyword if no other capstone is using it
+
+        # delete the keyword if no other capstone is using it
         mithrix.execute("""
             DELETE FROM keyword
             WHERE keyword_id = %s
@@ -727,6 +759,7 @@ def delete_capstone(capstone_id):
         conn.close()
 
 # ______________________________Explore Archive — public browse___________________________
+
 
 def get_archive_capstones(search=None, year=None, page=1, page_size=12):
     """
@@ -818,8 +851,6 @@ def get_archive_years():
         conn.close()
 
 
-
-
 # ______________________________Manage Users___________________________
 
 def get_users():
@@ -844,12 +875,14 @@ def get_users():
         mithrix.close()
         conn.close()
 
+
 def get_all_roles():
     """Return all roles as (role_id, role_name) tuples for template dropdowns."""
     conn = db_connect()
     mithrix = conn.cursor()
     try:
-        mithrix.execute('SELECT role_id, role_name FROM "role" ORDER BY role_id')
+        mithrix.execute(
+            'SELECT role_id, role_name FROM "role" ORDER BY role_id')
         return mithrix.fetchall()
     except Exception:
         return []
@@ -951,20 +984,21 @@ def request_fullview(user_id, capstone_id, request_reason):
             RETURNING request_id
         """, (user_id, capstone_id, request_reason, now))
 
-
         request_id = mithrix.fetchone()["request_id"]
-        log_audit(mithrix, user_id, "manuscript_request", "manuscript_request", request_id)
+        log_audit(mithrix, user_id, "manuscript_request",
+                  "manuscript_request", request_id)
 
         conn.commit()
         return True, None
-    
+
     except Exception as exc:
         conn.rollback()
         return False, f"Database error: {exc}"
-    
+
     finally:
         mithrix.close()
         conn.close()
+
 
 def get_all_requests():
     conn = db_connect()
@@ -981,13 +1015,14 @@ def get_all_requests():
         """)
 
         return mithrix.fetchall()
-    
+
     except Exception as exc:
         return []
-    
+
     finally:
         mithrix.close()
         conn.close()
+
 
 def review_request(request_id, request_status, status_reason, reviewed_by):
     conn = db_connect()
@@ -1009,12 +1044,13 @@ def review_request(request_id, request_status, status_reason, reviewed_by):
     except Exception as exc:
         conn.rollback()
         return False, f"Database error: {exc}"
-    
+
     finally:
         mithrix.close()
         conn.close()
 
-#I DONT WANNA DO THIS ANYMOREEEEEEEEEE
+# I DONT WANNA DO THIS ANYMOREEEEEEEEEE
+
 
 def get_user_requests(user_id):
     conn = db_connect()
@@ -1033,7 +1069,7 @@ def get_user_requests(user_id):
         return mithrix.fetchall()
     except Exception as exc:
         return []
-    
+
     finally:
         mithrix.close()
         conn.close()
@@ -1101,7 +1137,7 @@ def get_top_cited_capstones(limit=5):
         conn.close()
 
 
-#FAHHHHH ANG DAMI FUNCTIONSSSSSSSS IM SICK AND TIRED OF THISSSSSSS
+# FAHHHHH ANG DAMI FUNCTIONSSSSSSSS IM SICK AND TIRED OF THISSSSSSS
 def cancel_manuscript_request(request_id, user_id):
     conn = db_connect()
     mithrix = conn.cursor()
@@ -1113,17 +1149,18 @@ def cancel_manuscript_request(request_id, user_id):
             WHERE request_id = %s AND user_id = %s
             AND request_status = 'pending'
         """, (request_id, user_id))
-        
+
         conn.commit()
         return True, None
-    
+
     except Exception as exc:
         conn.rollback()
         return False, f"Database error: {exc}"
-    
+
     finally:
         mithrix.close()
         conn.close()
+
 
 def add_citations(capstone_id):
     conn = db_connect()
@@ -1141,10 +1178,11 @@ def add_citations(capstone_id):
     except Exception as exc:
         conn.rollback()
         return False, f"Database Error: {exc}"
-    
+
     finally:
         mithrix.close()
         conn.close()
+
 
 def get_capstone_authors(casptone_id):
     conn = db_connect()
@@ -1160,13 +1198,14 @@ def get_capstone_authors(casptone_id):
         """, (casptone_id,))
 
         return mithrix.fetchall()
-    
+
     except Exception:
-        return[]
-    
+        return []
+
     finally:
         mithrix.close()
         conn.close()
+
 
 def get_capstone_people(capstone_id):
     conn = db_connect()
@@ -1179,16 +1218,17 @@ def get_capstone_people(capstone_id):
             JOIN Author a ON a.author_id = ca.author_id
             WHERE ca.capstone_id = %s
             ORDER BY ca.author_order ASC
-        """, (capstone_id, )) 
+        """, (capstone_id, ))
 
         return mithrix.fetchall()
-    
+
     except Exception as exc:
         return []
-    
+
     finally:
         conn.close()
         mithrix.close()
+
 
 def set_capstone_people(capstone_id, authors, adviser):
     conn = db_connect()
@@ -1205,7 +1245,7 @@ def set_capstone_people(capstone_id, authors, adviser):
             first = (person.get("first") or "").strip()
             middle = (person.get("middle") or "").strip()
             last = (person.get("last") or "").strip()
-            
+
             if not first and not last:
                 continue
 
@@ -1248,3 +1288,17 @@ def set_capstone_people(capstone_id, authors, adviser):
     finally:
         mithrix.close()
         conn.close()
+
+
+def add_to_archive(capstone_id):
+    conn = db_connect()
+    mithrix = conn.cursor()
+
+    try:
+        mithrix.execute("""
+            UPDATE capstone
+            SET is_archived = TRUE, archived_at = %s
+            WHERE capstone_id = %s""", (datetime.now(), capstone_id))
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
