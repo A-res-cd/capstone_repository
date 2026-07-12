@@ -1,5 +1,6 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
 from flask_mail import Message
+from smtplib import SMTPException
 import psycopg2.extras
 from app.db.database import db_connect
 
@@ -153,8 +154,8 @@ def forgot_password():
                     "If you did not request this, ignore this email."
                 ),
             ))
-        except Exception:
-            flash("Could not send email. Please try again later.", "danger")
+        except (SMTPException, OSError) as exc:
+            flash(f"Could not send email: {exc}", "danger")
             return render_template("authentication/forgot_password.html", form=form,
                                    hide_nav=True, hide_header=True)
 

@@ -7,7 +7,8 @@ from app.db.database import (
     get_capstone_details, update_capstone_record, update_keyword,
     delete_capstone, get_users, update_user_role, get_all_roles,
     get_all_requests, review_request, set_capstone_people, get_capstone_people,
-    get_capstones_by_program, get_requests_by_status, get_top_cited_capstones, add_to_archive
+    get_capstones_by_program, get_requests_by_status, get_top_cited_capstones, add_to_bin,
+    restore_capstone, ARCHIVE_RETENTION_DAYS
 )
 from app.routes.decorators import role_required
 
@@ -148,6 +149,7 @@ def view_archived_capstones():
     return render_template(
         "admin/archives.html",
         archived_capstones=archived_capstones,
+        archive_retention_days=ARCHIVE_RETENTION_DAYS,
     )
 
 
@@ -391,6 +393,14 @@ def decide_request(request_id):
 @admin.route("/repository/archive/<int:capstone_id>", methods=["POST"])
 @role_required(3)
 def archive_capstone(capstone_id):
-    success, message = add_to_archive(capstone_id)
+    success, message = add_to_bin(capstone_id)
+    flash(message, "success" if success else "danger")
+    return redirect(url_for("admin.view_capstone_repository"))
+
+
+@admin.route("/recyclebin/restore/<int:capstone_id>", methods=["POST"])
+@role_required(3)
+def restore_capstone_route(capstone_id):
+    success, message = restore_capstone(capstone_id)
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.view_capstone_repository"))

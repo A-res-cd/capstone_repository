@@ -1,7 +1,7 @@
 import re
 import psycopg2
 import psycopg2.extras
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
 
@@ -28,6 +28,7 @@ ADMIN_PATTERN = re.compile(r'^admin\d{3}$', re.IGNORECASE)
 # validation patterns
 EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]{3,30}$')
+ARCHIVE_RETENTION_DAYS = 30
 
 
 def detect_role(university_no):
@@ -690,6 +691,8 @@ def get_archived_capstones():
     """
     Retrieve archived capstone projects for the admin archive management page.
     """
+    purge_expired_archived_capstones()
+
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -710,6 +713,39 @@ def get_archived_capstones():
     except Exception as exc:
         print(f'Error: {exc}')
         return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def purge_expired_archived_capstones():
+    """Delete archived capstones that have stayed in the recycle bin longer than 30 days."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cutoff = datetime.now(timezone.utc) - \
+        timedelta(days=ARCHIVE_RETENTION_DAYS)
+
+    try:
+        mithrix.execute("""
+            SELECT capstone_id
+            FROM capstone
+            WHERE is_archived = TRUE
+              AND archived_at IS NOT NULL
+              AND archived_at <= %s
+        """, (cutoff,))
+
+        expired_rows = mithrix.fetchall()
+        deleted_count = 0
+
+        for row in expired_rows:
+            ok, _ = delete_capstone(row["capstone_id"])
+            if ok:
+                deleted_count += 1
+
+        return deleted_count
+    except Exception as exc:
+        print(f'Error purging archived capstones: {exc}')
+        return 0
     finally:
         mithrix.close()
         conn.close()
@@ -757,6 +793,58 @@ def delete_capstone(capstone_id):
     finally:
         mithrix.close()
         conn.close()
+
+
+def add_to_bin(capstone_id):
+    conn = db_connect()
+    mithrix = conn.cursor()
+    now = datetime.now(timezone.utc)
+
+    try:
+        mithrix.execute("""
+            UPDATE capstone
+            SET is_archived = TRUE, archived_at = %s
+            WHERE capstone_id = %s
+        """, (now, capstone_id))
+
+        if mithrix.rowcount == 0:
+            conn.rollback()
+            return False, "Capstone not found."
+
+        conn.commit()
+        return True, "Capstone moved to the recycle bin."
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def restore_capstone(capstone_id):
+    conn = db_connect()
+    mithrix = conn.cursor()
+
+    try:
+        mithrix.execute("""
+            UPDATE capstone
+            SET is_archived = FALSE, archived_at = NULL
+            WHERE capstone_id = %s
+        """, (capstone_id,))
+
+        if mithrix.rowcount == 0:
+            conn.rollback()
+            return False, "Capstone not found."
+
+        conn.commit()
+        return True, "Capstone restored to the repository."
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
+    finally:
+        mithrix.close()
+        conn.close()
+
 
 # ______________________________Explore Archive — public browse___________________________
 
@@ -1288,17 +1376,3 @@ def set_capstone_people(capstone_id, authors, adviser):
     finally:
         mithrix.close()
         conn.close()
-
-
-def add_to_archive(capstone_id):
-    conn = db_connect()
-    mithrix = conn.cursor()
-
-    try:
-        mithrix.execute("""
-            UPDATE capstone
-            SET is_archived = TRUE, archived_at = %s
-            WHERE capstone_id = %s""", (datetime.now(), capstone_id))
-    except Exception as exc:
-        conn.rollback()
-        return False, f"Database error: {exc}"
