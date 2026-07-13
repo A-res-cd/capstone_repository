@@ -76,6 +76,7 @@
                                     <i class="bx bx-show-alt"></i> View
                                 </a>
                                 <form action="{{ url_for('admin.restore_capstone_route', capstone_id=c.capstone_id) }}" method="post" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn-row btn-row--edit" title="Restore this capstone to the repository">
                                         <i class="bx bx-undo"></i> Restore
                                     </button>
