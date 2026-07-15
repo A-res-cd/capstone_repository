@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify, current_app
 from werkzeug.utils import secure_filename
 import os
 from app.db.database import (
@@ -181,11 +181,29 @@ def delete_user(user_id):
 
 # ── Requests ──────────────────────────────────────────────────────────────────
 
+from flask import request
+
 @admin.route("/requests")
 @role_required(3)
 def view_requests():
-    requests = get_all_requests()
-    return render_template("admin/requests.html", hide_nav=False, requests=requests)
+    selected_status = request.args.get("status", "All")
+
+    requests = get_all_requests(selected_status)
+
+    statuses = {
+        "All",
+        "Pending",
+        "Approved",
+        "Rejected"
+    }
+
+    return render_template(
+        "admin/requests.html",
+        hide_nav=False,
+        requests=requests,
+        statuses=statuses,
+        selected_status=selected_status
+    )
 
 
 # ── Repository ────────────────────────────────────────────────────────────────
@@ -425,14 +443,65 @@ def view_capstone(capstone_id):
 
 #this is new
 @admin.route("/repository/pdf/<int:capstone_id>")
-@role_required(1, 3)
+@role_required(1, 2, 3)
 def view_capstone_pdf(capstone_id):
     capstone = get_capstone_details(capstone_id)
     print(f"Viewing capstone PDF for ID {capstone_id}: {capstone}")
     if not capstone:
         flash("Capstone not found.", "danger")
         return redirect(url_for("admin.view_capstone_repository"))
-    return render_template("admin/view_capstone.html", capstone=capstone, max_pages=None)
+
+    role_name = session.get("role_name")
+
+    # Default values
+    max_pages = None
+    start_page = 1
+
+    # If user is Student, restrict to abstract page only. Attempt to determine
+    # the actual abstract page number from stored capstone data or by parsing
+    # the PDF on disk (fall back to page 1).
+    if role_name == 'Student':
+        max_pages = 1
+
+        # try to read abstract_page from capstone record (dict-like)
+        abstract_page = None
+        try:
+            abstract_page = capstone.get('abstract_page') if isinstance(capstone, dict) else None
+        except Exception:
+            abstract_page = None
+
+        # If not present, try parsing the PDF to find abstract page
+        if not abstract_page:
+            file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
+            if file_rel:
+                pdf_path = os.path.join(current_app.root_path, 'static', file_rel)
+                try:
+                    if os.path.exists(pdf_path) and pdf_path.lower().endswith('.pdf'):
+                        data = extract_capstone_data(pdf_path)
+                        abstract_page = data.get('abstract_page')
+                except Exception as e:
+                    print(f"Error parsing PDF for abstract page: {e}")
+
+        if abstract_page:
+            start_page = int(abstract_page)
+
+        print(f"Determined abstract_page={abstract_page}, start_page={start_page} for role={role_name}")
+
+    # Normalize capstone file path for use with url_for('static')
+    pdf_url = None
+    try:
+        file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
+        if file_rel:
+            # Remove any leading 'static/' segment if present
+            if file_rel.startswith('static' + os.sep) or file_rel.startswith('static/'):
+                file_rel = file_rel.split('static' + os.sep, 1)[-1] if os.sep in file_rel else file_rel.split('static/', 1)[-1]
+            # Also normalize backslashes to forward slashes for URL
+            file_rel = file_rel.replace('\\', '/').lstrip('/')
+            pdf_url = url_for('static', filename=file_rel)
+    except Exception as e:
+        print(f"Error computing pdf_url: {e}")
+
+    return render_template("admin/view_capstone.html", capstone=capstone, max_pages=max_pages, start_page=start_page, pdf_url=pdf_url)
 
 
 @admin.route("/repository/decide/<int:request_id>", methods=["POST"])

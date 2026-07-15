@@ -6,6 +6,7 @@
 ============================================================ */
 @import url('../base/root.css');
 @import url('../components/_sidebar-detail.css');
+@import url('../components/_forms.css');
 
 /* ── Page shell ── */
 .explore-archive-section {

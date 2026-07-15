@@ -8,7 +8,19 @@
 {% block content %}
 <section class="explore-archive-section">
     <div class="explore-archive-container">
-        <h2 class="section-title">Manuscript Requests</h2>
+
+        <form action="" class="filter-form">
+            <div class="filter-group">
+                <span>Filter Status: </span>
+                    <select name="status_filter" class="filter-select">
+                    {% for status in statuses %}
+                    <option value="{{ status }}" {% if status == selected_status %}selected{% endif %}>{{ stauts }}</option>
+                    {% endfor %}
+                </select>
+                
+            </div>
+            <button type="submit" class="btn-filter">Search</button>
+        </form>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}

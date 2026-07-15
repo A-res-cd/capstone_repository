@@ -15,7 +15,11 @@ def inject_global_template_vars():
             "role_meta":    {},
             "page_title":   None,
             "is_logged_in": False,
-            "current_user": {"username": None, "user_id": None},
+            "current_user": {
+                "username": None, "user_id": None,
+                "first_name": "", "last_name": "",
+                "display_name": "", "initials": "?",
+            },
             "current_path": request.path,
         }
 
@@ -37,8 +41,20 @@ def inject_global_template_vars():
         "page_title":   page_title,
         "is_logged_in": True,
         "current_user": {
-            "username": session.get("username"),
-            "user_id":  session.get("user_id"),
+            "username":     session.get("username"),
+            "user_id":      session.get("user_id"),
+            "first_name":   session.get("first_name", ""),
+            "last_name":    session.get("last_name", ""),
+            # Full name for display — falls back to username if name not set
+            "display_name": (
+                f"{session.get('first_name', '')} {session.get('last_name', '')}".strip()
+                or session.get("username", "")
+            ),
+            # Initials for the avatar circle — up to 2 letters
+            "initials": (
+                (session.get("first_name", "") or "")[:1].upper() +
+                (session.get("last_name",  "") or "")[:1].upper()
+            ) or (session.get("username", "?")[:1].upper()),
         },
         "current_path": request.path,
     }
@@ -46,4 +62,4 @@ def inject_global_template_vars():
 
 @main.route("/")
 def home():
-    return render_template("index.html", hide_nav=True)
+    return render_template("index.html", hide_nav=True, hide_header=True)

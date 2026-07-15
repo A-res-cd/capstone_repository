@@ -7,47 +7,99 @@
 {% block title %}Verify OTP{% endblock %}
 
 {% block content %}
-<section class="auth-section">
-    <div class="auth-card">
-        <h2>Enter OTP</h2>
-        <p class="subtitle">Check your email for the 6-digit code. It expires in {{ otp_expiry_minutes or 4 }} minutes.</p>
+<div class="auth-split">
 
-        {# Flash Messages #}
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flash-list">
-                    {% for category, message in messages %}
-                        <li class="flash-{{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
+    {# ── Left: Brand panel ── #}
+    <div class="auth-split__left">
+        <div class="auth-brand">
+            <a href="{{ url_for('auth.forgot_password') }}" class="auth-back-link">
+                <i class="bx bx-arrow-back"></i> Back
+            </a>
 
-        <form action="{{ url_for('auth.verify_otp_route') }}" method="POST" class="auth-form" novalidate>
-            {{ form.hidden_tag() }}
-            
-            <div class="form-group">
-                {{ form.otp.label }}
-                {{ form.otp(id="otp", class="otp-input", placeholder="000000", maxlength="6", inputmode="numeric", autocomplete="one-time-code") }}
-                <p class="otp-timer">Time remaining:
-                    <span id="countdown" data-expiry-minutes="{{ otp_expiry_minutes or 4 }}">{{ otp_expiry_minutes or 4 }}:00</span>
-                </p>
-                {% for error in form.otp.errors %}
-                    <span class="flash-danger">{{ error }}</span>
-                {% endfor %}
+            <div class="auth-brand__logo">CAPRE</div>
+
+            <h1 class="auth-brand__title">
+                Check your<br>
+                <span class="auth-brand__accent">email</span>
+            </h1>
+            <p class="auth-brand__tagline">
+                We sent a 6-digit one-time password to your registered email address. Enter it on the right to continue.
+            </p>
+
+            <div class="auth-brand__features">
+                <div class="auth-brand__feature">
+                    <i class="bx bx-time-five"></i>
+                    Expires in {{ otp_expiry_minutes or 4 }} minutes
+                </div>
+                <div class="auth-brand__feature">
+                    <i class="bx bx-shield-quarter"></i>
+                    Never share this code with anyone
+                </div>
+                <div class="auth-brand__feature">
+                    <i class="bx bx-refresh"></i>
+                    Didn't receive it? Request a new OTP
+                </div>
+            </div>
+        </div>
+        <div class="auth-split__orb auth-split__orb--1"></div>
+        <div class="auth-split__orb auth-split__orb--2"></div>
+    </div>
+
+    {# ── Right: Form panel ── #}
+    <div class="auth-split__right">
+        <div class="auth-form-card">
+            <div class="auth-form-card__header">
+                <h2>Enter OTP</h2>
+                <p>It expires in {{ otp_expiry_minutes or 4 }} minutes</p>
             </div>
 
-            <button type="submit" class="btn-auth-primary" id="submit-btn">Verify OTP</button>
-        </form>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-list">
+                        {% for category, message in messages %}
+                            <li class="flash-{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
 
-        <div class="divider"></div>
+            <form action="{{ url_for('auth.verify_otp_route') }}" method="POST" class="auth-form" novalidate>
+                {{ form.hidden_tag() }}
 
-        <div class="auth-footer">
-            <p class="auth-link">Didn't get a code? <a href="{{ url_for('auth.forgot_password') }}">Request again</a></p>
-            <p class="auth-link"><a href="{{ url_for('auth.signin') }}">Back to sign in</a></p>
+                <div class="form-group">
+                    {{ form.otp.label }}
+                    {{ form.otp(id="otp", class="otp-input", placeholder="000000",
+                               maxlength="6", inputmode="numeric", autocomplete="one-time-code") }}
+                    <p class="otp-timer">Time remaining:
+                        <span id="countdown" data-expiry-minutes="{{ otp_expiry_minutes or 4 }}">
+                            {{ otp_expiry_minutes or 4 }}:00
+                        </span>
+                    </p>
+                    {% for error in form.otp.errors %}
+                        <span class="field-error">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="btn-auth-primary" id="submit-btn">
+                    <i class="bx bx-check-shield"></i>
+                    Verify OTP
+                </button>
+            </form>
+
+            <div class="divider"></div>
+
+            <div class="auth-form-card__footer">
+                <p>Didn't get a code?
+                    <a href="{{ url_for('auth.forgot_password') }}">Request again</a>
+                </p>
+                <p style="margin-top:8px">
+                    <a href="{{ url_for('auth.signin') }}">Back to sign in</a>
+                </p>
+            </div>
         </div>
     </div>
-</section>
+
+</div>
 {% endblock %}
 
 {% block extra_js %}

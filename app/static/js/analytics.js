@@ -21,10 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const bySpecializationCanvas = document.getElementById('chart-by-specialization');
     if (bySpecializationCanvas && window.chartData.specialization_labels?.length) {
         const specializationColors = {
-            'Database Systems Technology': '#2E3F92',
-            'Web Systems Technology': '#4A5ED1',
-            'Network Systems Technology': '#F39C12',
+            'DST': '#92422e',
+            'WST': '#4A5ED1',
+            'NST': '#F39C12',
         }
+
+        const labels = window.chartData.specialization_labels
 
         try {
             new Chart(bySpecializationCanvas, {
@@ -34,7 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     labels: window.chartData.specialization_labels,
                     datasets: [{
                         label: 'Capstones',
-                        data: window.chartData.specialization_totals
+                        data: window.chartData.specialization_totals,
+                        backgroundColor: labels.map(l => specializationColors[l] || primaryLight)
                     }]
                 },
                 options: {

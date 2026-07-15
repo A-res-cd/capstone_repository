@@ -1,28 +1,59 @@
-/* ============================================================
-   COMPONENT: Top header bar
-   The blue strip showing the current page title, next to the
-   sidebar toggle. Loaded on every page via base.html.
-============================================================ */
+
 @import url('../base/root.css');
+
+.header {
+    background: #fff;
+    border-bottom: 1px solid rgba(46,63,146,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    /* 3px accent line on top ties it back to the orange CTA on landing */
+    box-shadow: 0 1px 0 rgba(46,63,146,0.06), inset 0 3px 0 var(--color-accent);
+}
 
 .header-container {
     display: flex;
     align-items: center;
-    gap: 15px;
-    padding: 12px 20px;
-    color: var(--color-white);
-    background-color: var(--color-primary);
-    border-bottom-left-radius: var(--radius-lg);
+    gap: 16px;
+    padding: 14px 24px;
+    color: var(--color-primary);
 }
 
-/* toggle icon */
+.header-container h2 {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 0;
+    letter-spacing: -0.2px;
+    flex: 1;
+}
+
+/* Toggle button — now lives in the header, not the sidebar */
 #nav-toggle {
-    font-size: 24px;
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+
+#nav-toggle i {
+    font-size: 22px;
+    line-height: 1;
+    display: block;
+}
+
+#nav-toggle:hover {
+    background: rgba(46,63,146,0.08);
+    color: var(--color-accent);
 }
 
 .burger-menu {
     display: flex;
-    justify-content: flex-end;
-    align-self: flex-end;
+    align-items: center;
 }

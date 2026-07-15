@@ -180,7 +180,9 @@ def sign_in(username, password, device_ip=None):
 
     try:
         mithrix.execute("""
-        SELECT u.user_id, u.locked_until, k.username, r.password AS password_hash, ro.role_id, ro.role_name
+        SELECT u.user_id, u.locked_until, k.username, r.password AS password_hash,
+               ro.role_id, ro.role_name,
+               u.user_first_name, u.user_last_name
         FROM kappa k
         JOIN slug sl ON sl.username_id = k.username_id AND sl.is_current = TRUE
         JOIN ror   r  ON r.password_id  = sl.password_id
@@ -714,9 +716,9 @@ def delete_capstone(capstone_id):
             return False, "Capstone not found."
         keyword_id = row[0]
 
-        # delete related capauth entries first (authors/advisers)
+        # delete related capAuth entries first (authors/advisers)
         mithrix.execute("""
-            DELETE FROM capauth WHERE capstone_id = %s
+            DELETE FROM capAuth WHERE capstone_id = %s
         """, (capstone_id,))
 
         mithrix.execute("""
@@ -989,30 +991,42 @@ def request_fullview(user_id, capstone_id, request_reason):
         mithrix.close()
         conn.close()
 
-def get_all_requests():
+def get_all_requests(status=None):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
-        mithrix.execute("""
-            SELECT r.*, c.capstone_title,
-            CONCAT_WS('', u.user_first_name, u.user_last_name) AS requester_name
+        query = """
+            SELECT
+                r.*,
+                c.capstone_title,
+                CONCAT_WS(' ', u.user_first_name, u.user_last_name) AS requester_name
             FROM request r
             JOIN capstone c ON c.capstone_id = r.capstone_id
             JOIN "user" u ON u.user_id = r.user_id
-            ORDER BY r.request_date DESC
-        """)
+        """
+
+        params = []
+
+        if status and status != "All":
+            query += " WHERE r.request_status = %s"
+            params.append(status)
+
+        query += " ORDER BY r.request_date DESC"
+
+        mithrix.execute(query, params)
 
         return mithrix.fetchall()
-    
+
     except Exception as exc:
         print(f"Database error: {exc}")
         return []
-    
+
     finally:
         mithrix.close()
         conn.close()
 
+        
 def review_request(request_id, request_status, status_reason, reviewed_by):
     conn = db_connect()
     mithrix = conn.cursor()
@@ -1181,9 +1195,9 @@ def get_capstone_authors(casptone_id):
     try:
         mithrix.execute("""
             SELECT a.aut_first_name, a.aut_middle_name, a.aut_last_name, ca.author_order
-            FROM capauth ca
-            JOIN author a On a.author_id = ca.author_id
-            WHERE ca.capstone_id = %s AND ca.role = 'author'
+            FROM capAuth ca
+            JOIN Author a On a.author_id = ca.author_id
+            WHERE ca.capstone_id = %s AND ca.role = 'Author'
             ORDER BY ca.author_order ASC
         """, (casptone_id,))
 
@@ -1204,8 +1218,8 @@ def get_capstone_people(capstone_id):
     try:
         mithrix.execute("""
             SELECT a.aut_first_name, a.aut_middle_name, a.aut_last_name, ca.author_order, ca.role
-            FROM capauth ca
-            JOIN author a ON a.author_id = ca.author_id
+            FROM capAuth ca
+            JOIN Author a ON a.author_id = ca.author_id
             WHERE ca.capstone_id = %s
             ORDER BY ca.author_order ASC
         """, (capstone_id, )) 
@@ -1226,7 +1240,7 @@ def set_capstone_people(capstone_id, authors, adviser):
 
     try:
         mithrix.execute("""
-            DELETE FROM capauth WHERE capstone_id = %s
+            DELETE FROM capAuth WHERE capstone_id = %s
                         
         """, (capstone_id, ))
 
@@ -1240,7 +1254,7 @@ def set_capstone_people(capstone_id, authors, adviser):
                 continue
 
             mithrix.execute("""
-                INSERT INTO author (aut_first_name, aut_middle_name, aut_last_name)
+                INSERT INTO Author (aut_first_name, aut_middle_name, aut_last_name)
                 VALUES (%s, %s, %s)
                 RETURNING author_id
             """, (first, middle or None, last))
@@ -1248,8 +1262,8 @@ def set_capstone_people(capstone_id, authors, adviser):
             author_id = mithrix.fetchone()[0]
 
             mithrix.execute("""
-                INSERT INTO capauth (capstone_id, author_id, author_order, role)
-                VALUES (%s, %s, %s, 'author')
+                INSERT INTO capAuth (capstone_id, author_id, author_order, role)
+                VALUES (%s, %s, %s, 'Author')
             """, (capstone_id, author_id, order))
 
             order += 1
@@ -1259,14 +1273,14 @@ def set_capstone_people(capstone_id, authors, adviser):
         adv_last = (adviser.get("last") or "").strip()
 
         mithrix.execute("""
-            INSERT INTO author (aut_first_name, aut_middle_name, aut_last_name)
+            INSERT INTO Author (aut_first_name, aut_middle_name, aut_last_name)
             VALUES (%s, %s, %s)
             RETURNING author_id
         """, (adv_first, adv_middle or None, adv_last))
         adviser_id = mithrix.fetchone()[0]
 
         mithrix.execute("""
-            INSERT INTO capauth (capstone_id, author_id, author_order, role)
+            INSERT INTO capAuth (capstone_id, author_id, author_order, role)
             VALUES (%s, %s, %s, 'Adviser')
         """, (capstone_id, adviser_id, order))
 

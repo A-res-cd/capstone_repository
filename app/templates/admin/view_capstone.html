@@ -68,7 +68,7 @@
         <span id="page-info">Page <span id="current-page">1</span> / <span id="total-pages">—</span></span>
         <button id="next-page" onclick="changePage(1)">Next ›</button>
         {% else %}
-        <span id="page-info">Abstract Page 1</span>
+      <span id="page-info">Abstract Page {{ start_page or 1 }}</span>
         {% endif %}
       </div>
     </div>
@@ -87,8 +87,9 @@
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  const PDF_URL = "{{ url_for('static', filename=capstone.capstone_file) }}";
+  const PDF_URL = {{ (pdf_url or '') | tojson }};
   const MAX_PAGES = {{ max_pages | tojson }};
+  const START_PAGE = {{ start_page | tojson }};
   let pdfDoc = null;
   let currentPage = 1;
   const scale = 1.5;   
@@ -103,24 +104,50 @@
     document.getElementById('current-page').textContent = num;
   }
 
+  let minPage = 1;
+  let maxAllowed = null;
+
   function changePage(delta) {
     const next = currentPage + delta;
-    const maxAllowed = MAX_PAGES ? MAX_PAGES : pdfDoc.numPages;
-    if (next < 1 || next > maxAllowed) return;
+    if (next < minPage || next > maxAllowed) return;
     currentPage = next;
     renderPage(currentPage);
   }
 
   pdfjsLib.getDocument(PDF_URL).promise.then(doc => {
     pdfDoc = doc;
-    const maxAllowed = MAX_PAGES ? MAX_PAGES : doc.numPages;
-    document.getElementById('total-pages').textContent = doc.numPages;
+    const docNumPages = doc.numPages;
+
+    // If START_PAGE is provided and MAX_PAGES==1, restrict view to that single page
+    if (typeof MAX_PAGES === 'number' && MAX_PAGES === 1 && typeof START_PAGE === 'number' && START_PAGE >= 1 && START_PAGE <= docNumPages) {
+      minPage = START_PAGE;
+      maxAllowed = START_PAGE;
+    } else {
+      minPage = 1;
+      maxAllowed = (typeof MAX_PAGES === 'number' && MAX_PAGES > 0) ? MAX_PAGES : docNumPages;
+    }
+
+    const totalElem = document.getElementById('total-pages');
+    if (totalElem) totalElem.textContent = docNumPages;
     document.getElementById('pdf-loading').style.display = 'none';
-    // Page 2 is usually the abstract — adjust if needed
-    currentPage = Math.min(1, maxAllowed, doc.numPages);
+
+    // Determine initial page: prefer START_PAGE when valid
+    const desiredStart = (typeof START_PAGE === 'number' && START_PAGE >= 1 && START_PAGE <= docNumPages) ? START_PAGE : 1;
+    currentPage = Math.min(Math.max(desiredStart, minPage), maxAllowed);
+
+    // Update page-info display
+    const pageInfoElem = document.getElementById('page-info');
+    if (minPage === maxAllowed) {
+      // Replace content with 'Abstract Page <current>' but keep an updatable span
+      if (pageInfoElem) pageInfoElem.innerHTML = 'Abstract Page <span id="current-page">' + currentPage + '</span>';
+    } else {
+      if (pageInfoElem) pageInfoElem.innerHTML = 'Page <span id="current-page">' + currentPage + '</span> / <span id="total-pages">' + docNumPages + '</span>';
+    }
+
     renderPage(currentPage);
   }).catch(err => {
-    document.getElementById('pdf-loading').textContent = 'Could not load PDF.';
+    const loading = document.getElementById('pdf-loading');
+    if (loading) loading.textContent = 'Could not load PDF.';
     console.error(err);
   });
 </script>

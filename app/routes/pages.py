@@ -68,6 +68,7 @@ def view_capstone_abstract(capstone_id):
 
 
 @pages.route("/my-requests")
+@role_required(1)
 def all_requests():
     user_id = session.get("user_id")
     if not user_id:

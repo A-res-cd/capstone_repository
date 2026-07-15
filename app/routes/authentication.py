@@ -55,10 +55,12 @@ def signin():
 
             return render_template("authentication/signin.html",form=form , hide_nav=True, hide_header=True, locked_until=locked_until)
         if user:
-            session["user_id"]   = user["user_id"]
-            session["username"]  = user["username"]
-            session["role_id"]   = user["role_id"]
-            session["role_name"] = user["role_name"]
+            session["user_id"]    = user["user_id"]
+            session["username"]   = user["username"]
+            session["role_id"]    = user["role_id"]
+            session["role_name"]  = user["role_name"]
+            session["first_name"] = user.get("user_first_name", "")
+            session["last_name"]  = user.get("user_last_name", "")
 
             if user["role_id"] == 3:    # Admin
                 return redirect(url_for("admin.analytics"))

@@ -62,7 +62,8 @@
     --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
     --shadow-lg: 0 6px 12px rgba(0,0,0,0.2);
 
-    --bg-card-neutral: #F1F3F2;
+    --bg-card-neutral: #ffffff;      /* card surfaces — white on #f8f9ff body */
+    --bg-card-header:  #f5f7ff;      /* card header areas — subtle blue tint */
     --bg-button-light: #E8F3EC;
 
 }

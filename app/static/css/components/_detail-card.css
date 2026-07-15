@@ -35,7 +35,7 @@
     gap: var(--space-md);
     padding: var(--space-lg) var(--space-xl);
     border-bottom: var(--border-light);
-    background: var(--bg-card-neutral);
+    background: var(--bg-card-header);
 }
 
 .detail-card__header h3 {
@@ -69,7 +69,7 @@
     gap: var(--space-sm) var(--space-lg);
     padding: var(--space-lg) var(--space-xl);
     border-bottom: var(--border-light);
-    background: #fafbff;
+    background: var(--bg-card-header);
 }
 
 .info-chip {
