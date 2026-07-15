@@ -69,7 +69,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     first_name    = first_name.strip()    if first_name    else ""
     middle_name   = middle_name.strip()   if middle_name   else ""
     last_name     = last_name.strip()     if last_name     else ""
-    university_no = university_no.strip() if university_no else None
+    university_no = (university_no or "").strip()
     email         = email.strip()         if email         else ""
     username      = username.strip()      if username      else ""
     role_name = detect_role(university_no) if university_no else "Student"
@@ -98,12 +98,13 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
             return False, f"Role '{role_name}' is not in the system"
 
         # insert to user table
+        insert_university_no = university_no or None
         mithrix.execute("""INSERT INTO "user"
             (role_id, user_first_name, user_middle_name,
             user_last_name, university_no)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING user_id
-            """, (role_id, first_name, middle_name, last_name, university_no))
+            """, (role_id, first_name, middle_name, last_name, insert_university_no))
         user_id = mithrix.fetchone()[0]
 
         # insert into username table
@@ -864,6 +865,67 @@ def get_users():
     finally:
         mithrix.close()
         conn.close()
+
+
+def get_user_contacts(user_id):
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT contact_id,
+                   contact_type,
+                   contact_value,
+                   is_primary,
+                   created_at
+            FROM contact
+            WHERE user_id = %s
+            ORDER BY is_primary DESC, contact_type ASC
+        """, (user_id,))
+        return mithrix.fetchall()
+    except Exception:
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def upsert_user_contact(user_id, contact_type, contact_value, is_primary=True):
+    conn = db_connect()
+    mithrix = conn.cursor()
+    now = datetime.now(timezone.utc)
+    try:
+        if is_primary:
+            mithrix.execute(
+                "UPDATE contact SET is_primary = FALSE WHERE user_id = %s AND contact_type = %s",
+                (user_id, contact_type),
+            )
+
+        mithrix.execute(
+            "SELECT contact_id FROM contact WHERE user_id = %s AND contact_type = %s",
+            (user_id, contact_type),
+        )
+        row = mithrix.fetchone()
+
+        if row:
+            mithrix.execute(
+                "UPDATE contact SET contact_value = %s, is_primary = %s, created_at = %s WHERE contact_id = %s",
+                (contact_value, is_primary, now, row[0]),
+            )
+        else:
+            mithrix.execute(
+                "INSERT INTO contact (user_id, contact_type, contact_value, is_primary, created_at) VALUES (%s, %s, %s, %s, %s)",
+                (user_id, contact_type, contact_value, is_primary, now),
+            )
+
+        conn.commit()
+        return True, None
+    except Exception as exc:
+        conn.rollback()
+        return False, f"Database error: {exc}"
+    finally:
+        mithrix.close()
+        conn.close()
+
 
 def get_all_roles():
     """Return all roles as (role_id, role_name) tuples for template dropdowns."""

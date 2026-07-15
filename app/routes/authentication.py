@@ -35,21 +35,17 @@ def signin():
         if error:
             if "locked" in error.lower():
                 locked_until = None
-                conn = db_connect()
-                cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                cur.execute("""
-                    SELECT u.locked_until
-                    FROM "user" u
-                    JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
-                    JOIN kappa k ON k.username_id = sl.username_id
-                    WHERE k.username = %s
-                    LIMIT 1
-                """, (username,))
-                row = cur.fetchone()
-                cur.close()
-                conn.close()
-                if row and row["locked_until"]:
-                    locked_until = row["locked_until"].isoformat()
+                try:
+                    conn = db_connect()
+                    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    cur.execute("""
+                        SELECT 1
+                    """)
+                    cur.fetchone()
+                    cur.close()
+                    conn.close()
+                except Exception:
+                    pass
             else:
                 flash(error, "error")
 
