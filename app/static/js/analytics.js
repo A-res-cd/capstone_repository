@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'bottom' }
-                    }
+                    },
                 }
             });
         } catch (e) {
@@ -80,7 +80,24 @@ document.addEventListener('DOMContentLoaded', () => {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+
+                onClick: (event, elements) => {
+                    if (elements.length === 0) return;
+
+                    const index = elements[0].index;
+                    const status = labels[index];
+
+                    window.location.href = `/requests?status=${encodeURIComponent(status)}`;
+                },
+
                 plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: ${context.raw}. Click to view requests`;
+                            }
+                        }
+                    },
                     legend: { position: 'bottom' }
                 }
             }

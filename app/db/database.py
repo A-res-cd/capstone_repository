@@ -1008,7 +1008,7 @@ def get_all_requests(status=None):
 
         params = []
 
-        if status and status != "All":
+        if status and status != "all":
             query += " WHERE r.request_status = %s"
             params.append(status)
 
@@ -1025,7 +1025,6 @@ def get_all_requests(status=None):
     finally:
         mithrix.close()
         conn.close()
-
         
 def review_request(request_id, request_status, status_reason, reviewed_by):
     conn = db_connect()

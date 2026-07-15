@@ -9,12 +9,14 @@
 <section class="explore-archive-section">
     <div class="explore-archive-container">
 
-        <form action="" class="filter-form">
+        <form method="GET" class="mb-3 filter-form">
             <div class="filter-group">
                 <span>Filter Status: </span>
-                    <select name="status_filter" class="filter-select">
+                    <select name="status" class="filter-select">
                     {% for status in statuses %}
-                    <option value="{{ status }}" {% if status == selected_status %}selected{% endif %}>{{ stauts }}</option>
+                    <option value="{{ status }}" {% if status == selected_status %}selected{% endif %}>
+                        {{ status.capitalize() }}
+                    </option>
                     {% endfor %}
                 </select>
                 

@@ -186,16 +186,16 @@ from flask import request
 @admin.route("/requests")
 @role_required(3)
 def view_requests():
-    selected_status = request.args.get("status", "All")
+    selected_status = request.args.get("status", "all").lower()
 
     requests = get_all_requests(selected_status)
 
-    statuses = {
-        "All",
-        "Pending",
-        "Approved",
-        "Rejected"
-    }
+    statuses = [
+        "all",
+        "pending",
+        "approved",
+        "rejected"
+    ]
 
     return render_template(
         "admin/requests.html",
