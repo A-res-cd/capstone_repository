@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    function confirmDelete(id) {
-        if (!confirm('Delete this capstone? This cannot be undone.')) return;
+    function confirmDelete(id, endpoint = '/delete_capstone/', promptText = 'Delete this capstone? This cannot be undone.') {
+        if (!confirm(promptText)) return;
         const token = document.querySelector('meta[name="csrf-token"]')?.content;
         const f = document.createElement('form');
         f.method = 'POST';
-        f.action = '/delete_capstone/' + id;
+        f.action = endpoint + id;
         if (token) {
             const input = document.createElement('input');
             input.type = 'hidden';
@@ -22,12 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const panelList = document.getElementById('panel-list');
     const panelForm = document.getElementById('panel-form');
     const btnOpenCreate = document.getElementById('btn-open-create');
-    const btnCloseForm  = document.getElementById('btn-close-form');
-    const btnCancel     = document.getElementById('btn-cancel');
+    const btnCloseForm = document.getElementById('btn-close-form');
+    const btnCancel = document.getElementById('btn-cancel');
 
     function openCreate() {
         resetForm();
-        document.getElementById('form-heading').textContent    = 'New Capstone';
+        document.getElementById('form-heading').textContent = 'New Capstone';
         document.getElementById('form-subheading').textContent = 'Fill in the details to add a capstone to the archive.';
         document.getElementById('btn-submit-label').textContent = 'Submit Capstone';
         setText('file-label-note', '(required)');
@@ -43,28 +43,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEdit(btn) {
         resetForm();
 
-        const id       = btn.dataset.id;
-        const title    = btn.dataset.title;
+        const id = btn.dataset.id;
+        const title = btn.dataset.title;
         const keywords = btn.dataset.keywords;
-        const program  = btn.dataset.program;
-        const spec     = btn.dataset.spec;
-        const year     = btn.dataset.year;
+        const program = btn.dataset.program;
+        const spec = btn.dataset.spec;
+        const year = btn.dataset.year;
         const semester = btn.dataset.semester;
         const citations = btn.dataset.citations;
-        const file     = btn.dataset.file;
+        const file = btn.dataset.file;
 
-        document.getElementById('field-capstone-id').value   = id;
-        document.getElementById('capstone_title').value      = title;
-        document.getElementById('capstone_keywords').value   = keywords;
-        document.getElementById('capstone_year').value       = year;
-        document.getElementById('citation_count').value      = citations || 0;
+        document.getElementById('field-capstone-id').value = id;
+        document.getElementById('capstone_title').value = title;
+        document.getElementById('capstone_keywords').value = keywords;
+        document.getElementById('capstone_year').value = year;
+        document.getElementById('citation_count').value = citations || 0;
 
         // select dropdowns
         setSelect('program_id', program);
         setSelect('specialization_id', spec);
         setSelect('semester', semester);
 
-        document.getElementById('form-heading').textContent    = 'Edit Capstone';
+        document.getElementById('form-heading').textContent = 'Edit Capstone';
         document.getElementById('form-subheading').textContent = 'Update the details for this capstone record.';
         document.getElementById('btn-submit-label').textContent = 'Save Changes';
         setText('file-label-note', '(leave blank to keep existing)');

@@ -32,6 +32,16 @@ def get_nav_links(role):
             "section": "Capstone"
         },
 
+        # --- Process 3.5 Admin archived records ready for deletion container — Admin only ---
+        {
+            "name": "Recycle Bin",
+            "title": "Recycle Bin",
+            "url": "admin.view_archived_capstones",
+            "icon": "bx bx-trash",
+            "roles": ["Admin"],
+            "section": "Management"
+        },
+
         # --- Process 4.0: Explore Capstone Archive — All roles ---
         {
             "name": "Explore Archive",
@@ -125,6 +135,7 @@ def get_role_meta(role):
         },
     }
     return meta.get(role, {"label": role, "badge_class": "", "icon": "bx bx-user"})
+
 
 def resolve_title(nav_sections, nav_links, path):
     for section in nav_sections.values():

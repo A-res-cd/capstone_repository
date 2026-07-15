@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_repository.css') }}">
+{% endblock %}
+
+{% block title %}Recycle Bin{% endblock %}
+
+{% block content %}
+<section class="repo-section">
+
+    {# ── Page Header ── #}
+    <div class="repo-page-header">
+        <div class="repo-page-header__text">
+            <h2>Recycle Bin</h2>
+            <p>Review archived repository records and inspect stored metadata for previously removed capstones.</p>
+        </div>
+    </div>
+
+    {# ── Flash Messages ── #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flash-list">
+        {% for category, message in messages %}
+        <li class="flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    {# ── Archived Capstones List ── #}
+    <div class="repo-panel" id="panel-list">
+        {% if archived_capstones %}
+        <div class="table-wrap">
+            <table class="data-table data-table--striped">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Program</th>
+                        <th>Specialization</th>
+                        <th>Year</th>
+                        <th>Semester</th>
+                        <th>Keywords</th>
+                        <th>Citations</th>
+                        <th>Archived On</th>
+                        <th>Deletion In</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in archived_capstones %}
+                    <tr>
+                        <td><strong>{{ c.capstone_title }}</strong></td>
+                        <td>{{ c.program_name }}</td>
+                        <td>{{ c.specialization_name }}</td>
+                        <td>{{ c.capstone_year }}</td>
+                        <td>{{ ('Sem ' ~ c.semester) if c.semester else '—' }}</td>
+                        <td class="cell-keywords">
+                            {{ c.capstone_keywords[:40] }}{% if c.capstone_keywords|length > 40 %}…{% endif %}
+                        </td>
+                        <td class="cell-center">{{ c.citation_count or 0 }}</td>
+                        <td class="cell-center">
+                            {{ c.archived_at.strftime('%b %d, %Y %I:%M %p') if c.archived_at else '—' }}
+                        </td>
+                        <td class="cell-center">
+                            <span class="archive-countdown"
+                                  data-archived-at="{{ c.archived_at.isoformat() if c.archived_at else '' }}"
+                                  data-retention-days="{{ archive_retention_days }}">
+                                {{ 'Loading…' if c.archived_at else '—' }}
+                            </span>
+                        </td>
+                        <td class="cell-center">
+                            <div class="row-actions">
+                                <a class="btn-row btn-row--edit"
+                                   href="{{ url_for('admin.view_capstone', capstone_id=c.capstone_id) }}">
+                                    <i class="bx bx-show-alt"></i> View
+                                </a>
+                                <form action="{{ url_for('admin.restore_capstone_route', capstone_id=c.capstone_id) }}" method="post" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn-row btn-row--edit" title="Restore this capstone to the repository">
+                                        <i class="bx bx-undo"></i> Restore
+                                    </button>
+                                </form>
+                                <button class="btn-row btn-row--delete"
+                                    onclick="confirmDelete('{{ c.capstone_id }}', '/delete_capstone/', 'Permanently delete this capstone? This cannot be undone.')">
+                                    <i class="bx bx-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bx bx-folder-open"></i>
+            <p>No archived capstones yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</section>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/repository.js') }}"></script>
+<script>
+    function formatCountdown(diffMs) {
+        if (diffMs <= 0) {
+            return 'Deleting now';
+        }
+
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    function updateCountdowns() {
+        document.querySelectorAll('.archive-countdown').forEach((node) => {
+            const archivedAt = node.dataset.archivedAt;
+            if (!archivedAt) {
+                node.textContent = '—';
+                return;
+            }
+
+            const retentionDays = Number(node.dataset.retentionDays || 30);
+            const deadline = new Date(archivedAt).getTime() + (retentionDays * 24 * 60 * 60 * 1000);
+            const diffMs = deadline - Date.now();
+            node.textContent = formatCountdown(diffMs);
+        });
+    }
+
+    updateCountdowns();
+    setInterval(updateCountdowns, 1000);
+</script>
+{% endblock %}
