@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, session, redirect, url_for, jsonify
 from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
-cancel_manuscript_request, add_citations, get_capstone_authors
+cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact
 )
 from app.routes.decorators import login_required
 
@@ -47,7 +47,52 @@ def browse():
 @pages.route("/user-info")
 @login_required
 def user_info():
-    return render_template("global/user_information.html", hide_nav=False)
+    user_id = session.get("user_id")
+    contacts = get_user_contacts(user_id)
+    contact_labels = [
+        ("email", "Email"),
+        ("phone", "Contact Number"),
+        ("facebook", "Facebook"),
+        ("instagram", "Instagram"),
+        ("twitter", "Twitter/X"),
+    ]
+    contact_by_type = {c["contact_type"]: c for c in contacts}
+
+    return render_template(
+        "global/user_information.html",
+        hide_nav=False,
+        contacts=contacts,
+        contact_labels=contact_labels,
+        contact_by_type=contact_by_type,
+    )
+
+
+@pages.route("/user-info/contact", methods=["POST"])
+@login_required
+def update_user_contact_info():
+    user_id = session.get("user_id")
+    values = {
+        "email": request.form.get("email", "").strip(),
+        "phone": request.form.get("phone", "").strip(),
+        "facebook": request.form.get("facebook", "").strip(),
+        "instagram": request.form.get("instagram", "").strip(),
+        "twitter": request.form.get("twitter", "").strip(),
+    }
+
+    any_saved = False
+    for contact_type, contact_value in values.items():
+        if contact_value:
+            ok, err = upsert_user_contact(user_id, contact_type, contact_value, is_primary=True)
+            if not ok:
+                flash(err, "danger")
+                return redirect(url_for("pages.user_info"))
+            any_saved = True
+
+    if any_saved:
+        flash("Contact information updated successfully.", "success")
+    else:
+        flash("No contact information was entered.", "warning")
+    return redirect(url_for("pages.user_info"))
 
 
 @pages.route("/my-requests")

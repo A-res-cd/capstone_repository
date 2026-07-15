@@ -9,12 +9,12 @@
     <div class="user-information-content">
         <!-- Tab Navigation -->
         <div class="update-selection">
-            <button class="tab-btn active">Personal info</button>
-            <button class="tab-btn">Contact info</button>
+            <button class="tab-btn active" data-tab="personal">Personal info</button>
+            <button class="tab-btn" data-tab="contact">Contact info</button>
         </div>
 
         <!-- Section 1: Basic Info -->
-        <div class="user-information-update-group">
+        <div class="user-information-update-group user-info-tab" id="tab-personal">
             <h2>Basic Information</h2>
             
             <div class="input-row">
@@ -46,11 +46,86 @@
             </div>
         </div>
 
-        <!-- Section 2: Replicated for footer info if needed -->
-        <div class="user-information-update-group">
-            <h2>Basic Information</h2>
-            <!-- Additional rows here -->
+        <div class="user-information-update-group user-info-tab hidden" id="tab-contact">
+            <h2>Contact Information</h2>
+            <form method="post" action="{{ url_for('pages.update_user_contact_info') }}" id="contact-info-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="input-row">
+                    <div class="input-field-wrapper">
+                        <label>Email</label>
+                        <input type="text" name="email" value="{{ contact_by_type.get('email').contact_value if contact_by_type.get('email') else '' }}" placeholder="Not provided" readonly>
+                    </div>
+                    <div class="input-field-wrapper">
+                        <label>Contact number</label>
+                        <input type="text" name="phone" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-field-wrapper">
+                        <label>Facebook</label>
+                        <input type="text" name="facebook" value="{{ contact_by_type.get('facebook').contact_value if contact_by_type.get('facebook') else '' }}" placeholder="Not provided" readonly>
+                    </div>
+                    <div class="input-field-wrapper">
+                        <label>Instagram</label>
+                        <input type="text" name="instagram" value="{{ contact_by_type.get('instagram').contact_value if contact_by_type.get('instagram') else '' }}" placeholder="Not provided" readonly>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-field-wrapper">
+                        <label>Twitter/X</label>
+                        <input type="text" name="twitter" value="{{ contact_by_type.get('twitter').contact_value if contact_by_type.get('twitter') else '' }}" placeholder="Not provided" readonly>
+                    </div>
+                    <div class="input-field-wrapper"></div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="edit-contact-btn">Edit contact info</button>
+                    <button type="submit" class="btn btn-primary hidden" id="save-contact-btn">Save contact info</button>
+                    <button type="button" class="btn btn-secondary hidden" id="cancel-contact-btn">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabs = document.querySelectorAll('.user-info-tab');
+    const editContactBtn = document.getElementById('edit-contact-btn');
+    const saveContactBtn = document.getElementById('save-contact-btn');
+    const contactForm = document.getElementById('contact-info-form');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabName = button.getAttribute('data-tab');
+            tabButtons.forEach(btn => btn.classList.toggle('active', btn === button));
+            tabs.forEach(tab => tab.classList.toggle('hidden', tab.id !== 'tab-' + tabName));
+        });
+    });
+
+    if (editContactBtn && saveContactBtn && contactForm) {
+        const cancelContactBtn = document.getElementById('cancel-contact-btn');
+        const initialValues = Array.from(contactForm.querySelectorAll('input')).map(input => input.value);
+
+        editContactBtn.addEventListener('click', () => {
+            contactForm.querySelectorAll('input').forEach(input => {
+                input.removeAttribute('readonly');
+            });
+            editContactBtn.classList.add('hidden');
+            saveContactBtn.classList.remove('hidden');
+            cancelContactBtn.classList.remove('hidden');
+        });
+
+        cancelContactBtn.addEventListener('click', () => {
+            contactForm.querySelectorAll('input').forEach((input, index) => {
+                input.value = initialValues[index] || '';
+                input.setAttribute('readonly', 'readonly');
+            });
+            editContactBtn.classList.remove('hidden');
+            saveContactBtn.classList.add('hidden');
+            cancelContactBtn.classList.add('hidden');
+        });
+    }
+</script>
 {% endblock %}
