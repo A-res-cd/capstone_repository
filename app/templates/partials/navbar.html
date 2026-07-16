@@ -8,10 +8,6 @@
     <!-- BODY -->
     <div class="nav-container-body">
 
-        <div class="burger-menu">
-            <i class='bx bx-menu' id="nav-toggle"></i>
-        </div>
-
         <!-- USER -->
         <div class="nav-container-user">
             <div class="avatar">
@@ -34,8 +30,12 @@
                     <div class="nav-section">
                         <span class="nav-section-label">{{ section_name }}</span>
                         {% for link in section_links %}
+                            {% set is_active = (
+                                current_path == link.url or
+                                (breadcrumb.parent_endpoint and breadcrumb.parent_endpoint == link._endpoint)
+                            ) %}
                             <a href="{{ link.url }}"
-                               class="nav-item {% if current_path == link.url %}active{% endif %}">
+                               class="nav-item {% if is_active %}active{% endif %}">
                                 <i class="{{ link.icon }}"></i>
                                 <span>{{ link.name }}</span>
                             </a>
@@ -44,8 +44,12 @@
                 {% endfor %}
             {% else %}
                 {% for link in nav_links %}
+                    {% set is_active = (
+                        current_path == link.url or
+                        (breadcrumb.parent_endpoint and breadcrumb.parent_endpoint == link._endpoint)
+                    ) %}
                     <a href="{{ link.url }}"
-                       class="nav-item {% if current_path == link.url %}active{% endif %}">
+                       class="nav-item {% if is_active %}active{% endif %}">
                         <i class="{{ link.icon }}"></i>
                         <span>{{ link.name }}</span>
                     </a>

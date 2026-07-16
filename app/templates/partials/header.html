@@ -3,6 +3,28 @@
         <button class="burger-menu" id="nav-toggle" aria-label="Toggle navigation">
             <i class='bx bx-menu'></i>
         </button>
-        <h2>{{ page_title if page_title else "Home" }}</h2>
+
+        <div class="header-breadcrumb">
+            {% if breadcrumb.parent_name %}
+                {# Branch page: "Explore Archive > View Capstone" #}
+                <a href="{{ breadcrumb.parent_url }}" class="breadcrumb__parent">
+                    {{ breadcrumb.parent_name }}
+                </a>
+                <span class="breadcrumb__sep">
+                    <i class="bx bx-chevron-right"></i>
+                </span>
+                <span class="breadcrumb__current">{{ breadcrumb.page_name }}</span>
+            {% elif breadcrumb.page_name %}
+                {# Root nav-link page: just the page name, no parent #}
+                <span class="breadcrumb__current breadcrumb__current--root">
+                    {{ breadcrumb.page_name }}
+                </span>
+            {% else %}
+                {# Fallback #}
+                <span class="breadcrumb__current breadcrumb__current--root">
+                    {{ page_title or "Home" }}
+                </span>
+            {% endif %}
+        </div>
     </div>
 </header>

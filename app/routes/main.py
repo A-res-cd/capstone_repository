@@ -30,9 +30,12 @@ def inject_global_template_vars():
 
     for link in nav_links:
         try:
-            link["url"] = url_for(link["url"])
+            endpoint = link["url"]
+            link["_endpoint"] = endpoint
+            link["url"] = url_for(endpoint)
         except Exception:
             link["url"] = "#"
+            link["_endpoint"] = None
 
     page_title = resolve_title(nav_sections, nav_links, request.path)
 
@@ -59,6 +62,7 @@ def inject_global_template_vars():
             ) or (session.get("username", "?")[:1].upper()),
         },
         "current_path": request.path,
+        "breadcrumb": g.get("breadcrumb", None),
     }
 
 
