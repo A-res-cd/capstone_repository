@@ -79,27 +79,27 @@
             </div>
             <div class="detail-card__body">
                 {% if top_cited %}
-                <div class="table-wrap">
-                    <table class="data-table data-table--striped">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Title</th>
-                                <th>Program</th>
-                                <th class="col-center">Citations</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in top_cited %}
-                            <tr>
-                                <td class="cell-id">{{ loop.index }}</td>
-                                <td><strong>{{ row.capstone_title }}</strong></td>
-                                <td>{{ row.program_name }}</td>
-                                <td class="col-center">{{ row.citation_count }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="record-list">
+                    {% for row in top_cited %}
+                    <div class="record-card">
+                        <span class="rank-badge
+                            {% if loop.index == 1 %}rank-badge--gold
+                            {% elif loop.index == 2 %}rank-badge--silver
+                            {% elif loop.index == 3 %}rank-badge--bronze{% endif %}">
+                            {{ loop.index }}
+                        </span>
+                        <div class="record-card__body">
+                            <p class="record-card__title">{{ row.capstone_title }}</p>
+                            <div class="record-card__meta">
+                                <span class="record-card__meta-item"><i class="bx bx-book"></i>{{ row.program_name }}</span>
+                            </div>
+                        </div>
+                        <div class="record-card__stat">
+                            <div class="record-card__stat-value">{{ row.citation_count }}</div>
+                            <div class="record-card__stat-label">Citations</div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 {% else %}
                 <div class="empty-state">

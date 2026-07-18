@@ -32,6 +32,15 @@ def get_nav_links(role):
             "section": "Capstone"
         },
 
+        {
+            "name": "Recycle Bin",
+            "title": "Recycle Bin",
+            "url": "admin.view_archived_capstones",
+            "icon": "bx bx-trash",
+            "roles": ["Admin"],
+            "section": "Management"
+        },
+
         # --- Process 4.0: Explore Capstone Archive — All roles ---
         {
             "name": "Explore Archive",

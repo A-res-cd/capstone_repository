@@ -11,10 +11,22 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('sb-title').textContent = card.dataset.title;
             document.getElementById('sb-program').textContent = card.dataset.program;
             document.getElementById('sb-spec').textContent = card.dataset.spec;
-            document.getElementById('sb-keywords').textContent = card.dataset.keywords;
             document.getElementById('sb-year').textContent = card.dataset.year;
             document.getElementById('sb-term').textContent = card.dataset.semester;
             document.getElementById('sb-citations').textContent = card.dataset.citations;
+
+            const tagsContainer = document.getElementById('sb-keywords-tags');
+            if (tagsContainer) {
+                tagsContainer.innerHTML = '';
+                (card.dataset.keywords || '').split(',').forEach((kw) => {
+                    const trimmed = kw.trim();
+                    if (!trimmed) return;
+                    const tag = document.createElement('span');
+                    tag.className = 'sidebar-tag';
+                    tag.textContent = trimmed;
+                    tagsContainer.appendChild(tag);
+                });
+            }
 
             const id = card.dataset.id;
             selectedCapstoneId = id;

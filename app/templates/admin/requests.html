@@ -39,12 +39,7 @@
             <!-- Left: Requests list -->
             <div class="archive-main-content">
                 {% if requests %}
-                <div class="archive-table-header request-row-header">
-                    <span class="col-title">Requester</span>
-                    <span class="col-program">Capstone Title</span>
-                    <span class="col-year">Date Submitted</span>
-                    <span class="col-term">Status</span>
-                </div>
+                <p class="archive-results-count">{{ requests|length }} request{{ 's' if requests|length != 1 else '' }}</p>
 
                 <div class="archive-grid" id="requests-grid">
                     {% for req in requests %}
@@ -58,9 +53,9 @@
                          data-date="{{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}"
                          data-capstone-id="{{ req.capstone_id }}">
                         <div class="col-title"><strong>{{ req.requester_name }}</strong></div>
-                        <div class="col-program">{{ req.capstone_title }}</div>
-                        <div class="col-year">{{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}</div>
-                        <div class="col-term">{{ req.request_status | capitalize }}</div>
+                        <span class="col-program">{{ req.capstone_title }}</span>
+                        <span class="col-year"><i class="bx bx-calendar"></i> {{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}</span>
+                        <span class="status-badge status-badge--{{ req.request_status }}">{{ req.request_status | capitalize }}</span>
                     </div>
                     {% endfor %}
                 </div>
@@ -80,39 +75,52 @@
                 </div>
 
                 <div class="sidebar-card" id="sidebar-detail" style="display: none;">
-                    <h3 id="sd-capstone"></h3>
+                    <div class="sidebar-card__top">
+                        <span class="sidebar-card__eyebrow"><i class="bx bx-envelope"></i> Manuscript Request</span>
+                        <h3 id="sd-capstone"></h3>
 
-                    <div class="sidebar-meta">
-                        <label>Requester</label>
-                        <p id="sd-requester"></p>
-
-                        <label>Date Submitted</label>
-                        <p id="sd-date"></p>
-
-                        <label>Status</label>
-                        <p id="sd-status"></p>
-
-                        <label>Reason</label>
-                        <p id="sd-reason"></p>
-                    </div>
-
-                    <hr>
-
-                    <div id="sd-action-form">
-                        <form method="POST" id="decide-form" action="">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <label for="status_reason">Feedback / Reason (optional)</label>
-                            <textarea name="status_reason" id="status_reason" rows="4"></textarea>
-                            <div class="sidebar-actions">
-                                <button type="submit" name="status" value="approved" class="btn-manuscript">Approve</button>
-                                <button type="submit" name="status" value="rejected" class="btn-abstract">Reject</button>
+                        <div class="sidebar-meta">
+                            <div class="sidebar-meta-row">
+                                <i class="bx bx-user"></i>
+                                <span id="sd-requester"></span>
                             </div>
-                        </form>
+                            <div class="sidebar-meta-row">
+                                <i class="bx bx-calendar"></i>
+                                <span id="sd-date"></span>
+                            </div>
+                            <div class="sidebar-meta-row">
+                                <i class="bx bx-flag"></i>
+                                <span id="sd-status"></span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div id="sd-already-decided" style="display: none;">
-                        <label>Admin Feedback</label>
-                        <p id="sd-feedback"></p>
+                    <div class="sidebar-card__scroll">
+                        <div>
+                            <p class="sidebar-section-label">Reason</p>
+                            <p id="sd-reason" style="margin: 0; font-size: var(--text-sm);"></p>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card__bottom">
+                        <div id="sd-action-form">
+                            <form method="POST" id="decide-form" action="">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <label for="status_reason">Feedback / Reason (optional)</label>
+                                <textarea name="status_reason" id="status_reason" rows="3"></textarea>
+                                <div class="sidebar-actions">
+                                    <button type="submit" name="status" value="approved" class="btn-manuscript">Approve</button>
+                                    <button type="submit" name="status" value="rejected" class="btn-abstract">Reject</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div id="sd-already-decided" style="display: none;">
+                            <div class="sidebar-meta-row">
+                                <i class="bx bx-chat"></i>
+                                <span id="sd-feedback"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </aside>

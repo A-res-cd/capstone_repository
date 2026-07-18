@@ -38,56 +38,47 @@
     <div class="repo-panel" id="panel-list">
 
         {% if capstones %}
-        <div class="table-wrap">
-            <table class="data-table data-table--striped">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Program</th>
-                        <th>Specialization</th>
-                        <th>Year</th>
-                        <th>Semester</th>
-                        <th>Keywords</th>
-                        <th>Citations</th>
-                        <th class="col-actions">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for c in capstones %}
-                    <tr>
-                        <td><strong>{{ c.capstone_title }}</strong></td>
-                        <td>{{ c.program_name }}</td>
-                        <td>{{ c.specialization_name }}</td>
-                        <td>{{ c.capstone_year }}</td>
-                        <td>{{ ('Sem ' ~ c.semester) if c.semester else '—' }}</td>
-                        <td class="cell-keywords">
-                            {{ c.capstone_keywords[:40] }}{% if c.capstone_keywords|length > 40 %}…{% endif %}
-                        </td>
-                        <td class="cell-center">{{ c.citation_count or 0 }}</td>
-                        <td class="cell-center">
-                            <div class="row-actions">
-                                <button class="btn-row btn-row--edit"
-                                    data-id="{{ c.capstone_id }}"
-                                    data-title="{{ c.capstone_title }}"
-                                    data-keywords="{{ c.capstone_keywords }}"
-                                    data-program="{{ c.program_id }}"
-                                    data-spec="{{ c.specialization_id }}"
-                                    data-year="{{ c.capstone_year }}"
-                                    data-semester="{{ c.semester }}"
-                                    data-citations="{{ c.citation_count }}"
-                                    data-file="{{ c.capstone_file }}">
-                                    <i class="bx bx-edit-alt"></i> Edit
-                                </button>
-                                <button class="btn-row btn-row--delete"
-                                    onclick="confirmDelete('{{ c.capstone_id }}', '/repository/archive/', 'Move this capstone to the recycle bin?')">
-                                    <i class="bx bx-trash"></i> Recycle Bin
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="record-list">
+            {% for c in capstones %}
+            <div class="record-card">
+                <div class="record-card__icon"><i class="bx bxs-file-pdf"></i></div>
+                <div class="record-card__body">
+                    <p class="record-card__title">{{ c.capstone_title }}</p>
+                    <div class="record-card__meta">
+                        <span class="record-card__meta-item"><i class="bx bx-book"></i>{{ c.program_name }}</span>
+                        <span class="record-card__meta-item"><i class="bx bx-bookmark"></i>{{ c.specialization_name }}</span>
+                        <span class="record-card__meta-item"><i class="bx bx-calendar"></i>{{ c.capstone_year }}{{ (' • Sem ' ~ c.semester) if c.semester else '' }}</span>
+                    </div>
+                    <div class="record-card__tags">
+                        {% for kw in (c.capstone_keywords or '').split(',')[:5] %}
+                        {% if kw.strip() %}<span class="record-card__tag">{{ kw.strip() }}</span>{% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="record-card__stat">
+                    <div class="record-card__stat-value">{{ c.citation_count or 0 }}</div>
+                    <div class="record-card__stat-label">Citations</div>
+                </div>
+                <div class="record-card__actions">
+                    <button class="btn-row btn-row--edit"
+                        data-id="{{ c.capstone_id }}"
+                        data-title="{{ c.capstone_title }}"
+                        data-keywords="{{ c.capstone_keywords }}"
+                        data-program="{{ c.program_id }}"
+                        data-spec="{{ c.specialization_id }}"
+                        data-year="{{ c.capstone_year }}"
+                        data-semester="{{ c.semester }}"
+                        data-citations="{{ c.citation_count }}"
+                        data-file="{{ c.capstone_file }}">
+                        <i class="bx bx-edit-alt"></i> Edit
+                    </button>
+                    <button class="btn-row btn-row--delete"
+                        onclick="confirmDelete('{{ c.capstone_id }}', '/repository/archive/', 'Move this capstone to the recycle bin?')">
+                        <i class="bx bx-trash"></i> Recycle Bin
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% else %}
         <div class="empty-state">

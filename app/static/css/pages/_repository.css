@@ -1,5 +1,6 @@
 @import url('../base/root.css');
 @import url('../components/_table.css');
+@import url('../components/_record-card.css');
 @import url('../components/_detail-card.css');
 
 main { padding: 0; }

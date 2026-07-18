@@ -14,12 +14,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const date = row.dataset.date;
 
             document.getElementById('sidebar-empty').style.display = 'none';
-            document.getElementById('sidebar-detail').style.display = 'block';
+            document.getElementById('sidebar-detail').style.display = 'flex';
 
             document.getElementById('sd-requester').textContent = requester;
             document.getElementById('sd-capstone').textContent = capstone;
             document.getElementById('sd-date').textContent = date;
-            document.getElementById('sd-status').textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            const statusEl = document.getElementById('sd-status');
+            statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            statusEl.className = `status-badge status-badge--${status}`;
             document.getElementById('sd-reason').textContent = reason;
 
             const actionForm = document.getElementById('sd-action-form');

@@ -96,22 +96,6 @@ def update_user_contact_info():
     return redirect(url_for("pages.user_info"))
 
 
-@pages.route("/repository/pdf/<int:capstone_id>")
-@role_required(1)
-def view_capstone_abstract(capstone_id):
-    capstone = get_capstone_details(capstone_id)
-    if not capstone:
-        flash("capstone not found", "danger")
-        return redirect(url_for("pages.browse"))
-
-    return render_template(
-        "admin/view_capstone.html",
-        hide_nav=False,
-        capstone=capstone,
-        max_pages=None
-    )
-
-
 @pages.route("/my-requests")
 @role_required(1)
 def all_requests():

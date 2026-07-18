@@ -34,47 +34,35 @@
     <div class="mu-panel" id="panel-list">
 
         {% if users %}
-        <div class="table-wrap">
-            <table class="data-table data-table--striped">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Full Name</th>
-                        <th>University No.</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th class="col-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for u in users %}
-                    <tr>
-                        <td class="cell-id">{{ u.user_id }}</td>
-                        <td><strong>{{ u.full_name }}</strong></td>
-                        <td class="cell-mono">{{ u.university_no }}</td>
-                        <td>{{ u.email or '—' }}</td>
-                        <td>
-                            <span class="pill
-                                {% if u.role == 'Admin' %}pill--admin
-                                {% elif u.role == 'Faculty' %}pill--faculty
-                                {% else %}pill--student{% endif %}">
-                                {{ u.role }}
-                            </span>
-                        </td>
-                        <td class="col-center">
-                            <button class="btn-row btn-row--edit"
-                                data-id="{{ u.user_id }}"
-                                data-name="{{ u.full_name }}"
-                                data-univ="{{ u.university_no }}"
-                                data-email="{{ u.email or '' }}"
-                                data-role="{{ u.role }}">
-                                <i class="bx bx-edit-alt"></i> Edit
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="record-list">
+            {% for u in users %}
+            <div class="record-card">
+                <div class="record-card__avatar">{{ u.full_name[:1] }}</div>
+                <div class="record-card__body">
+                    <p class="record-card__title">{{ u.full_name }}</p>
+                    <div class="record-card__meta">
+                        <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ u.university_no }}</span>
+                        <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ u.email or '—' }}</span>
+                        <span class="pill
+                            {% if u.role == 'Admin' %}pill--admin
+                            {% elif u.role == 'Faculty' %}pill--faculty
+                            {% else %}pill--student{% endif %}">
+                            {{ u.role }}
+                        </span>
+                    </div>
+                </div>
+                <div class="record-card__actions">
+                    <button class="btn-row btn-row--edit"
+                        data-id="{{ u.user_id }}"
+                        data-name="{{ u.full_name }}"
+                        data-univ="{{ u.university_no }}"
+                        data-email="{{ u.email or '' }}"
+                        data-role="{{ u.role }}">
+                        <i class="bx bx-edit-alt"></i> Edit
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% else %}
         <div class="empty-state">
