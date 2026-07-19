@@ -873,7 +873,10 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12):
             conditions.append("c.capstone_year = %s")
             params.append(year)
 
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        # added a where clause for the archived capstone to be filtered out of the rest of the capstones that are not in the recycling bin
+        where_clauses = ["is_archived = FALSE"]
+        where_clauses.extend(conditions)
+        where = "WHERE " + " AND ".join(where_clauses)
 
         # total count (same JOINs so filters apply)
         mithrix.execute(f"""
@@ -929,6 +932,7 @@ def get_archive_years():
             SELECT DISTINCT capstone_year
             FROM capstone
             WHERE capstone_year IS NOT NULL
+              AND is_archived = FALSE
             ORDER BY capstone_year DESC
         """)
         return [row[0] for row in mithrix.fetchall()]
