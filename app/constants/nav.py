@@ -110,79 +110,83 @@ def get_nav_links(role):
 # Branch-page breadcrumb mapping
 #
 # Keys are URL *prefixes* (checked with startswith) for pages that don't have
-# their own nav link. Values define:
-#   parent_endpoint  — the nav link this branch "belongs to" (for active state)
-#   parent_name      — the nav link label shown in the breadcrumb
-#   page_name        — the current page label shown after the ">"
+# their own nav link. Each entry defines:
+#   ancestors  — an ordered list of (endpoint, label) tuples, root-first,
+#                for every level between the root nav link and this page.
+#                Most branch pages sit one level below a root nav link, so
+#                this list usually has one item — but it can hold as many
+#                ancestor levels as the page is actually nested under,
+#                which is what lets the header render a full
+#                "root -> child -> child" chain instead of just root -> current.
+#   page_name  — this page's own label, shown last and not a link.
 # ─────────────────────────────────────────────────────────────────────────────
 _BRANCH_MAP = [
     # Capstone detail / PDF viewer  →  parent is whichever list page makes sense
-    ("/abstract/",          "pages.browse",                  "Explore Archive",      "View Abstract"),
-    ("/manuscript/view/",   "pages.all_requests",            "My Requests",          "View Manuscript"),
-    # Per-capstone request form  →  parent is My Requests (student) or Archive
-    ("/requests/",          "pages.all_requests",            "My Requests",          "Request Manuscript"),
+    ("/abstract/",          [("pages.browse",                   "Explore Archive")], "View Abstract"),
+    ("/manuscript/view/",   [("pages.all_requests",              "My Requests")],     "View Manuscript"),
+    # Per-capstone request form  →  nested under Explore Archive -> My Requests,
+    # since a student reaches this form by browsing the archive first.
+    ("/requests/",          [("pages.browse",                   "Explore Archive"),
+                              ("pages.all_requests",              "My Requests")],     "Request Manuscript"),
     # Admin: view/edit individual capstone  →  parent is Repository
-    ("/repository/view/",   "admin.view_capstone_repository","Capstone Repository",  "View Capstone"),
-    ("/repository/update/", "admin.view_capstone_repository","Capstone Repository",  "Edit Capstone"),
+    ("/repository/view/",   [("admin.view_capstone_repository", "Capstone Repository")], "View Capstone"),
+    ("/repository/update/", [("admin.view_capstone_repository", "Capstone Repository")], "Edit Capstone"),
     # Admin: decide on a request  →  parent is Requests
-    ("/repository/decide/", "admin.view_requests",           "Requests",             "Review Request"),
+    ("/repository/decide/", [("admin.view_requests",            "Requests")],         "Review Request"),
 ]
 
 
 def get_breadcrumb(nav_links, path):
     """
-    Returns a dict:
-      { parent_url, parent_name, page_name, parent_endpoint }
+    Returns an ordered list of crumbs, root-first:
+      [ {"name": ..., "url": ...}, {"name": ..., "url": ...}, ... ]
 
-    For a direct nav-link page (e.g. /archive):
-      parent_url   = None  (no parent — it IS the root)
-      page_name    = link title
-      parent_name  = None
+    Every crumb except the last has a resolved "url" and renders as a link;
+    the last crumb represents the current page, has "url": None, and renders
+    as plain (non-link) text. The header template just loops over this list
+    and joins the crumbs with a separator — so it naturally renders
+    "root -> child -> child -> ... -> current" for any depth, rather than
+    being limited to a single parent/current pair.
 
-    For a branch page (e.g. /abstract/5):
-      parent_url   = resolved URL of the parent nav link
-      parent_name  = nav link label
-      page_name    = branch page label
+    For a direct nav-link page (e.g. /archive), this is a single crumb:
+      [ {"name": "Explore Archive", "url": None} ]
+
+    For a branch page nested under N ancestors (e.g. /requests/5), this is
+    N + 1 crumbs, e.g.:
+      [ {"name": "Explore Archive", "url": "/archive"},
+        {"name": "My Requests",     "url": "/my-requests"},
+        {"name": "Request Manuscript", "url": None} ]
     """
+    def _resolve_url(endpoint):
+        parent_url = next(
+            (l["url"] for l in nav_links if l.get("_endpoint") == endpoint),
+            None
+        )
+        if parent_url:
+            return parent_url
+        try:
+            from flask import url_for
+            return url_for(endpoint)
+        except Exception:
+            return "#"
+
     # Check if this is a direct nav-link page first
     for link in nav_links:
         if link["url"] == path:
-            return {
-                "parent_url":      None,
-                "parent_name":     None,
-                "page_name":       link.get("title") or link["name"],
-                "parent_endpoint": None,
-            }
+            return [{"name": link.get("title") or link["name"], "url": None, "endpoint": None}]
 
     # Check branch map
-    for prefix, parent_endpoint, parent_name, page_name in _BRANCH_MAP:
+    for prefix, ancestors, page_name in _BRANCH_MAP:
         if path.startswith(prefix):
-            # Find the resolved URL for the parent endpoint from nav_links
-            parent_url = next(
-                (l["url"] for l in nav_links if l.get("_endpoint") == parent_endpoint),
-                None
-            )
-            # Fallback: try to build it from flask url_for
-            if not parent_url:
-                try:
-                    from flask import url_for
-                    parent_url = url_for(parent_endpoint)
-                except Exception:
-                    parent_url = "#"
-            return {
-                "parent_url":      parent_url,
-                "parent_name":     parent_name,
-                "page_name":       page_name,
-                "parent_endpoint": parent_endpoint,
-            }
+            crumbs = [
+                {"name": label, "url": _resolve_url(endpoint), "endpoint": endpoint}
+                for endpoint, label in ancestors
+            ]
+            crumbs.append({"name": page_name, "url": None, "endpoint": None})
+            return crumbs
 
     # Unknown page — no breadcrumb
-    return {
-        "parent_url":      None,
-        "parent_name":     None,
-        "page_name":       None,
-        "parent_endpoint": None,
-    }
+    return []
 
 
 def get_role_meta(role):

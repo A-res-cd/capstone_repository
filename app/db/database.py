@@ -892,7 +892,10 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12):
             conditions.append("c.capstone_year = %s")
             params.append(year)
 
-        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+        where_clauses = ["is_archived = FALSE"]
+        where_clauses.extend(conditions)
+
+        where = "WHERE " + " AND ".join(where_clauses)
 
         # total count (same JOINs so filters apply)
         mithrix.execute(f"""

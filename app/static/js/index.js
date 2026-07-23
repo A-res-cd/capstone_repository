@@ -5,12 +5,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (toggleBtn) {
         toggleBtn.addEventListener("click", () => {
-            layout.classList.toggle("collapsed");
-            navLogo.src = layout.classList.contains("collapsed")
+            const collapsed = layout.classList.toggle("collapsed");
+
+            // Sizing/transition is handled entirely by CSS (.layout.collapsed .logo).
+            // JS only needs to swap the actual image asset.
+            navLogo.src = collapsed
                 ? "static/images/capre-logo-collapsed.png"
                 : "static/images/capre-logo.png";
-            navLogo.style.width = layout.classList.contains("collapsed") ? "100px" : "140px";
-            navLogo.style.height = layout.classList.contains("collapsed") ? "45px" : "45px";
+
+            // Persist the new state in the session so it survives page loads
+            // and only changes back when the user clicks the burger menu again.
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            fetch("/toggle-nav", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+                },
+                body: JSON.stringify({ collapsed }),
+            }).catch(() => {
+                // Non-critical — the UI already reflects the new state either way.
+            });
         });
     }
 });

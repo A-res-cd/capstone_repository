@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, g
-from app.constants.nav import get_nav_links, get_role_meta, resolve_title
+from app.constants.nav import get_nav_links, get_role_meta, resolve_title, get_breadcrumb
 
 main = Blueprint("main", __name__)
 
@@ -23,6 +23,8 @@ def inject_global_template_vars():
                 "display_name": "", "initials": "?",
             },
             "current_path": request.path,
+            "breadcrumb": [],
+            "nav_collapsed": session.get("nav_collapsed", False),
         }
 
     nav_links, nav_sections = get_nav_links(role)
@@ -38,6 +40,7 @@ def inject_global_template_vars():
             link["_endpoint"] = None
 
     page_title = resolve_title(nav_sections, nav_links, request.path)
+    breadcrumb = get_breadcrumb(nav_links, request.path)
 
     return {
         "nav_links":    nav_links,
@@ -62,10 +65,25 @@ def inject_global_template_vars():
             ) or (session.get("username", "?")[:1].upper()),
         },
         "current_path": request.path,
-        "breadcrumb": g.get("breadcrumb", None),
+        "breadcrumb": breadcrumb,
+        # Flat list of every ancestor endpoint in the breadcrumb chain, so the
+        # navbar can mark a root nav link "active" when the current page is a
+        # branch nested anywhere underneath it (not just a direct child).
+        "breadcrumb_endpoints": [c["endpoint"] for c in breadcrumb if c.get("endpoint")],
+        "nav_collapsed": session.get("nav_collapsed", False),
     }
 
 
 @main.route("/")
 def home():
     return render_template("index.html", hide_nav=True, hide_header=True)
+
+
+@main.route("/toggle-nav", methods=["POST"])
+def toggle_nav():
+    """Persist the sidebar's collapsed/expanded state in the session so it
+    survives page loads and only changes back when the user clicks the
+    burger menu again."""
+    data = request.get_json(silent=True) or {}
+    session["nav_collapsed"] = bool(data.get("collapsed"))
+    return "", 204

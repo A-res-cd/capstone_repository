@@ -14,7 +14,7 @@
     <title>{% block title %}My App{% endblock %}</title>
 </head>
 <body>
-    <div class="layout">
+    <div class="layout{% if nav_collapsed %} collapsed{% endif %}">
 
         {% if not hide_nav %}
             {% include 'partials/navbar.html' %}

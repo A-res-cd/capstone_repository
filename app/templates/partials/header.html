@@ -5,20 +5,21 @@
         </button>
 
         <div class="header-breadcrumb">
-            {% if breadcrumb.parent_name %}
-                {# Branch page: "Explore Archive > View Capstone" #}
-                <a href="{{ breadcrumb.parent_url }}" class="breadcrumb__parent">
-                    {{ breadcrumb.parent_name }}
-                </a>
-                <span class="breadcrumb__sep">
-                    <i class="bx bx-chevron-right"></i>
-                </span>
-                <span class="breadcrumb__current">{{ breadcrumb.page_name }}</span>
-            {% elif breadcrumb.page_name %}
-                {# Root nav-link page: just the page name, no parent #}
-                <span class="breadcrumb__current breadcrumb__current--root">
-                    {{ breadcrumb.page_name }}
-                </span>
+            {% if breadcrumb %}
+                {% for crumb in breadcrumb %}
+                    {% if not loop.first %}
+                    <span class="breadcrumb__sep">
+                        <i class="bx bx-chevron-right"></i>
+                    </span>
+                    {% endif %}
+                    {% if crumb.url %}
+                    <a href="{{ crumb.url }}" class="breadcrumb__parent">{{ crumb.name }}</a>
+                    {% elif loop.first %}
+                    <span class="breadcrumb__current breadcrumb__current--root">{{ crumb.name }}</span>
+                    {% else %}
+                    <span class="breadcrumb__current">{{ crumb.name }}</span>
+                    {% endif %}
+                {% endfor %}
             {% else %}
                 {# Fallback #}
                 <span class="breadcrumb__current breadcrumb__current--root">
