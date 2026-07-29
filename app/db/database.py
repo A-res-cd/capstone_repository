@@ -31,6 +31,9 @@ USERNAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]{3,30}$')
 ARCHIVE_RETENTION_DAYS = 30
 
 
+
+## ---------- HELPER FUNCTIONS ---------- ##
+
 def detect_role(university_no):
     if STUDENT_PATTERN.match(university_no):
         return "Student"
@@ -40,21 +43,16 @@ def detect_role(university_no):
         return "Admin"
     return None
 
-# _____________________________________helper functions gang_______________________________ ps i was getting lost in the code so therese allat of notes now
-
-
 def get_device_ip(request):
     if request.headers.get('X-Forwarded-For'):
         return request.headers.get('X-Forwarded-For').split(',')[0].strip()
     return request.remote_addr
-
 
 def get_role_id(mithrix, role_name):
     mithrix.execute("""SELECT role_id FROM role
                        WHERE LOWER(role_name) = LOWER(%s) LIMIT 1""", (role_name,))
     row = mithrix.fetchone()
     return row[0] if row else None
-
 
 def log_audit(mithrix, user_id, action_type, affected_table, affected_record_id, old_values=None, new_values=None):
     mithrix.execute("""
@@ -64,7 +62,9 @@ def log_audit(mithrix, user_id, action_type, affected_table, affected_record_id,
     """, (user_id, action_type, affected_table, affected_record_id, old_values, new_values, datetime.now(timezone.utc)))
 
 
-# ___________________________________this be the sign up i think maybe______________________________
+
+## ---------- AUTHENTICATION QUERIES ---------- ## 
+# SIGN UP
 def create_user(first_name, middle_name, last_name, university_no, email, username, password):
 
     #strip and basic validation
@@ -173,11 +173,9 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         mithrix.close()
         conn.close()
 
-
-# ____________________________sign in or authentication idk_______________________
+## SIGN IN
 LOCKOUT_THRESHOLD = 5  # number of allowed failed attempts before lockout
 LOCKOUT_DURATION = 20  # lockout duration in minutes
-
 
 def sign_in(username, password, device_ip=None):
     conn = db_connect()
@@ -286,10 +284,9 @@ def sign_in(username, password, device_ip=None):
 # end of new sign in with lockout and audit logging
 
 
-# _______________forgot password stuffs_____________
+# FORGOT PASSWORD
 OTP_EXPIRY_MINUTES = 4
 OTP_MAX_ATTEMPTS = 2
-
 
 def lookup_user_for_reset(username, email):
     conn = db_connect()
@@ -319,7 +316,6 @@ def lookup_user_for_reset(username, email):
     finally:
         mithrix.close()
         conn.close()
-
 
 def create_otp(contact_id):
     import random
@@ -358,7 +354,6 @@ def create_otp(contact_id):
     finally:
         mithrix.close()
         conn.close()
-
 
 def verify_otp(reset_id, otp_entered):
 
@@ -411,7 +406,6 @@ def verify_otp(reset_id, otp_entered):
     finally:
         mithrix.close()
         conn.close()
-
 
 def change_password(reset_id, user_id, new_password):
 
@@ -472,15 +466,16 @@ def change_password(reset_id, user_id, new_password):
         conn.close()
 
 
+# SIGN OUT
 def sign_out(user_id, device_ip=None):
     conn = db_connect()
     mithrix = conn.cursor()
     now = datetime.now(timezone.utc)
 
     try:
-        # write to logOut table
+        # write to logout table
         mithrix.execute("""
-            INSERT INTO logOut (user_id, log_out_time, logout_device_ip)
+            INSERT INTO logout (user_id, log_out_time, logout_device_ip)
             VALUES (%s, %s, %s)
             RETURNING log_out_id
         """, (user_id, now, device_ip))
@@ -488,7 +483,7 @@ def sign_out(user_id, device_ip=None):
 
         log_audit(
             mithrix, user_id,
-            "logout", "logOut", log_out_id,
+            "logout", "logout", log_out_id,
             old_values=None,
             new_values=str(log_out_id)
         )
@@ -504,8 +499,10 @@ def sign_out(user_id, device_ip=None):
     finally:
         mithrix.close()
         conn.close()
-# ______________________________Admin CRUD Operations for Manage Capstone Repository___________________________
 
+
+
+## ---------- ADMIN QUERIES ---------- ##
 
 def create_capstone_project(keyword_id, specialization_id, program_id,
                             capstone_title, capstone_year, capstone_file,
@@ -532,7 +529,6 @@ def create_capstone_project(keyword_id, specialization_id, program_id,
         mithrix.close()
         conn.close()
 
-
 def insert_keywords(capstone_keywords):
     conn = db_connect()
     mithrix = conn.cursor()
@@ -553,7 +549,7 @@ def insert_keywords(capstone_keywords):
         mithrix.close()
         conn.close()
 
-
+# FETCH FROM DB TO INSERT
 def get_programs():
     conn = db_connect()
     mithrix = conn.cursor()
@@ -566,7 +562,6 @@ def get_programs():
     finally:
         mithrix.close()
         conn.close()
-
 
 def get_specializations():
     conn = db_connect()
@@ -581,7 +576,6 @@ def get_specializations():
     finally:
         mithrix.close()
         conn.close()
-
 
 def get_used_keyword():
     conn = db_connect()
@@ -599,7 +593,7 @@ def get_used_keyword():
         mithrix.close()
         conn.close()
 
-
+# UPDATE CAPSTONE
 def update_keyword(keyword_id, capstone_keywords):
     conn = db_connect()
     mithrix = conn.cursor()
@@ -618,7 +612,6 @@ def update_keyword(keyword_id, capstone_keywords):
     finally:
         mithrix.close()
         conn.close()
-
 
 def get_capstone_details(capstone_id):
     conn = db_connect()
@@ -643,7 +636,6 @@ def get_capstone_details(capstone_id):
     finally:
         mithrix.close()
         conn.close()
-
 
 def update_capstone_record(capstone_id, keyword_id, specialization_id, program_id,
                            capstone_title, capstone_year, capstone_file,
@@ -675,7 +667,6 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
         mithrix.close()
         conn.close()
 
-
 def get_all_capstones():
     """
     Retrieve all capstone projects with their details
@@ -704,7 +695,7 @@ def get_all_capstones():
         mithrix.close()
         conn.close()
 
-
+# RECYCLE BIN
 def get_archived_capstones():
     """
     Retrieve archived capstone projects for the admin archive management page.
@@ -734,7 +725,6 @@ def get_archived_capstones():
     finally:
         mithrix.close()
         conn.close()
-
 
 def purge_expired_archived_capstones():
     """Delete archived capstones that have stayed in the recycle bin longer than 30 days."""
@@ -767,7 +757,6 @@ def purge_expired_archived_capstones():
     finally:
         mithrix.close()
         conn.close()
-
 
 def delete_capstone(capstone_id):
     """
@@ -813,7 +802,6 @@ def delete_capstone(capstone_id):
         mithrix.close()
         conn.close()
 
-
 def add_to_bin(capstone_id):
     conn = db_connect()
     mithrix = conn.cursor()
@@ -839,7 +827,6 @@ def add_to_bin(capstone_id):
         mithrix.close()
         conn.close()
 
-
 def restore_capstone(capstone_id):
     conn = db_connect()
     mithrix = conn.cursor()
@@ -863,107 +850,6 @@ def restore_capstone(capstone_id):
     finally:
         mithrix.close()
         conn.close()
-
-
-# ______________________________Explore Archive — public browse___________________________
-
-
-def get_archive_capstones(search=None, year=None, page=1, page_size=12):
-    """
-    Fetch capstone records for the public archive list view.
-    Joins keyword, specialization, and program for display.
-    Returns (rows: list[RealDictRow], total: int).
-    """
-    conn = db_connect()
-    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    try:
-        conditions = []
-        params = []
-
-        if search:
-            conditions.append(
-                "(c.capstone_title ILIKE %s OR k.capstone_keywords ILIKE %s)"
-            )
-            like = f"%{search}%"
-            params += [like, like]
-
-        if year:
-            conditions.append("c.capstone_year = %s")
-            params.append(year)
-
-        where_clauses = ["is_archived = FALSE"]
-        where_clauses.extend(conditions)
-
-        where = "WHERE " + " AND ".join(where_clauses)
-
-        # total count (same JOINs so filters apply)
-        mithrix.execute(f"""
-            SELECT COUNT(*) AS total
-            FROM capstone c
-            JOIN keyword k        ON k.keyword_id        = c.keyword_id
-            JOIN specialization s ON s.specialization_id = c.specialization_id
-            JOIN program p        ON p.program_id        = c.program_id
-            {where}
-        """, params)
-        total = mithrix.fetchone()["total"]
-
-        offset = (page - 1) * page_size
-
-        mithrix.execute(f"""
-            SELECT
-                c.capstone_id,
-                c.capstone_title,
-                c.capstone_year,
-                c.capstone_file,
-                c.citation_count,
-                c.semester,
-                c.term,
-                k.capstone_keywords,
-                s.specialization_name,
-                p.program_name
-            FROM capstone c
-            JOIN keyword k        ON k.keyword_id        = c.keyword_id
-            JOIN specialization s ON s.specialization_id = c.specialization_id
-            JOIN program p        ON p.program_id        = c.program_id
-            {where}
-            ORDER BY c.capstone_year DESC, c.capstone_title ASC
-            LIMIT %s OFFSET %s
-        """, params + [page_size, offset])
-
-        rows = mithrix.fetchall()
-        return list(rows), total
-
-    except Exception as exc:
-        print(f"Database error: {exc}")
-        return [], 0
-
-    finally:
-        mithrix.close()
-        conn.close()
-
-
-def get_archive_years():
-    """Return distinct capstone_year values for the year filter dropdown."""
-    conn = db_connect()
-    mithrix = conn.cursor()
-    try:
-        mithrix.execute("""
-            SELECT DISTINCT capstone_year
-            FROM capstone
-            WHERE capstone_year IS NOT NULL
-            ORDER BY capstone_year DESC
-        """)
-        return [row[0] for row in mithrix.fetchall()]
-    except Exception as exc:
-        print(f"Database error: {exc}")
-        return []
-    finally:
-        mithrix.close()
-        conn.close()
-
-
-# ______________________________Manage Users___________________________
 
 def get_users():
     conn = db_connect()
@@ -1121,7 +1007,7 @@ def delete_user_account(user_id, acting_admin_id):
         """, (user_id,))
 
         mithrix.execute("""
-            DELETE FROM logOut  WHERE user_id = %s
+            DELETE FROM logout  WHERE user_id = %s
         """, (user_id,))
 
         mithrix.execute("""
@@ -1147,6 +1033,7 @@ def delete_user_account(user_id, acting_admin_id):
         mithrix.close()
         conn.close()
 
+# GET REQUESTS
 
 def request_fullview(user_id, capstone_id, request_reason):
     conn = db_connect()
@@ -1238,9 +1125,6 @@ def review_request(request_id, request_status, status_reason, reviewed_by):
         mithrix.close()
         conn.close()
 
-# I DONT WANNA DO THIS ANYMOREEEEEEEEEE
-
-
 def get_user_requests(user_id):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1264,8 +1148,33 @@ def get_user_requests(user_id):
         mithrix.close()
         conn.close()
 
+def cancel_manuscript_request(request_id, user_id):
+    conn = db_connect()
+    mithrix = conn.cursor()
 
-# ______________________________Admin Analytics___________________________
+    try:
+        mithrix.execute("""
+            UPDATE request
+            SET request_status = 'cancelled'
+            WHERE request_id = %s AND user_id = %s
+            AND request_status = 'pending'
+        """, (request_id, user_id))
+
+        conn.commit()
+        return True, None
+
+    except Exception as exc:
+        conn.rollback()
+        print(f"Database error: {exc}")
+        return False, f"Database error: {exc}"
+
+    finally:
+        mithrix.close()
+        conn.close()
+
+## END OF GET REQUESTS ##
+
+## ---------- ADMIN ANALYTICS ---------- ## 
 
 def get_capstones_by_specialization():
     """Capstone count grouped by specialization — for the Analytics bar chart."""
@@ -1327,31 +1236,103 @@ def get_top_cited_capstones(limit=5):
         conn.close()
 
 
-# FAHHHHH ANG DAMI FUNCTIONSSSSSSSS IM SICK AND TIRED OF THISSSSSSS
-def cancel_manuscript_request(request_id, user_id):
+## ---------- EXPLORE ARCHIVE ---------- ##
+## GLOBAL QUERIES
+
+def get_archive_capstones(search=None, year=None, page=1, page_size=12):
+    """
+    Fetch capstone records for the public archive list view.
+    Joins keyword, specialization, and program for display.
+    Returns (rows: list[RealDictRow], total: int).
+    """
     conn = db_connect()
-    mithrix = conn.cursor()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
-        mithrix.execute("""
-            UPDATE request
-            SET request_status = 'cancelled'
-            WHERE request_id = %s AND user_id = %s
-            AND request_status = 'pending'
-        """, (request_id, user_id))
+        conditions = []
+        params = []
 
-        conn.commit()
-        return True, None
+        if search:
+            conditions.append(
+                "(c.capstone_title ILIKE %s OR k.capstone_keywords ILIKE %s)"
+            )
+            like = f"%{search}%"
+            params += [like, like]
+
+        if year:
+            conditions.append("c.capstone_year = %s")
+            params.append(year)
+
+        where_clauses = ["is_archived = FALSE"]
+        where_clauses.extend(conditions)
+
+        where = "WHERE " + " AND ".join(where_clauses)
+
+        # total count (same JOINs so filters apply)
+        mithrix.execute(f"""
+            SELECT COUNT(*) AS total
+            FROM capstone c
+            JOIN keyword k        ON k.keyword_id        = c.keyword_id
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            JOIN program p        ON p.program_id        = c.program_id
+            {where}
+        """, params)
+        total = mithrix.fetchone()["total"]
+
+        offset = (page - 1) * page_size
+
+        mithrix.execute(f"""
+            SELECT
+                c.capstone_id,
+                c.capstone_title,
+                c.capstone_year,
+                c.capstone_file,
+                c.citation_count,
+                c.semester,
+                c.term,
+                k.capstone_keywords,
+                s.specialization_name,
+                p.program_name
+            FROM capstone c
+            JOIN keyword k        ON k.keyword_id        = c.keyword_id
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            JOIN program p        ON p.program_id        = c.program_id
+            {where}
+            ORDER BY c.capstone_year DESC, c.capstone_title ASC
+            LIMIT %s OFFSET %s
+        """, params + [page_size, offset])
+
+        rows = mithrix.fetchall()
+        return list(rows), total
 
     except Exception as exc:
-        conn.rollback()
         print(f"Database error: {exc}")
-        return False, f"Database error: {exc}"
+        return [], 0
 
     finally:
         mithrix.close()
         conn.close()
 
+def get_archive_years():
+    """Return distinct capstone_year values for the year filter dropdown."""
+    conn = db_connect()
+    mithrix = conn.cursor()
+    try:
+        mithrix.execute("""
+            SELECT DISTINCT capstone_year
+            FROM capstone
+            WHERE capstone_year IS NOT NULL
+            ORDER BY capstone_year DESC
+        """)
+        return [row[0] for row in mithrix.fetchall()]
+    except Exception as exc:
+        print(f"Database error: {exc}")
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+## INSERT 
 
 def add_citations(capstone_id):
     conn = db_connect()

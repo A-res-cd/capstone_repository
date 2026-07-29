@@ -4,7 +4,7 @@
 body {
     margin: 0;
     font-family: var(--font-primary);
-    background-color: #f8f9ff;   /* subtle blue-tint ties to auth/landing */
+    background-color: #FAF9F4;   /* paper — ties to auth/landing theme */
     color: var(--text-dark);
 }
 

@@ -35,6 +35,7 @@
     /* ========== FONT SETTINGS ========== */
     --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     --font-heading: 'Segoe UI', Arial, sans-serif;
+    --font-display: 'Fraunces', 'Segoe UI', Arial, sans-serif;
 
     /* ========== FONT SIZES ========== */
     --text-xs: 12px;

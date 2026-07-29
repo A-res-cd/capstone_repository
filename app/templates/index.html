@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 
 {% block extra_css %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_home.css') }}">
 {% endblock %}
 
@@ -12,32 +15,45 @@
     {# ══ SECTION 1: Hero ══════════════════════════════════════════ #}
     <section class="hero-section">
         <div class="hero-bg">
-            <div class="hero-bg__orb hero-bg__orb--1"></div>
-            <div class="hero-bg__orb hero-bg__orb--2"></div>
-            <div class="hero-bg__orb hero-bg__orb--3"></div>
-            <div class="hero-bg__grid"></div>
+            <div class="hero-bg__rule"></div>
         </div>
 
-        <div class="hero-content animate-on-scroll">
-            <div class="hero-badge">
-                <i class="bx bx-book-bookmark"></i>
-                Capstone Repository Ecosystem
+        <div class="hero-grid">
+            <div class="hero-content animate-on-scroll">
+                <span class="hero-eyebrow">BSIT &middot; CICT &middot; NEUST Sumacab Campus</span>
+                <h1 class="hero-title">
+                    Where every<br>
+                    <em class="hero-title__accent">capstone</em> lives on.
+                </h1>
+                <p class="hero-tagline">
+                    The official capstone repository for the BSIT program —
+                    archive manuscripts, request access, and cite past research
+                    without another lost flash drive or Messenger file link.
+                </p>
+                <div class="hero-actions">
+                    <a href="{{ url_for('auth.signin') }}" class="home-btn home-btn--primary">
+                        <i class="bx bx-log-in"></i> Sign In
+                    </a>
+                    <a href="{{ url_for('auth.signup') }}" class="home-btn home-btn--outline">
+                        <i class="bx bx-user-plus"></i> Create Account
+                    </a>
+                </div>
             </div>
-            <h1 class="hero-title">
-                Archive. Discover.<br>
-                <span class="hero-title__accent">Build Knowledge.</span>
-            </h1>
-            <p class="hero-tagline">
-                A centralized capstone repository system for departmental research,
-                discovery, and manuscript access management.
-            </p>
-            <div class="hero-actions">
-                <a href="{{ url_for('auth.signin') }}" class="home-btn home-btn--primary">
-                    <i class="bx bx-log-in"></i> Sign In
-                </a>
-                <a href="{{ url_for('auth.signup') }}" class="home-btn home-btn--ghost">
-                    <i class="bx bx-user-plus"></i> Create Account
-                </a>
+
+            <div class="hero-visual animate-on-scroll" style="--delay: 120ms">
+                <div class="doc-stack">
+                    <div class="doc-card doc-card--3"></div>
+                    <div class="doc-card doc-card--2"></div>
+                    <div class="doc-card doc-card--1">
+                        <span class="doc-card__tab">BSIT &middot; 2026</span>
+                        <span class="doc-card__title">Barangay Waste Sorting<br>Advisory System</span>
+                        <span class="doc-card__meta"><i class="bx bx-user"></i> Adviser assigned</span>
+                        <div class="doc-card__lines">
+                            <span></span><span></span><span style="width:70%"></span>
+                        </div>
+                        <span class="doc-card__status">Approved</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -47,43 +63,35 @@
         </div>
     </section>
 
-    {# ══ SECTION 2: Features ═══════════════════════════════════════ #}
+    {# ══ SECTION 2: Features (bento layout) ═══════════════════════ #}
     <section class="features-section">
         <div class="section-inner">
             <div class="section-label animate-on-scroll">What CapRE does</div>
-            <h2 class="section-title animate-on-scroll">Everything your department needs</h2>
+            <h2 class="section-title animate-on-scroll">Built around one departmental archive</h2>
 
-            <div class="feature-grid">
-                <div class="feature-tile animate-on-scroll" style="--delay: 0ms">
-                    <div class="feature-tile__icon feature-tile__icon--blue">
-                        <i class="bx bx-archive-in"></i>
-                    </div>
+            <div class="bento-grid">
+                <div class="bento-tile bento-tile--wide animate-on-scroll" style="--delay: 0ms">
+                    <div class="bento-tile__num">01</div>
                     <h3>Secure Archive</h3>
-                    <p>Upload and manage capstone manuscripts with full metadata — title, authors, adviser, program, keywords, and PDF access in one place.</p>
+                    <p>Every finished BSIT capstone lives here with full metadata — title, authors, adviser, specialization, keywords, and the PDF itself, indexed and searchable.</p>
                 </div>
 
-                <div class="feature-tile animate-on-scroll" style="--delay: 100ms">
-                    <div class="feature-tile__icon feature-tile__icon--orange">
-                        <i class="bx bx-search-alt"></i>
-                    </div>
+                <div class="bento-tile animate-on-scroll" style="--delay: 80ms">
+                    <div class="bento-tile__num">02</div>
                     <h3>Smart Discovery</h3>
-                    <p>Browse and filter capstone projects by program, specialization, year, or keyword. Generate APA 7 citations in one click.</p>
+                    <p>Filter by program, specialization, or year. Generate an APA 7 citation in one click.</p>
                 </div>
 
-                <div class="feature-tile animate-on-scroll" style="--delay: 200ms">
-                    <div class="feature-tile__icon feature-tile__icon--green">
-                        <i class="bx bx-file-blank"></i>
-                    </div>
+                <div class="bento-tile animate-on-scroll" style="--delay: 160ms">
+                    <div class="bento-tile__num">03</div>
                     <h3>Access Requests</h3>
-                    <p>Students request full manuscript access, track approval status, and view approved documents — all through a structured workflow.</p>
+                    <p>Request full manuscript access and track approval status end to end.</p>
                 </div>
 
-                <div class="feature-tile animate-on-scroll" style="--delay: 300ms">
-                    <div class="feature-tile__icon feature-tile__icon--purple">
-                        <i class="bx bx-bar-chart-alt-2"></i>
-                    </div>
-                    <h3>Analytics</h3>
-                    <p>Admins see capstone distribution by program, request pipeline status, and the most-cited works — all at a glance.</p>
+                <div class="bento-tile bento-tile--wide animate-on-scroll" style="--delay: 240ms">
+                    <div class="bento-tile__num">04</div>
+                    <h3>Analytics for the department</h3>
+                    <p>Admins see capstone distribution by specialization, the request pipeline, and which manuscripts get cited most — no separate spreadsheet needed.</p>
                 </div>
             </div>
         </div>
@@ -92,12 +100,12 @@
     {# ══ SECTION 3: Roles ══════════════════════════════════════════ #}
     <section class="roles-section">
         <div class="section-inner">
-            <div class="section-label section-label--light animate-on-scroll">Built for everyone</div>
+            <div class="section-label section-label--light animate-on-scroll">Built for the department</div>
             <h2 class="section-title section-title--light animate-on-scroll">One system, every role</h2>
 
             <div class="role-cards">
                 <div class="role-card animate-on-scroll" style="--delay: 0ms">
-                    <i class="bx bx-user-circle role-card__icon"></i>
+                    <span class="role-card__index">01</span>
                     <h3>Students</h3>
                     <ul>
                         <li>Browse and search the capstone archive</li>
@@ -106,8 +114,8 @@
                         <li>Track request status in real time</li>
                     </ul>
                 </div>
-                <div class="role-card animate-on-scroll" style="--delay: 150ms">
-                    <i class="bx bx-chalkboard role-card__icon"></i>
+                <div class="role-card animate-on-scroll" style="--delay: 120ms">
+                    <span class="role-card__index">02</span>
                     <h3>Faculty</h3>
                     <ul>
                         <li>Full read access to all capstones</li>
@@ -115,8 +123,8 @@
                         <li>Generate citations</li>
                     </ul>
                 </div>
-                <div class="role-card animate-on-scroll" style="--delay: 300ms">
-                    <i class="bx bx-shield-quarter role-card__icon"></i>
+                <div class="role-card animate-on-scroll" style="--delay: 240ms">
+                    <span class="role-card__index">03</span>
                     <h3>Admin</h3>
                     <ul>
                         <li>Upload and manage capstone records</li>
@@ -132,13 +140,9 @@
 
     {# ══ SECTION 4: CTA ════════════════════════════════════════════ #}
     <section class="cta-section">
-        <div class="cta-bg">
-            <div class="cta-bg__orb cta-bg__orb--1"></div>
-            <div class="cta-bg__orb cta-bg__orb--2"></div>
-        </div>
         <div class="cta-content animate-on-scroll">
             <h2>Ready to get started?</h2>
-            <p>Sign in to your account or create one to access the repository.</p>
+            <p>Sign in with your NEUST account, or create one to browse the BSIT capstone archive.</p>
             <div class="cta-actions">
                 <a href="{{ url_for('auth.signin') }}" class="home-btn home-btn--primary">
                     <i class="bx bx-log-in"></i> Sign In
@@ -155,10 +159,6 @@
 
 {% block extra_js %}
 <script>
-/* ── Scroll-triggered entrance animations ─────────────────────────
-   Uses IntersectionObserver so elements animate in as they enter
-   the viewport. Much lighter than a full animation library.
-──────────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
 
     const observer = new IntersectionObserver((entries) => {
@@ -182,17 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hint) {
         window.addEventListener('scroll', () => {
             hint.style.opacity = window.scrollY > 60 ? '0' : '1';
-        }, { passive: true });
-    }
-
-    /* ── Subtle parallax on hero orbs ── */
-    const orbs = document.querySelectorAll('.hero-bg__orb');
-    if (orbs.length) {
-        window.addEventListener('scroll', () => {
-            const y = window.scrollY;
-            orbs[0]?.style.setProperty('transform', `translate(${y * 0.05}px, ${y * -0.08}px)`);
-            orbs[1]?.style.setProperty('transform', `translate(${y * -0.04}px, ${y * 0.06}px)`);
-            orbs[2]?.style.setProperty('transform', `translate(${y * 0.03}px, ${y * 0.04}px)`);
         }, { passive: true });
     }
 

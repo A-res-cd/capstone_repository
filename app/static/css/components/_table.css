@@ -15,10 +15,12 @@
 @import url('../base/root.css');
 
 .table-wrap {
-    border: var(--border-light);
-    border-radius: var(--radius-md);
+    border: 1px solid #ECE9DD;
+    border-radius: 3px 12px 12px 12px;
+    box-shadow: 0 8px 20px rgba(30,40,90,0.05);
     overflow: hidden;
     overflow-x: auto;
+    background: #fff;
 }
 
 .data-table {
@@ -41,18 +43,18 @@
 
 .data-table td {
     padding: var(--space-sm) var(--space-md);
-    border-bottom: var(--border-light);
+    border-bottom: 1px solid #ECE9DD;
     color: var(--text-dark);
     vertical-align: middle;
 }
 
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: #f5f7ff; }
+.data-table tbody tr:hover { background: rgba(46,63,146,0.045); }
 
 /* zebra striping — only the manage-users table originally had this,
    it's offered here as an opt-in modifier so repository's table can
    skip it if that's the intended look */
-.data-table--striped tbody tr:nth-child(even) { background: #e4e9ff; }
+.data-table--striped tbody tr:nth-child(even) { background: #FAF9F4; }
 .data-table--striped tbody tr:nth-child(odd)  { background: var(--color-white); }
 
 .cell-id      { color: var(--color-gray-dark); font-size: var(--text-xs); }

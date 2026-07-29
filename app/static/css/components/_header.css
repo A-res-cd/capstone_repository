@@ -1,16 +1,33 @@
 @import url('../base/root.css');
 
 .header {
-    background: #fff;
-    border-bottom: 1px solid rgba(46,63,146,0.1);
     position: sticky;
+    background: #FDFCF7;
+    border-bottom: 1px solid #ECE9DD;
     top: 0;
     z-index: 5;
     /* 3px accent line on top ties it back to the orange CTA on landing */
     box-shadow: 0 1px 0 rgba(46,63,146,0.06), inset 0 3px 0 var(--color-accent);
+    overflow: hidden;
+}
+
+/* Faint ruled lines, same device used site-wide */
+.header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+        180deg,
+        transparent 0,
+        transparent 35px,
+        rgba(46,63,146,0.035) 36px
+    );
+    pointer-events: none;
 }
 
 .header-container {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 16px;
@@ -19,8 +36,9 @@
 }
 
 .header-container h2 {
+    font-family: var(--font-display, var(--font-heading));
     font-size: var(--text-lg);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-primary);
     margin: 0;
     letter-spacing: -0.2px;
@@ -43,13 +61,13 @@
     color: var(--color-primary);
     text-decoration: none;
     white-space: nowrap;
-    opacity: 0.65;
+    opacity: 0.6;
     transition: opacity 0.15s, color 0.15s;
 }
 
 .breadcrumb__parent:hover {
     opacity: 1;
-    color: var(--color-accent);
+    color: var(--color-accent-hover);
 }
 
 /* Chevron separator */
@@ -63,8 +81,9 @@
 
 /* Current page name */
 .breadcrumb__current {
+    font-family: var(--font-display, var(--font-heading));
     font-size: var(--text-lg);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-primary);
     white-space: nowrap;
     overflow: hidden;
@@ -73,7 +92,7 @@
 
 /* Root page — same weight as branch but no parent, so full opacity */
 .breadcrumb__current--root {
-    font-weight: 700;
+    font-weight: 600;
 }
 
 /* Toggle button — now lives in the header, not the sidebar */
@@ -98,7 +117,7 @@
 
 #nav-toggle:hover {
     background: rgba(46,63,146,0.08);
-    color: var(--color-accent);
+    color: var(--color-accent-hover);
 }
 
 .burger-menu {

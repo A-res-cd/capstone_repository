@@ -12,6 +12,7 @@ from app.db.database import (
     create_otp,
     verify_otp,
     change_password,
+    get_device_ip,
     OTP_EXPIRY_MINUTES,
 )
 from app import mail
@@ -242,3 +243,12 @@ def get_current_user(user_id):
     conn.close()
 
     return user
+
+@auth.route("/debug-ip")
+def debug_ip():
+    print("Device IP:", get_device_ip(request))
+    print("Remote Addr:", request.remote_addr)
+    print("X-Forwarded-For:", request.headers.get("X-Forwarded-For"))
+    print("Headers:", dict(request.headers))
+
+    return "Check terminal"

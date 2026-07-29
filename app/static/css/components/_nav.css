@@ -1,7 +1,7 @@
 /* ============================================================
    COMPONENT: Sidebar navigation
-   Dark navy sidebar — matches the landing page's left panel
-   and the auth pages' brand panel for a cohesive theme.
+   Light paper panel — matches the landing page and auth
+   pages' ruled-paper / index-card theme.
 ============================================================ */
 @import url('../base/root.css');
 
@@ -9,7 +9,8 @@
 .nav-container {
     width: 250px;
     min-height: 100vh;
-    background: linear-gradient(180deg, #141f5e 0%, #1e2d80 60%, #2E3F92 100%);
+    background: #FDFCF7;
+    border-right: 1px solid #ECE9DD;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -19,15 +20,17 @@
     z-index: 10;
 }
 
-/* Subtle dot-grid texture — same as landing hero */
+/* Faint ruled lines, same device used site-wide */
 .nav-container::before {
     content: '';
     position: absolute;
     inset: 0;
-    background-image:
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 32px 32px;
+    background-image: repeating-linear-gradient(
+        180deg,
+        transparent 0,
+        transparent 35px,
+        rgba(46,63,146,0.04) 36px
+    );
     pointer-events: none;
 }
 
@@ -37,7 +40,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid #ECE9DD;
     position: relative;
     z-index: 1;
 }
@@ -45,7 +48,6 @@
 .logo {
     width: 110px;
     height: auto;
-    filter: brightness(0) invert(1); /* make logo white on dark bg */
     transition: width 0.3s ease;
 }
 
@@ -68,29 +70,48 @@
 
 #nav-toggle {
     font-size: 22px;
-    color: rgba(255,255,255,0.6);
+    color: var(--color-gray-dark);
     cursor: pointer;
     transition: color 0.2s;
 }
 
-#nav-toggle:hover { color: #fff; }
+#nav-toggle:hover { color: var(--color-primary); }
 
-/* ── User section ── */
+/* ── User section — styled as a small ID / index card ── */
 .nav-container-user {
+    position: relative;
     text-align: center;
     margin-bottom: 20px;
-    padding: 12px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 18px 12px 14px;
+    background: #fff;
+    border: 1px solid #ECE9DD;
+    border-radius: 3px 12px 12px 12px;
+    box-shadow: 0 8px 20px rgba(30,40,90,0.06);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
 }
 
+.nav-container-user::before {
+    content: 'ID';
+    position: absolute;
+    top: -11px;
+    left: 16px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 4px 9px;
+    border-radius: 4px 4px 0 0;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.08);
+}
+
 /* Avatar circle with initials */
 .avatar {
-    width: 64px;
-    height: 64px;
+    width: 60px;
+    height: 60px;
     background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
     border-radius: 50%;
     display: flex;
@@ -98,11 +119,11 @@
     justify-content: center;
     margin-bottom: 8px;
     flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(243,156,18,0.35);
+    box-shadow: 0 4px 12px rgba(243,156,18,0.3);
 }
 
 .avatar__initials {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     color: #fff;
     letter-spacing: 1px;
@@ -112,9 +133,10 @@
 
 /* Full name */
 .nav-display-name {
+    font-family: var(--font-display, var(--font-heading));
     font-size: var(--text-sm);
-    font-weight: 700;
-    color: #fff;
+    font-weight: 600;
+    color: var(--color-primary);
     margin: 0;
     line-height: 1.3;
     max-width: 180px;
@@ -126,7 +148,7 @@
 /* @username */
 .nav-username {
     font-size: var(--text-xs);
-    color: rgba(255,255,255,0.45);
+    color: var(--color-gray-dark);
     margin: 0;
     line-height: 1;
 }
@@ -147,27 +169,27 @@
 .role-badge i { font-size: 12px; }
 
 .badge-admin {
-    background: rgba(243,156,18,0.2);
-    color: #f5c842;
-    border: 1px solid rgba(243,156,18,0.35);
+    background: rgba(243,156,18,0.14);
+    color: #B9700D;
+    border: 1px solid rgba(243,156,18,0.3);
 }
 
 .badge-professor {
-    background: rgba(52,199,210,0.15);
-    color: #7ee8ef;
-    border: 1px solid rgba(52,199,210,0.3);
+    background: rgba(30,150,163,0.12);
+    color: #157D8A;
+    border: 1px solid rgba(30,150,163,0.28);
 }
 
 .badge-faculty {
-    background: rgba(46,213,115,0.15);
-    color: #6fefaa;
-    border: 1px solid rgba(46,213,115,0.3);
+    background: rgba(38,164,90,0.12);
+    color: #1F8A4C;
+    border: 1px solid rgba(38,164,90,0.28);
 }
 
 .badge-student {
-    background: rgba(178,145,255,0.15);
-    color: #c4a8ff;
-    border: 1px solid rgba(178,145,255,0.3);
+    background: rgba(124,86,209,0.12);
+    color: #6B45C4;
+    border: 1px solid rgba(124,86,209,0.28);
 }
 
 /* ── Nav sections ── */
@@ -188,7 +210,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: rgba(255,255,255,0.35);
+    color: #B7B0A0;
     padding: 0 10px;
     margin-bottom: 6px;
 }
@@ -199,7 +221,7 @@
     align-items: center;
     gap: 10px;
     text-decoration: none;
-    color: rgba(255,255,255,0.65);
+    color: var(--color-gray-dark);
     font-size: 14px;
     font-weight: 500;
     padding: 10px 12px;
@@ -214,14 +236,14 @@
 }
 
 .nav-item:hover {
-    background: rgba(255,255,255,0.08);
-    color: #fff;
+    background: rgba(46,63,146,0.06);
+    color: var(--color-primary);
 }
 
 /* Active: left accent bar + light fill */
 .nav-item.active {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
+    background: rgba(46,63,146,0.08);
+    color: var(--color-primary);
     font-weight: 700;
 }
 
@@ -239,23 +261,23 @@
 /* ── Footer: logout ── */
 .nav-container-footer {
     padding: 12px 16px 20px;
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid #ECE9DD;
     position: relative;
     z-index: 1;
 }
 
 .logout {
-    background: rgba(231,76,60,0.12);
-    color: rgba(255,120,100,0.9);
+    background: rgba(211,60,45,0.08);
+    color: #B23A28;
     border-radius: var(--radius-md);
     justify-content: flex-start;
-    border: 1px solid rgba(231,76,60,0.2);
+    border: 1px solid rgba(211,60,45,0.18);
     font-weight: 600;
 }
 
 .logout:hover {
-    background: rgba(231,76,60,0.22);
-    color: #fff;
+    background: rgba(211,60,45,0.15);
+    color: #8E2E1F;
 }
 
 /* ── Collapsed state ── */
@@ -275,6 +297,13 @@
 }
 
 .layout.collapsed .nav-item.active::before { display: none; }
+
+.layout.collapsed .nav-container-user {
+    padding: 12px 6px;
+    border-radius: var(--radius-md);
+}
+
+.layout.collapsed .nav-container-user::before { display: none; }
 
 .layout.collapsed .avatar {
     width: 40px;
