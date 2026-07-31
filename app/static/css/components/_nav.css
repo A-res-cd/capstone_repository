@@ -46,7 +46,7 @@
 }
 
 .logo {
-    width: 110px;
+    width: 90px;
     height: auto;
     transition: width 0.3s ease;
 }
@@ -65,7 +65,7 @@
 .burger-menu {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
 }
 
 #nav-toggle {
@@ -81,7 +81,6 @@
 .nav-container-user {
     position: relative;
     text-align: center;
-    margin-bottom: 20px;
     padding: 18px 12px 14px;
     background: #fff;
     border: 1px solid #ECE9DD;

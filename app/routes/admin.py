@@ -391,10 +391,26 @@ def view_capstone(capstone_id):
     is_admin = session.get("role_id") == 3
     max_pages = None if is_admin else 1  # Non-admin sees only page 1
 
+    # The template's inline script always references PDF_URL and
+    # START_PAGE regardless of max_pages — leaving them unset renders as
+    # the literal text "Undefined" in the script and breaks PDF.js.
+    pdf_url = None
+    try:
+        file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
+        if file_rel:
+            if file_rel.startswith('static' + os.sep) or file_rel.startswith('static/'):
+                file_rel = file_rel.split('static' + os.sep, 1)[-1] if os.sep in file_rel else file_rel.split('static/', 1)[-1]
+            file_rel = file_rel.replace('\\', '/').lstrip('/')
+            pdf_url = url_for('static', filename=file_rel)
+    except Exception as e:
+        print(f"Error computing pdf_url: {e}")
+
     return render_template(
         "admin/view_capstone.html",
         capstone=capstone,
-        max_pages=max_pages
+        max_pages=max_pages,
+        start_page=1,
+        pdf_url=pdf_url,
     )
 
 

@@ -6,9 +6,8 @@
     border-bottom: 1px solid #ECE9DD;
     top: 0;
     z-index: 5;
-    /* 3px accent line on top ties it back to the orange CTA on landing */
-    box-shadow: 0 1px 0 rgba(46,63,146,0.06), inset 0 3px 0 var(--color-accent);
     overflow: hidden;
+    margin-left: 20px;
 }
 
 /* Faint ruled lines, same device used site-wide */

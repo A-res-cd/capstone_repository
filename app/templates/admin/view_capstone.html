@@ -88,8 +88,8 @@
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
   const PDF_URL = {{ (pdf_url or '') | tojson }};
-  const MAX_PAGES = {{ max_pages | tojson }};
-  const START_PAGE = {{ start_page | tojson }};
+  const MAX_PAGES = {{ max_pages | default(none) | tojson }};
+  const START_PAGE = {{ start_page | default(1) | tojson }};
   let pdfDoc = null;
   let currentPage = 1;
   const scale = 1.5;   

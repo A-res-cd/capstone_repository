@@ -93,8 +93,9 @@
     justify-content: center;
     gap: var(--space-md);
     padding: var(--space-xl) var(--space-lg);
-    border: 2px dashed var(--color-gray-light);
+    border: 2px dashed #D8D3C4;
     border-radius: var(--radius-lg);
+    background: #FDFCF7;
     color: var(--color-gray-dark);
     text-align: center;
 }

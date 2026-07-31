@@ -1,31 +1,24 @@
 /* ============================================================
    PAGE: Analytics & Reports
-   Three views into the database: capstones by program (bar),
-   request pipeline status (donut), and the most-cited capstones
-   (table). Reuses components/_detail-card.css and
-   components/_table.css for the card shells and leaderboard.
+   Reserved dashboard grid for future drag-and-drop chart
+   widgets. Fixed to the viewport — no scrolling, matching the
+   Explore Archive page's "calc(80vh - 60px)" convention.
 ============================================================ */
 @import url('../base/root.css');
-@import url('../components/_detail-card.css');
-@import url('../components/_table.css');
-@import url('../components/_record-card.css');
 
 .analytics-section {
     padding: var(--space-lg) var(--space-xl);
+    height: calc(80vh - 60px); /* subtract header height */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    height: 78.9dvh;
-    overflow: auto;
-}
-
-.analytics-section::-webkit-scrollbar-track {
-    background-color: blue;
+    gap: var(--space-md);
 }
 
 .analytics-page-header h2 {
+    font-family: var(--font-display);
     font-size: var(--text-xl);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-primary);
     margin: 0 0 4px;
 }
@@ -36,59 +29,67 @@
     margin: 0;
 }
 
-.analytics-placeholder {
+/* ── Dashboard grid — 2 / 1-wide / 2, all rows equal height,
+   fills whatever vertical space is left after the header. ── */
+.analytics-grid {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: var(--space-lg);
+}
+
+.analytics-widget-slot--wide {
+    grid-column: 1 / -1;
+}
+
+/* ── Empty widget slot — reserved for future drag-and-drop charts ── */
+.analytics-widget-slot {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-md);
-    padding: var(--space-xl);
+    gap: var(--space-sm);
+    border: 2px dashed #D8D3C4;
+    border-radius: 3px 14px 14px 14px;
+    background: #FDFCF7;
     color: var(--color-gray-dark);
-    border: 2px dashed var(--color-gray-light);
-    border-radius: var(--radius-lg);
+    transition: border-color 0.15s, background 0.15s;
+    min-height: 0;
+    overflow: hidden;
 }
 
-.analytics-placeholder i {
-    font-size: 48px;
+.analytics-widget-slot:hover {
+    border-color: var(--color-accent);
+    background: #FBF3E2;
+}
+
+.analytics-widget-slot i {
+    font-size: 30px;
     color: var(--color-gray);
 }
 
-/* ── Dashboard grid ── */
-.analytics-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-lg);
-    align-items: start;
-}
-
-.analytics-card {
-    min-width: 0; /* lets the canvas shrink inside a grid cell */
-}
-
-/* the leaderboard table spans both columns */
-.analytics-card--wide {
-    grid-column: 1 / -1;
-}
-
-/* Height is set here via CSS so Chart.js (maintainAspectRatio: false)
-   has a real pixel value to fill. The canvas itself must NOT have an
-   explicit height — it fills its parent via responsive: true. */
-.analytics-card .detail-card__body {
-    height: 320px;
-    position: relative;
-}
-
-/* The leaderboard card body is a table, not a chart — let it size naturally */
-.analytics-card--wide .detail-card__body {
-    height: auto;
-    position: static;
+.analytics-widget-slot span {
+    font-size: var(--text-sm);
+    font-weight: 600;
 }
 
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
+    .analytics-section {
+        height: auto;
+        overflow: visible;
+    }
+
     .analytics-grid {
         grid-template-columns: 1fr;
+        grid-template-rows: none;
+    }
+
+    .analytics-widget-slot {
+        min-height: 160px;
     }
 }

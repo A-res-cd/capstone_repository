@@ -20,112 +20,35 @@
         {% endif %}
     {% endwith %}
 
-    {% if not program_totals and not status_totals and not top_cited %}
-        {% if has_db_errors %}
-        <div class="analytics-placeholder">
-            <i class="bx bx-error-circle" style="color: #e74c3c;"></i>
-            <p>Could not load analytics data. Check the error above for details.</p>
-        </div>
-        {% else %}
-        <div class="analytics-placeholder">
-            <i class="bx bx-line-chart"></i>
-            <p>No data yet — analytics will populate once capstones and requests are added.</p>
-        </div>
-        {% endif %}
-    {% else %}
+    {# ── Dashboard grid — reserved widget slots for future
+       drag-and-drop charts. Empty for now by design. ── #}
     <div class="analytics-grid">
 
-        {# ── Capstones by Specialization ── #}
-        <div class="detail-card analytics-card">
-            <div class="detail-card__header">
-                <div>
-                    <h3>Capstones by Specialization</h3>
-                    <p>Total archived capstones per specialization</p>
-                </div>
-            </div>
-            <div class="detail-card__body">
-                {% if specialization_totals %}
-                <canvas id="chart-by-specialization"></canvas>
-                {% else %}
-                <div class="empty-state"><p>No capstone records yet.</p></div>
-                {% endif %}
-            </div>
+        <div class="analytics-widget-slot" data-widget-slot="1">
+            <i class="bx bx-plus-circle"></i>
+            <span>Add a chart</span>
         </div>
 
-        {# ── Requests by Status ── #}
-        <div class="detail-card analytics-card">
-            <div class="detail-card__header">
-                <div>
-                    <h3>Manuscript Requests by Status</h3>
-                    <p>Where every request currently stands</p>
-                </div>
-            </div>
-            <div class="detail-card__body">
-                {% if status_totals %}
-                <canvas id="chart-by-status"></canvas>
-                {% else %}
-                <div class="empty-state"><p>No requests yet.</p></div>
-                {% endif %}
-            </div>
+        <div class="analytics-widget-slot" data-widget-slot="2">
+            <i class="bx bx-plus-circle"></i>
+            <span>Add a chart</span>
         </div>
 
-        {# ── Top Cited Capstones ── #}
-        <div class="detail-card analytics-card analytics-card--wide">
-            <div class="detail-card__header">
-                <div>
-                    <h3>Most Cited Capstones</h3>
-                    <p>Top 5 by citation count</p>
-                </div>
-            </div>
-            <div class="detail-card__body">
-                {% if top_cited %}
-                <div class="record-list">
-                    {% for row in top_cited %}
-                    <div class="record-card">
-                        <span class="rank-badge
-                            {% if loop.index == 1 %}rank-badge--gold
-                            {% elif loop.index == 2 %}rank-badge--silver
-                            {% elif loop.index == 3 %}rank-badge--bronze{% endif %}">
-                            {{ loop.index }}
-                        </span>
-                        <div class="record-card__body">
-                            <p class="record-card__title">{{ row.capstone_title }}</p>
-                            <div class="record-card__meta">
-                                <span class="record-card__meta-item"><i class="bx bx-book"></i>{{ row.program_name }}</span>
-                            </div>
-                        </div>
-                        <div class="record-card__stat">
-                            <div class="record-card__stat-value">{{ row.citation_count }}</div>
-                            <div class="record-card__stat-label">Citations</div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    <p>No capstones have been cited yet.</p>
-                </div>
-                {% endif %}
-            </div>
+        <div class="analytics-widget-slot analytics-widget-slot--wide" data-widget-slot="3">
+            <i class="bx bx-plus-circle"></i>
+            <span>Add a chart</span>
+        </div>
+
+        <div class="analytics-widget-slot" data-widget-slot="4">
+            <i class="bx bx-plus-circle"></i>
+            <span>Add a chart</span>
+        </div>
+
+        <div class="analytics-widget-slot" data-widget-slot="5">
+            <i class="bx bx-plus-circle"></i>
+            <span>Add a chart</span>
         </div>
 
     </div>
-    {% endif %}
 </section>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
-<script>
-    window.chartData = {
-        specialization_labels: {{ specialization_labels | default([]) | tojson }},
-        specialization_totals: {{ specialization_totals | default([]) | tojson }},
-        status_labels: {{ status_labels | default([]) | tojson }},
-        status_totals: {{ status_totals | default([]) | tojson }}
-    };
-
-    console.log('Chart data:', window.chartData);
-</script>
-<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 {% endblock %}

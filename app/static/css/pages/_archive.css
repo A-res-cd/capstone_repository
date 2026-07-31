@@ -25,8 +25,9 @@
 }
 
 .section-title {
+    font-family: var(--font-display);
     font-size: var(--text-xl);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-primary);
     margin: 0 0 var(--space-sm);
 }
@@ -97,39 +98,75 @@
 
 /* Scrollable list of cards */
 .archive-grid {
+    counter-reset: archive-counter;
     flex: 1;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    padding: 2px; /* room for the hover lift/shadow */
+    padding: 2px 2px 2px 4px; /* room for the hover lift/shadow */
+    background-image: repeating-linear-gradient(
+        180deg,
+        transparent 0,
+        transparent 43px,
+        rgba(46,63,146,0.035) 44px
+    );
 }
 
 .archive-card {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-md) var(--space-lg) var(--space-md) 64px;
     font-size: var(--text-sm);
     color: var(--text-dark);
     background: var(--bg-card-neutral);
-    border: var(--border-light);
-    border-left: 4px solid var(--color-primary-light);
-    border-radius: var(--radius-lg);
+    border: 1px solid #ECE9DD;
+    border-radius: 4px 12px 12px 4px;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
     transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
 }
 
+/* Accession number, in place of a flat colored accent bar */
+.archive-card::before {
+    counter-increment: archive-counter;
+    content: counter(archive-counter, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--color-accent-hover);
+    background: #FBF8EF;
+    border-right: 1px dashed #E2DCC8;
+    border-radius: 4px 0 0 4px;
+}
+
 .archive-card:hover {
     box-shadow: var(--shadow-md);
     transform: translateY(-2px);
+    border-color: #DCD5C0;
 }
 
 .archive-card.active {
-    background: #eef2ff;
-    border-left-color: var(--color-accent);
+    background: #FBF3E2;
+    border-color: var(--color-accent);
     box-shadow: var(--shadow-md);
+}
+
+.archive-card.active::before {
+    background: var(--color-accent);
+    color: #fff;
+    border-right-color: var(--color-accent);
 }
 
 .archive-card .col-title {
@@ -137,6 +174,7 @@
     min-width: 0;
 }
 
+/* Metadata as typed catalog fields — dot-separated, not colored pills */
 .archive-card .col-program,
 .archive-card .col-spec,
 .archive-card .col-year,
@@ -144,12 +182,20 @@
     display: inline-flex;
     align-items: center;
     font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.02em;
     color: var(--color-gray-dark);
-    background: var(--bg-card-header);
-    padding: 4px 10px;
-    border-radius: var(--radius-pill);
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+.archive-card .col-program::after,
+.archive-card .col-spec::after,
+.archive-card .col-year::after {
+    content: '·';
+    margin-left: var(--space-sm);
+    color: #D8D3C4;
+    font-weight: 700;
 }
 
 /* The Admin Requests page reuses .archive-card but with 4 fields
@@ -162,30 +208,42 @@
     color: var(--text-dark);
     padding: 0;
     font-size: var(--text-sm);
+    font-weight: 400;
     white-space: normal;
 }
 
+.archive-card.request-row .col-program::after {
+    content: '';
+    margin: 0;
+}
+
 .col-title strong {
+    font-family: var(--font-display);
     color: var(--color-primary);
     font-weight: 600;
 }
 
 /* ── Request status badge ── */
+/* ── Request status badge — an outlined ink stamp, not a filled pill ── */
 .status-badge {
     display: inline-flex;
     align-items: center;
-    padding: 3px 12px;
-    border-radius: var(--radius-pill);
-    font-size: var(--text-xs);
-    font-weight: 700;
-    text-transform: capitalize;
+    padding: 3px 11px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     white-space: nowrap;
     flex-shrink: 0;
+    background: transparent;
+    border: 1.5px solid currentColor;
+    transform: rotate(-2deg);
 }
 
-.status-badge--pending  { background: #fdf3d8; color: #8a6d00; }
-.status-badge--approved { background: #d5f5e3; color: #1e8449; }
-.status-badge--rejected { background: #fde2e1; color: #c0392b; }
+.status-badge--pending  { color: #9C7A17; }
+.status-badge--approved { color: #1E8449; }
+.status-badge--rejected { color: #C0392B; }
 
 /* Empty state — this page's variant needs flex: 1 to fill the
    remaining column height, so it's kept local rather than reusing

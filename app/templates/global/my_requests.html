@@ -59,7 +59,7 @@
 
                         {% elif req.request_status == 'approved' %}
                             <p class="request-history-item__note">Admin Feedback: {{ req.status_reason or '—' }}</p>
-                            <a href="{{ url_for('pages.view_approved_manuscript', capstone_id=req.capstone_id) }}" target="_blank" class="btn-pill btn-pill--ghost">
+                            <a href="{{ url_for('pages.view_approved_manuscript', capstone_id=req.capstone_id) }}" target="_self" class="btn-pill btn-pill--ghost">
                                 View Full Manuscript
                             </a>
 

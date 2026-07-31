@@ -40,8 +40,9 @@
 }
 
 .capstone-title {
+    font-family: var(--font-display);
     font-size: var(--text-lg);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-primary);
     margin: 0 0 var(--space-sm);
     line-height: 1.4;

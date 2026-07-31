@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, flash, session, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, flash, session, redirect, url_for, jsonify, current_app
+import os
 from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact
@@ -31,6 +32,18 @@ def browse():
     # sidebar shows the first result by default (or None when list is empty)
     sidebar_project = projects[0] if projects else None
 
+    # Students who already have an approved request for a capstone should
+    # see "View Full Manuscript" instead of "View Abstract" / "Request
+    # Full Manuscript" — keeps this page in sync with My Requests.
+    approved_capstone_ids = []
+    if session.get("role_name") == "Student":
+        user_id = session.get("user_id")
+        if user_id:
+            approved_capstone_ids = [
+                r["capstone_id"] for r in get_user_requests(user_id)
+                if r["request_status"] == "approved"
+            ]
+
     return render_template(
         "global/explore_archive.html",
         hide_nav=False,
@@ -42,6 +55,7 @@ def browse():
         total=total,
         total_pages=total_pages,
         sidebar_project=sidebar_project,
+        approved_capstone_ids=approved_capstone_ids,
     )
 
 
@@ -200,7 +214,30 @@ def view_approved_manuscript(capstone_id):
         flash("Capstone not found.", "danger")
         return redirect(url_for("pages.browse"))
 
-    return render_template("admin/view_capstone.html", capstone=capstone, max_pages=None)
+    # The template's inline script always references PDF_URL and START_PAGE
+    # (regardless of max_pages), so both must be passed here — leaving them
+    # out renders as the literal text "Undefined" in the script, which is
+    # not valid JS/JSON and breaks the PDF.js loader.
+    pdf_url = None
+    try:
+        file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
+        if file_rel:
+            if file_rel.startswith('static' + os.sep) or file_rel.startswith('static/'):
+                file_rel = file_rel.split('static' + os.sep, 1)[-1] if os.sep in file_rel else file_rel.split('static/', 1)[-1]
+            file_rel = file_rel.replace('\\', '/').lstrip('/')
+            pdf_url = url_for('static', filename=file_rel)
+    except Exception as e:
+        print(f"Error computing pdf_url: {e}")
+
+    # This route only runs after an approved-access check above, so the
+    # requester gets the full document, not the abstract-only restriction.
+    return render_template(
+        "admin/view_capstone.html",
+        capstone=capstone,
+        max_pages=None,
+        start_page=1,
+        pdf_url=pdf_url,
+    )
 
 
 @pages.route("/cancel_request/<int:request_id>", methods=["POST"])

@@ -30,15 +30,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const id = card.dataset.id;
             selectedCapstoneId = id;
+            const isApproved = card.dataset.approved === 'true';
 
             const abstractLink = document.getElementById('sb-abstract-link');
             if (abstractLink) {
                 abstractLink.href = abstractLink.dataset.baseUrl.slice(0, -1) + id;
+                abstractLink.style.display = isApproved ? 'none' : '';
+            }
+
+            const fullviewLink = document.getElementById('sb-fullview-link');
+            if (fullviewLink) {
+                fullviewLink.href = fullviewLink.dataset.baseUrl.slice(0, -1) + id;
+                fullviewLink.style.display = isApproved ? '' : 'none';
             }
 
             const requestLink = document.getElementById('sb-request-link');
             if (requestLink) {
                 requestLink.href = requestLink.dataset.baseUrl.slice(0, -1) + id;
+                requestLink.style.display = isApproved ? 'none' : '';
             }
         });
     });

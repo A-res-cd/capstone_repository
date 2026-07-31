@@ -29,7 +29,7 @@
     --bg-active: var(--color-accent);
 
     /* ========== BORDERS ========== */
-    --border-light: 1px solid #E5E5E5;
+    --border-light: 1px solid #ECE9DD;
     --border-dark: 1px solid #1B1C8F;
 
     /* ========== FONT SETTINGS ========== */
@@ -59,12 +59,12 @@
     --radius-pill: 20px;
 
     /* ========== SHADOWS ========== */
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
-    --shadow-md: 0 4px 8px rgba(0,0,0,0.15);
-    --shadow-lg: 0 6px 12px rgba(0,0,0,0.2);
+    --shadow-sm: 0 2px 4px rgba(30,40,90,0.08);
+    --shadow-md: 0 4px 8px rgba(30,40,90,0.12);
+    --shadow-lg: 0 6px 12px rgba(30,40,90,0.16);
 
-    --bg-card-neutral: #ffffff;      /* card surfaces — white on #f8f9ff body */
-    --bg-card-header:  #f5f7ff;      /* card header areas — subtle blue tint */
+    --bg-card-neutral: #ffffff;      /* card surfaces — white on paper body */
+    --bg-card-header:  #FBF8EF;      /* card header areas — warm paper tint */
     --bg-button-light: #E8F3EC;
 
 }
