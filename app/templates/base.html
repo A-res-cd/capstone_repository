@@ -14,6 +14,10 @@
     <title>{% block title %}My App{% endblock %}</title>
 </head>
 <body>
+    {% if not hide_header %}
+        {% include 'partials/header.html' %}
+    {% endif %}
+
     <div class="layout{% if nav_collapsed %} collapsed{% endif %}">
 
         {% if not hide_nav %}
@@ -21,9 +25,6 @@
         {% endif %}
 
         <div class="main-wrapper">
-            {% if not hide_header %}
-                {% include 'partials/header.html' %}
-            {% endif %}
             <main>
                 {% block content %}{% endblock %}
             </main>

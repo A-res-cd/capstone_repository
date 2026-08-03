@@ -60,7 +60,7 @@ class StudentUser(HttpUser):
 
     @task(1)
     def logout(self):
-        self.client.get("/logOut")
+        self.client.get("/logout")
 
 
 class AdminUser(HttpUser):

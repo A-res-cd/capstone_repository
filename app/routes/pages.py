@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, flash, session, redirect, url_for, jsonify, current_app
 import os
+import logging
 from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact
@@ -8,6 +9,7 @@ from app.routes.decorators import login_required, role_required
 from app.utils.pdf_extractor import extract_capstone_data
 
 pages = Blueprint("pages", __name__)
+logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 12
 
@@ -227,7 +229,7 @@ def view_approved_manuscript(capstone_id):
             file_rel = file_rel.replace('\\', '/').lstrip('/')
             pdf_url = url_for('static', filename=file_rel)
     except Exception as e:
-        print(f"Error computing pdf_url: {e}")
+        logger.error("Error computing pdf_url: %s", e)
 
     # This route only runs after an approved-access check above, so the
     # requester gets the full document, not the abstract-only restriction.

@@ -1,8 +1,10 @@
 /* ============================================================
    PAGE: Analytics & Reports
-   Reserved dashboard grid for future drag-and-drop chart
-   widgets. Fixed to the viewport — no scrolling, matching the
-   Explore Archive page's "calc(80vh - 60px)" convention.
+   Drag-and-drop dashboard grid. Empty slots offer an "Add a
+   chart" picker; filled slots are draggable and can be
+   reordered or removed. Fixed to the viewport — no scrolling,
+   matching the Explore Archive page's "calc(80vh - 60px)"
+   convention.
 ============================================================ */
 @import url('../base/root.css');
 
@@ -65,6 +67,21 @@
     background: #FBF3E2;
 }
 
+.analytics-widget-slot__prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    width: 100%;
+    height: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+}
+
 .analytics-widget-slot i {
     font-size: 30px;
     color: var(--color-gray);
@@ -73,6 +90,141 @@
 .analytics-widget-slot span {
     font-size: var(--text-sm);
     font-weight: 600;
+}
+
+/* ── Filled widget — chart card in the paper/index-card style ── */
+.analytics-widget-slot--filled {
+    position: relative;
+    align-items: stretch;
+    justify-content: stretch;
+    border: 1px solid #ECE9DD;
+    border-radius: 3px 14px 14px 14px;
+    background: #FDFCF7;
+    cursor: grab;
+    padding: var(--space-md) var(--space-sm) var(--space-sm);
+}
+
+.analytics-widget-slot--filled:active {
+    cursor: grabbing;
+}
+
+.analytics-widget-slot--dragging {
+    opacity: 0.4;
+}
+
+.analytics-widget-slot--dragover {
+    border-color: var(--color-accent);
+    background: #FBF3E2;
+}
+
+.analytics-widget__tab {
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 4px 4px 0 0;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    pointer-events: none;
+    max-width: 80%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.analytics-widget__remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid #ECE9DD;
+    background: var(--color-white);
+    color: var(--color-gray-dark);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    z-index: 2;
+}
+
+.analytics-widget__remove:hover {
+    border-color: var(--color-red);
+    color: var(--color-red);
+}
+
+.analytics-widget__canvas-wrap {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    margin-top: var(--space-sm);
+}
+
+.analytics-widget__empty-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--color-gray-dark);
+    font-size: var(--text-sm);
+}
+
+/* ── "Add a chart" picker popover ── */
+.analytics-widget-picker {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    min-width: 220px;
+    background: var(--color-white);
+    border: 1px solid #ECE9DD;
+    border-radius: 3px 14px 14px 14px;
+    box-shadow: 0 8px 24px rgba(30,40,90,0.16);
+    padding: var(--space-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.analytics-widget-picker__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: none;
+    text-align: left;
+    font: inherit;
+    font-size: var(--text-sm);
+    color: var(--color-primary);
+    cursor: pointer;
+}
+
+.analytics-widget-picker__item:hover {
+    background: #FBF3E2;
+    border-color: #ECE9DD;
+}
+
+.analytics-widget-picker__item i {
+    font-size: 18px;
+    color: var(--color-accent);
+}
+
+.analytics-widget-picker__empty {
+    padding: var(--space-sm);
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    text-align: center;
 }
 
 /* ══════════════════════════════════════════════════════

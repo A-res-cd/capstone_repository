@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
 from flask_mail import Message
 from smtplib import SMTPException
+import logging
 import psycopg2.extras
 from app.db.database import db_connect
 
@@ -21,6 +22,7 @@ from app.routes.forms import (
     SigninForm, SignupForm, ForgotPasswordForm, ResetPasswordForm, VerifyOTPForm)
 
 auth = Blueprint("auth", __name__)
+logger = logging.getLogger(__name__)
 
 
 @auth.route("/signin", methods=["GET", "POST"])
@@ -246,9 +248,9 @@ def get_current_user(user_id):
 
 @auth.route("/debug-ip")
 def debug_ip():
-    print("Device IP:", get_device_ip(request))
-    print("Remote Addr:", request.remote_addr)
-    print("X-Forwarded-For:", request.headers.get("X-Forwarded-For"))
-    print("Headers:", dict(request.headers))
+    logger.debug("Device IP: %s", get_device_ip(request))
+    logger.debug("Remote Addr: %s", request.remote_addr)
+    logger.debug("X-Forwarded-For: %s", request.headers.get("X-Forwarded-For"))
+    logger.debug("Headers: %s", dict(request.headers))
 
     return "Check terminal"

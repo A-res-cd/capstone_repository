@@ -34,7 +34,7 @@ def test_signin_search_logout(page: Page):
     expect(results.first).to_be_visible(timeout=5000)
 
     # 5. Log out
-    page.click("a[href*='logOut']")
+    page.click("a[href*='logout']")
     page.wait_for_load_state("networkidle")
     expect(page).to_have_url(re.compile(r".*(signin|/)$"))
 

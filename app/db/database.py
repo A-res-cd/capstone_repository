@@ -1,9 +1,12 @@
 import re
+import logging
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
+
+logger = logging.getLogger(__name__)
 
 
 def db_connect():
@@ -87,8 +90,8 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         return False, "Username must be 3-30 characters, letters, numbers, and underscores only."
 
     if university_no and role_name is None:
-        print(
-            f"University number '{university_no}' did not match any known patterns.")
+        logger.warning(
+            "University number '%s' did not match any known patterns.", university_no)
         return False, ("University number format not recognized")
 
     conn = db_connect()
@@ -166,7 +169,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
 
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
 
     finally:
@@ -276,7 +279,7 @@ def sign_in(username, password, device_ip=None):
         }, None
 
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         conn.rollback()
         return None, f"Database error: {exc}"
 
@@ -313,7 +316,7 @@ def lookup_user_for_reset(username, email):
         return row["contact_id"], row["user_id"], None
 
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return None, None, f"Database error: {exc}"
 
     finally:
@@ -352,7 +355,7 @@ def create_otp(contact_id):
         return otp, reset_id
 
     except Exception as exc:
-        print(f"Error: {exc}")
+        logger.error("Error: %s", exc)
         raise RuntimeError(f"Could not create OTP: {exc}")
 
     finally:
@@ -405,7 +408,7 @@ def verify_otp(reset_id, otp_entered):
 
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
 
     finally:
@@ -464,7 +467,7 @@ def change_password(reset_id, user_id, new_password):
 
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
 
     finally:
@@ -498,7 +501,7 @@ def sign_out(user_id, device_ip=None):
 
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
 
     finally:
@@ -526,7 +529,7 @@ def create_capstone_project(keyword_id, specialization_id, program_id,
         return True, capstone_id
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
     finally:
         mithrix.close()
@@ -547,7 +550,7 @@ def insert_keywords(capstone_keywords):
         return True, keyword_id
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
     finally:
         mithrix.close()
@@ -561,7 +564,7 @@ def get_programs():
         mithrix.execute("""SELECT program_id, program_name FROM program """)
         return mithrix.fetchall()
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
     finally:
         mithrix.close()
@@ -576,7 +579,7 @@ def get_specializations():
             """ SELECT specialization_id, specialization_name FROM specialization """)
         return mithrix.fetchall()
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
     finally:
         mithrix.close()
@@ -593,7 +596,7 @@ def get_used_keyword():
                         ORDER BY k.keyword_id """)
         return mithrix.fetchall()
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
     finally:
         mithrix.close()
@@ -613,7 +616,7 @@ def update_keyword(keyword_id, capstone_keywords):
         return True, None
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
     finally:
         mithrix.close()
@@ -638,7 +641,7 @@ def get_capstone_details(capstone_id):
         """, (capstone_id,))
         return mithrix.fetchone()
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return None
     finally:
         mithrix.close()
@@ -669,7 +672,7 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
         return True, None
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
     finally:
         mithrix.close()
@@ -698,7 +701,7 @@ def get_all_capstones():
         """)
         return mithrix.fetchall()
     except Exception as exc:
-        print(f'Error: {exc}')
+        logger.error("Error: %s", exc)
         return []
     finally:
         mithrix.close()
@@ -729,7 +732,7 @@ def get_archived_capstones():
         """)
         return mithrix.fetchall()
     except Exception as exc:
-        print(f'Error: {exc}')
+        logger.error("Error: %s", exc)
         return []
     finally:
         mithrix.close()
@@ -762,7 +765,7 @@ def purge_expired_archived_capstones():
 
         return deleted_count
     except Exception as exc:
-        print(f'Error purging archived capstones: {exc}')
+        logger.error("Error purging archived capstones: %s", exc)
         return 0
     finally:
         mithrix.close()
@@ -821,7 +824,7 @@ def delete_capstone(capstone_id):
         return True, "Capstone deleted successfully"
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
     finally:
         mithrix.close()
@@ -983,7 +986,7 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12):
         return list(rows), total
 
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return [], 0
 
     finally:
@@ -1004,7 +1007,7 @@ def get_archive_years():
         """)
         return [row[0] for row in mithrix.fetchall()]
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
     finally:
         mithrix.close()
@@ -1030,7 +1033,7 @@ def get_users():
         """)
         return mithrix.fetchall()
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
     finally:
         mithrix.close()
@@ -1106,7 +1109,7 @@ def get_all_roles():
             'SELECT role_id, role_name FROM "role" ORDER BY role_id')
         return mithrix.fetchall()
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
     finally:
         mithrix.close()
@@ -1141,7 +1144,7 @@ def update_user_role(user_id, new_role_id, acting_admin_id):
         return True, None
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
     finally:
         mithrix.close()
@@ -1189,7 +1192,7 @@ def delete_user_account(user_id, acting_admin_id):
         return True, None
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
     finally:
         mithrix.close()
@@ -1217,7 +1220,7 @@ def request_fullview(user_id, capstone_id, request_reason):
 
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
 
     finally:
@@ -1252,7 +1255,7 @@ def get_all_requests(status=None):
         return mithrix.fetchall()
 
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
 
     finally:
@@ -1279,7 +1282,7 @@ def review_request(request_id, request_status, status_reason, reviewed_by):
         return True, None
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
 
     finally:
@@ -1305,7 +1308,7 @@ def get_user_requests(user_id):
 
         return mithrix.fetchall()
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
 
     finally:
@@ -1393,7 +1396,7 @@ def cancel_manuscript_request(request_id, user_id):
 
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
 
     finally:
@@ -1416,7 +1419,7 @@ def add_citations(capstone_id):
         return True, None
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database Error: {exc}"
 
     finally:
@@ -1440,7 +1443,7 @@ def get_capstone_authors(casptone_id):
         return mithrix.fetchall()
     
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return[]
     
     finally:
@@ -1464,7 +1467,7 @@ def get_capstone_people(capstone_id):
         return mithrix.fetchall()
 
     except Exception as exc:
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return []
 
     finally:
@@ -1526,7 +1529,7 @@ def set_capstone_people(capstone_id, authors, adviser):
         return True, None
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
+        logger.error("Database error: %s", exc)
         return False, f"Database error: {exc}"
     finally:
         mithrix.close()

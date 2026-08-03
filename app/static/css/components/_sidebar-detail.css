@@ -23,7 +23,6 @@
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 /* Folder tab, matching auth-form-card / doc-card / role-card */
@@ -75,10 +74,19 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
     padding: var(--space-md) var(--space-lg) var(--space-lg) 34px;
+}
+
+/* Only the section actually touching the bottom edge should clip to the
+   card's bottom corner radius — that's .sidebar-card__scroll on Explore
+   Archive, but .sidebar-card__bottom on Admin Requests (which has a
+   pinned action bar after the scroll area). */
+.sidebar-card__scroll:not(:has(~ .sidebar-card__bottom)) {
+    border-radius: 0 0 14px 3px;
 }
 
 .sidebar-card__eyebrow {
@@ -198,6 +206,8 @@
 /* ── Fixed bottom section: pinned action bar (requests sidebar) ── */
 .sidebar-card__bottom {
     flex-shrink: 0;
+    border-radius: 0 0 14px 3px;
+    overflow: hidden;
     padding: var(--space-md) var(--space-lg) var(--space-lg) 34px;
     border-top: 1px solid #ECE9DD;
 }

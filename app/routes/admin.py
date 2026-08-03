@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify, current_app
 from werkzeug.utils import secure_filename
 import os
+import uuid
+import logging
 from app.db.database import (
     delete_user_account, get_all_capstones, get_archived_capstones, get_programs, get_specializations,
     get_used_keyword, insert_keywords, create_capstone_project,
@@ -14,6 +16,7 @@ from app.routes.decorators import role_required
 from app.utils.pdf_extractor import extract_capstone_data, _parse_abstract_page
 
 admin = Blueprint("admin", __name__)
+logger = logging.getLogger(__name__)
 
 UPLOAD_FOLDER = os.path.join("app", "static", "uploads")
 ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
@@ -62,6 +65,8 @@ def _save_file(file_obj):
         return None, "Invalid file type. Only PDF, DOC, and DOCX are allowed."
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     filename = secure_filename(file_obj.filename)
+    name, ext = os.path.splitext(filename)
+    filename = f"{name}_{uuid.uuid4().hex[:8]}{ext}"
     file_obj.save(os.path.join(UPLOAD_FOLDER, filename))
     return filename, None
 
@@ -403,7 +408,7 @@ def view_capstone(capstone_id):
             file_rel = file_rel.replace('\\', '/').lstrip('/')
             pdf_url = url_for('static', filename=file_rel)
     except Exception as e:
-        print(f"Error computing pdf_url: {e}")
+        logger.error("Error computing pdf_url: %s", e)
 
     return render_template(
         "admin/view_capstone.html",
@@ -411,6 +416,7 @@ def view_capstone(capstone_id):
         max_pages=max_pages,
         start_page=1,
         pdf_url=pdf_url,
+        hide_header=True,
     )
 
 
@@ -451,7 +457,7 @@ def view_capstone_pdf(capstone_id):
                         data = extract_capstone_data(pdf_path)
                         abstract_page = data.get('abstract_page')
                 except Exception as e:
-                    print(f"Error parsing PDF for abstract page: {e}")
+                    logger.error("Error parsing PDF for abstract page: %s", e)
 
         if abstract_page:
             start_page = int(abstract_page)
@@ -468,9 +474,9 @@ def view_capstone_pdf(capstone_id):
             file_rel = file_rel.replace('\\', '/').lstrip('/')
             pdf_url = url_for('static', filename=file_rel)
     except Exception as e:
-        print(f"Error computing pdf_url: {e}")
+        logger.error("Error computing pdf_url: %s", e)
 
-    return render_template("admin/view_capstone.html", capstone=capstone, max_pages=max_pages, start_page=start_page, pdf_url=pdf_url)
+    return render_template("admin/view_capstone.html", capstone=capstone, max_pages=max_pages, start_page=start_page, pdf_url=pdf_url, hide_header=True)
 
 
 @admin.route("/repository/decide/<int:request_id>", methods=["POST"])

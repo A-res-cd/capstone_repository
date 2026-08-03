@@ -20,35 +20,31 @@
         {% endif %}
     {% endwith %}
 
-    {# ── Dashboard grid — reserved widget slots for future
-       drag-and-drop charts. Empty for now by design. ── #}
-    <div class="analytics-grid">
+    {# ── Dashboard grid — 5 slots, each can hold one chart widget.
+       Empty slots show "Add a chart"; filled slots are draggable and
+       can be reordered or removed. Layout persists in localStorage. ── #}
+    <div class="analytics-grid" id="analytics-grid">
 
-        <div class="analytics-widget-slot" data-widget-slot="1">
-            <i class="bx bx-plus-circle"></i>
-            <span>Add a chart</span>
-        </div>
-
-        <div class="analytics-widget-slot" data-widget-slot="2">
-            <i class="bx bx-plus-circle"></i>
-            <span>Add a chart</span>
-        </div>
-
-        <div class="analytics-widget-slot analytics-widget-slot--wide" data-widget-slot="3">
-            <i class="bx bx-plus-circle"></i>
-            <span>Add a chart</span>
-        </div>
-
-        <div class="analytics-widget-slot" data-widget-slot="4">
-            <i class="bx bx-plus-circle"></i>
-            <span>Add a chart</span>
-        </div>
-
-        <div class="analytics-widget-slot" data-widget-slot="5">
-            <i class="bx bx-plus-circle"></i>
-            <span>Add a chart</span>
-        </div>
+        <div class="analytics-widget-slot" data-slot="1"></div>
+        <div class="analytics-widget-slot" data-slot="2"></div>
+        <div class="analytics-widget-slot analytics-widget-slot--wide" data-slot="3"></div>
+        <div class="analytics-widget-slot" data-slot="4"></div>
+        <div class="analytics-widget-slot" data-slot="5"></div>
 
     </div>
 </section>
+
+<script>
+    window.chartData = {
+        specialization_labels: {{ specialization_labels | tojson }},
+        specialization_totals: {{ specialization_totals | tojson }},
+        status_labels: {{ status_labels | tojson }},
+        status_totals: {{ status_totals | tojson }}
+    };
+</script>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 {% endblock %}

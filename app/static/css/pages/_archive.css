@@ -83,7 +83,6 @@
     display: flex;
     gap: var(--space-lg);
     flex: 1;
-    overflow: hidden;
     min-height: 0;
 }
 

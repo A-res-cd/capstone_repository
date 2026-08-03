@@ -21,3 +21,9 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_USERNAME")
     
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER")
+
+    MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25 MB cap on request/upload size
+
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"

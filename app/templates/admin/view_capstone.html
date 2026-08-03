@@ -10,6 +10,8 @@
 
   <!-- Left: Metadata panel -->
   <div class="meta-panel">
+    <span class="meta-panel__tab">Capstone Record</span>
+    <div class="meta-panel__body">
     {% set role = session.get('role_name') %}
     {% if role == 'Admin' or role == 'Capstone Professor' %}
     <a href="{{ url_for('admin.view_capstone_repository') }}" class="back-link">← Back to Repository</a>
@@ -56,6 +58,7 @@
       </div>
     </div>
     {% endif %}
+    </div>
   </div>
 
   <!-- Right: PDF viewer -->
@@ -64,9 +67,9 @@
       <span class="pdf-label">{% if max_pages == 1 %}Abstract Preview{% else %}Full Document{% endif %}</span>
       <div class="pdf-controls">
         {% if max_pages is none %}
-        <button id="prev-page" onclick="changePage(-1)">‹ Prev</button>
+        <button id="prev-page" type="button">‹ Prev</button>
         <span id="page-info">Page <span id="current-page">1</span> / <span id="total-pages">—</span></span>
-        <button id="next-page" onclick="changePage(1)">Next ›</button>
+        <button id="next-page" type="button">Next ›</button>
         {% else %}
       <span id="page-info">Abstract Page {{ start_page or 1 }}</span>
         {% endif %}
@@ -81,18 +84,55 @@
 
 </div>
 
-<!-- PDF.js from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- PDF.js from CDN, with a fallback CDN if the primary one is unreachable -->
 <script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+  }
+
+  const PDFJS_SOURCES = [
+    {
+      lib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+      worker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+    },
+    {
+      lib: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+      worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+    },
+  ];
+
+  async function loadPdfJs() {
+    for (const source of PDFJS_SOURCES) {
+      try {
+        await loadScript(source.lib);
+        if (typeof pdfjsLib !== 'undefined') {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = source.worker;
+          return true;
+        }
+      } catch (e) {
+        console.warn('[view_capstone] PDF.js source failed, trying next:', e);
+      }
+    }
+    return false;
+  }
 
   const PDF_URL = {{ (pdf_url or '') | tojson }};
   const MAX_PAGES = {{ max_pages | default(none) | tojson }};
   const START_PAGE = {{ start_page | default(1) | tojson }};
   let pdfDoc = null;
   let currentPage = 1;
-  const scale = 1.5;   
+  let minPage = 1;
+  let maxAllowed = null;
+  const scale = 1.5;
+
+  const prevBtn = document.getElementById('prev-page');
+  const nextBtn = document.getElementById('next-page');
 
   async function renderPage(num) {
     const page = await pdfDoc.getPage(num);
@@ -102,10 +142,13 @@
     canvas.width = viewport.width;
     await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
     document.getElementById('current-page').textContent = num;
+    updateNavButtons();
   }
 
-  let minPage = 1;
-  let maxAllowed = null;
+  function updateNavButtons() {
+    if (prevBtn) prevBtn.disabled = currentPage <= minPage;
+    if (nextBtn) nextBtn.disabled = currentPage >= maxAllowed;
+  }
 
   function changePage(delta) {
     const next = currentPage + delta;
@@ -114,41 +157,55 @@
     renderPage(currentPage);
   }
 
-  pdfjsLib.getDocument(PDF_URL).promise.then(doc => {
-    pdfDoc = doc;
-    const docNumPages = doc.numPages;
+  if (prevBtn) prevBtn.addEventListener('click', () => changePage(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => changePage(1));
 
-    // If START_PAGE is provided and MAX_PAGES==1, restrict view to that single page
-    if (typeof MAX_PAGES === 'number' && MAX_PAGES === 1 && typeof START_PAGE === 'number' && START_PAGE >= 1 && START_PAGE <= docNumPages) {
-      minPage = START_PAGE;
-      maxAllowed = START_PAGE;
-    } else {
-      minPage = 1;
-      maxAllowed = (typeof MAX_PAGES === 'number' && MAX_PAGES > 0) ? MAX_PAGES : docNumPages;
-    }
-
-    const totalElem = document.getElementById('total-pages');
-    if (totalElem) totalElem.textContent = docNumPages;
-    document.getElementById('pdf-loading').style.display = 'none';
-
-    // Determine initial page: prefer START_PAGE when valid
-    const desiredStart = (typeof START_PAGE === 'number' && START_PAGE >= 1 && START_PAGE <= docNumPages) ? START_PAGE : 1;
-    currentPage = Math.min(Math.max(desiredStart, minPage), maxAllowed);
-
-    // Update page-info display
-    const pageInfoElem = document.getElementById('page-info');
-    if (minPage === maxAllowed) {
-      // Replace content with 'Abstract Page <current>' but keep an updatable span
-      if (pageInfoElem) pageInfoElem.innerHTML = 'Abstract Page <span id="current-page">' + currentPage + '</span>';
-    } else {
-      if (pageInfoElem) pageInfoElem.innerHTML = 'Page <span id="current-page">' + currentPage + '</span> / <span id="total-pages">' + docNumPages + '</span>';
-    }
-
-    renderPage(currentPage);
-  }).catch(err => {
+  function showLoadError(message) {
     const loading = document.getElementById('pdf-loading');
-    if (loading) loading.textContent = 'Could not load PDF.';
-    console.error(err);
+    if (loading) loading.textContent = message;
+  }
+
+  loadPdfJs().then(loaded => {
+    if (!loaded) {
+      showLoadError('Could not load the PDF viewer. Check your connection and try again.');
+      return;
+    }
+
+    pdfjsLib.getDocument(PDF_URL).promise.then(doc => {
+      pdfDoc = doc;
+      const docNumPages = doc.numPages;
+
+      // If START_PAGE is provided and MAX_PAGES==1, restrict view to that single page
+      if (typeof MAX_PAGES === 'number' && MAX_PAGES === 1 && typeof START_PAGE === 'number' && START_PAGE >= 1 && START_PAGE <= docNumPages) {
+        minPage = START_PAGE;
+        maxAllowed = START_PAGE;
+      } else {
+        minPage = 1;
+        maxAllowed = (typeof MAX_PAGES === 'number' && MAX_PAGES > 0) ? MAX_PAGES : docNumPages;
+      }
+
+      const totalElem = document.getElementById('total-pages');
+      if (totalElem) totalElem.textContent = docNumPages;
+      document.getElementById('pdf-loading').style.display = 'none';
+
+      // Determine initial page: prefer START_PAGE when valid
+      const desiredStart = (typeof START_PAGE === 'number' && START_PAGE >= 1 && START_PAGE <= docNumPages) ? START_PAGE : 1;
+      currentPage = Math.min(Math.max(desiredStart, minPage), maxAllowed);
+
+      // Update page-info display
+      const pageInfoElem = document.getElementById('page-info');
+      if (minPage === maxAllowed) {
+        // Replace content with 'Abstract Page <current>' but keep an updatable span
+        if (pageInfoElem) pageInfoElem.innerHTML = 'Abstract Page <span id="current-page">' + currentPage + '</span>';
+      } else {
+        if (pageInfoElem) pageInfoElem.innerHTML = 'Page <span id="current-page">' + currentPage + '</span> / <span id="total-pages">' + docNumPages + '</span>';
+      }
+
+      renderPage(currentPage);
+    }).catch(err => {
+      showLoadError('Could not load PDF.');
+      console.error(err);
+    });
   });
 </script>
 

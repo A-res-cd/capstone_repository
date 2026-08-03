@@ -21,7 +21,10 @@ Dependencies:
 """
 
 import re
+import logging
 import pdfplumber
+
+logger = logging.getLogger(__name__)
 
 try:
     import yake as _yake
@@ -80,7 +83,7 @@ def _parse_name_string(raw: str) -> dict | None:
         return None
     last_part, rest = raw.split(',', 1)
     given_parts = rest.strip().split()
-    print(f"Parsing name string: {raw} -> last='{last_part}', given_parts={given_parts}")
+    logger.debug("Parsing name string: %s -> last='%s', given_parts=%s", raw, last_part, given_parts)
     return {
         'first':  given_parts[0].title()                              if given_parts else '',
         'middle': ' '.join(p.title() for p in given_parts[1:])       if len(given_parts) > 1 else '',
@@ -115,13 +118,13 @@ def _parse_adviser_from_approval(lines: list[str]) -> dict | None:
 
             words = adviser_raw.strip().split()
             if len(words) >= 2:
-                print(f"Parsed adviser name: {adviser_raw} -> {words}")
+                logger.debug("Parsed adviser name: %s -> %s", adviser_raw, words)
                 return {
                     'first':  words[0],
                     'middle': ' '.join(words[1:-1]) if len(words) > 2 else '',
                     'last':   words[-1],
                 }
-    print("No adviser found in approval sheet lines.")
+    logger.debug("No adviser found in approval sheet lines.")
     return None
 
 def _suggest_keywords_yake(text: str, top_n: int = 8) -> list[str]:
@@ -137,7 +140,7 @@ def _suggest_keywords_yake(text: str, top_n: int = 8) -> list[str]:
         lan='en', n=3, dedupLim=0.7, top=top_n, features=None
     )
     results = extractor.extract_keywords(text)
-    print(f"YAKE extracted keywords: {results}")
+    logger.debug("YAKE extracted keywords: %s", results)
     return [phrase for phrase, _score in results]
 
 
@@ -211,6 +214,6 @@ def extract_capstone_data(pdf_path: str) -> dict:
     except Exception as exc:
         # Return whatever was collected before the error; never crash the route
         result['_error'] = str(exc)
-    print(f"Extracted capstone data: {result}")
+    logger.debug("Extracted capstone data: %s", result)
     return result
     

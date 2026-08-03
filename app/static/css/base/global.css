@@ -11,7 +11,7 @@ body {
 /* LAYOUT */
 .layout {
     display: flex;
-    min-height: 100vh;
+    min-height: calc(100vh - 60px);
 }
 
 /* MAIN CONTENT WRAPPER */

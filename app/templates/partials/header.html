@@ -1,6 +1,14 @@
 <header class="header">
     <div class="header-container">
 
+        <button type="button" id="nav-toggle" aria-label="Toggle navigation">
+            <i class='bx bx-menu'></i>
+        </button>
+
+        <img src="{{ url_for('static', filename='images/capre-logo.png') }}" alt="CAPRE" class="header-logo">
+
+        {# ── Reserved for the future global search bar (see HANDOFF).
+           Carries the breadcrumb for now so page context isn't lost. ── #}
         <div class="header-breadcrumb">
             {% if breadcrumb %}
                 {% for crumb in breadcrumb %}
@@ -24,5 +32,6 @@
                 </span>
             {% endif %}
         </div>
+
     </div>
 </header>
