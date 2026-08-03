@@ -22,8 +22,7 @@ def db_connect():
 
 
 # student and faculty auto detection role pattern
-STUDENT_PATTERN = re.compile(
-    r'^2\d{9}$|^2\d{3}-\d{5}$|^[A-Z]{2,4}\d{4}-\d{5}$', re.IGNORECASE)
+STUDENT_PATTERN = re.compile(r'^(?:[SUM]{3})?\d{4}-\d+$', re.IGNORECASE)
 PROFESSOR_PATTERN = re.compile(r'^\d{4}$')
 ADMIN_PATTERN = re.compile(r'^admin\d{3}$', re.IGNORECASE)
 # this should detect the role thingy
@@ -43,6 +42,101 @@ def detect_role(university_no):
         return "Admin"
     return None
 
+#new role assignment also returs something so we can assign it to the righgt (verificationist)
+def get_verifier_track(role_name):
+    if role_name == "Student":
+        return "student"
+    if role_name in ("Faculty", "Admin"):
+        return "faculty"
+    
+    return None
+
+#______________________________________The new request when sign up function_______________________________
+def screen_account(mithrix, user_id, role_name):
+    mithrix.execute("""
+        SELECT account_status FROM "user"
+        WHERE user_id = %s
+    """, (user_id,))
+    row = mithrix.fetchone()
+
+    if not row:
+        return None, "User not found"
+    
+    if row["account_status"] == "rejected":
+        mithrix.execute("""
+            UPDATE "user" SET account_status = 'pending'
+            WHERE user_id = %s
+        """, (user_id,))
+        log_audit(mithrix, user_id, "reapplication", "user", user_id,
+                  old_values="rejected", new_values="pending")
+        
+    track = get_verifier_track(role_name)
+    if track is None:
+        return None, "Could not determine a verification track for this role."
+    
+    return track, None
+
+
+def create_verification_request(mithrix, user_id, track, fallback_email=None):
+    now = datetime.now(timezone.utc)
+
+    mithrix.execute("""
+        INSERT INTO request(user_id, request_type, request_status, request_date)
+        VALUES (%s, %s, 'pending', %s)
+        RETURNING request_id
+    """, (user_id, f"verification_{track}", now))
+    request_id = mithrix.fetchone()["request_id"]
+
+    log_audit(mithrix, user_id, "verification_request", "request", request_id)
+
+    mithrix.execute("""
+        SELECT contact_value FROM "contact"
+        WHERE user_id = %s AND contact_type = 'email' AND is_primary = TRUE
+    """, (user_id,))
+    contact = mithrix.fetchone()
+
+    return(contact["contact_value"] if contact else fallback_email), None
+
+def reapply_for_verification(user_id):
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try: 
+        mithrix.execute("""
+            SELECT role_id FROM "user" 
+            WHERE user_id = %s
+        """, (user_id,))
+        row = mithrix.fetchone()
+        if not row:
+            return False, "user not found"
+        
+        role_name = None
+        mithrix.execute("""SELECT role_name FROM role 
+        WHERE role_id = %s""", (row["role_id"],))
+
+        role_row = mithrix.fetchone()
+        if role_row:
+            role_name = role_row[role_name]
+
+        track, error = screen_account(mithrix, user_id, role_name)
+        if error:
+            conn.rollback()
+            return False, error
+        
+        confirm_email, error = create_verification_request(mithrix, user_id, track)
+        if error:
+            conn.rollback()
+            return False, error
+ 
+        conn.commit()
+        return True, {"track": track, "email": confirm_email}
+ 
+    except Exception as exc:
+        conn.rollback()
+        print(f"Database error: {exc}")
+        return False, f"Database error: {exc}"
+    finally:
+        mithrix.close()
+        conn.close()
 # _____________________________________helper functions gang_______________________________ ps i was getting lost in the code so therese allat of notes now
 
 
@@ -56,7 +150,7 @@ def get_role_id(mithrix, role_name):
     mithrix.execute("""SELECT role_id FROM role
                        WHERE LOWER(role_name) = LOWER(%s) LIMIT 1""", (role_name,))
     row = mithrix.fetchone()
-    return row[0] if row else None
+    return row["role_id"] if row else None
 
 
 def log_audit(mithrix, user_id, action_type, affected_table, affected_record_id, old_values=None, new_values=None):
@@ -95,7 +189,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         return False, ("University number format not recognized")
 
     conn = db_connect()
-    mithrix = conn.cursor()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     now = datetime.now(timezone.utc)
 
     try:
@@ -107,25 +201,25 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         insert_university_no = university_no or None
         mithrix.execute("""INSERT INTO "user"
             (role_id, user_first_name, user_middle_name,
-            user_last_name, university_no)
-            VALUES (%s, %s, %s, %s, %s)
+            user_last_name, university_no, account_status)
+            VALUES (%s, %s, %s, %s, %s, 'pending')
             RETURNING user_id
             """, (role_id, first_name, middle_name, last_name, insert_university_no))
-        user_id = mithrix.fetchone()[0]
+        user_id = mithrix.fetchone()["user_id"]
 
         # insert into username table
         mithrix.execute("""INSERT INTO kappa (username)
             VALUES (%s)
             RETURNING username_id
         """, (username,))
-        username_id = mithrix.fetchone()[0]
+        username_id = mithrix.fetchone()["username_id"]
 
         # insert you know what
         mithrix.execute("""INSERT INTO ror (password, updated_at, previous_password_id)
             VALUES (%s, %s, NULL)
             RETURNING password_id
         """, (generate_password_hash(password), now))
-        password_id = mithrix.fetchone()[0]
+        password_id = mithrix.fetchone()["password_id"]
 
         # insert the owner
         mithrix.execute("""INSERT INTO slug
@@ -147,12 +241,27 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
             VALUES (%s, %s)
             RETURNING signup_id
         """, (user_id, now))
-        signup_id = mithrix.fetchone()[0]
+        signup_id = mithrix.fetchone()["signup_id"]
 
         log_audit(mithrix, user_id, "signup", "signup", signup_id)
 
+
+        # ------ 1.2.1 creena dn clasitfy------------
+        track, error = screen_account(mithrix, user_id, role_name)
+        if error:
+            conn.rollback()
+            return False, error
+
+    
+        # ------- 1.2.2 file verifiation request--------------
+        confirm_email, error = create_verification_request(mithrix, user_id, track, fallback_email=email)
+        if error:
+            conn.rollback()
+            return False, error
+        
         conn.commit()
-        return True, None
+        return True, {"track": track, "email": confirm_email}
+
 
     except psycopg2.errors.UniqueViolation as exc:
         conn.rollback()
@@ -189,7 +298,7 @@ def sign_in(username, password, device_ip=None):
 
     try:
         mithrix.execute("""
-        SELECT u.user_id, u.locked_until, k.username, r.password AS password_hash,
+        SELECT u.user_id, u.locked_until, u.account_status, k.username, r.password AS password_hash,
                ro.role_id, ro.role_name,
                u.user_first_name, u.user_last_name
         FROM kappa k
@@ -205,6 +314,13 @@ def sign_in(username, password, device_ip=None):
 
         if not row:
             return None, "Invalid username or password."
+
+        if row["account_status"] != "approved":
+            if row["account_status"] == "pending":
+                return None, "Account is pending verification. Please wait for approval."
+            if row["account_status"] == "rejected":
+                return None, "Account registration was rejected. Contact support for help."
+            return None, "Account is not allowed to sign in."
 
 # start of new sign in with lockout and audit logging (if the bruth force defence is not needed delete the code from here to the end of the next comment)
         if row["locked_until"]:
