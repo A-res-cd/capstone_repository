@@ -78,6 +78,19 @@ def get_nav_links(role):
             "section": "Management"
         },
 
+        # --- Data mining: content-based topic-similarity check — Student only ---
+        # Not tied to an existing DFD process number yet (new feature).
+        # Lets a student check a proposed title/keywords against the
+        # archive before submitting, via TF-IDF + cosine similarity.
+        {
+            "name": "Propose Topic",
+            "title": "Propose a Topic",
+            "url": "pages.propose_topic",
+            "icon": "bx bx-bulb",
+            "roles": ["Student"],
+            "section": "Capstone"
+        },
+
         # --- Process 5.0: Manage User Information — All roles ---
         # Level2ManageUserInformation.drawio shows all 4 actors
         # (Admin, Capstone Professor, Student, Faculty) with flows

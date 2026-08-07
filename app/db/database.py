@@ -1434,6 +1434,31 @@ def get_user_requests(user_id):
 
 # ______________________________Admin Analytics___________________________
 
+def get_capstones_corpus():
+    """
+    Lightweight (capstone_id, title, keywords) list for every non-archived
+    capstone — feeds the TF-IDF topic-similarity recommender. Kept as its
+    own narrow query rather than reusing get_all_capstones() since the
+    recommender only needs these three fields per record.
+    """
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT c.capstone_id, c.capstone_title, k.capstone_keywords
+            FROM capstone c
+            LEFT JOIN keyword k ON k.keyword_id = c.keyword_id
+            WHERE c.is_archived IS NOT TRUE
+        """)
+        return mithrix.fetchall()
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
 def get_capstones_by_specialization():
     """Capstone count grouped by specialization — for the Analytics bar chart."""
     conn = db_connect()

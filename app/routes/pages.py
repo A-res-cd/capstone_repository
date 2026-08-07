@@ -3,10 +3,12 @@ import os
 import logging
 from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
-cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact
+cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact,
+get_capstones_corpus
 )
 from app.routes.decorators import login_required, role_required
 from app.utils.pdf_extractor import extract_capstone_data
+from app.services.recommender import TopicRecommender
 
 pages = Blueprint("pages", __name__)
 logger = logging.getLogger(__name__)
@@ -299,3 +301,32 @@ def cite_capstone(capstone_id):
     update = get_capstone_details(capstone_id)
                         
     return jsonify({"citation": citation, "citation_count": update["citation_count"]})
+
+
+# ─── Data mining: content-based topic-similarity recommender ───────────
+# Sub-process (new, not yet in the DFDs — see PROJECT_ANALYSIS notes):
+# lets a student check a proposed capstone title/keywords against the
+# existing archive before formally submitting a topic, using TF-IDF +
+# cosine similarity over capstone_title + keyword.capstone_keywords.
+
+@pages.route("/propose-topic")
+@role_required(1)
+def propose_topic():
+    return render_template("global/propose_topic.html")
+
+
+@pages.route("/api/topic-similarity", methods=["POST"])
+@role_required(1)
+def topic_similarity():
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    keywords = (data.get("keywords") or "").strip()
+
+    if len(title) < 4:
+        return jsonify({"matches": []})
+
+    corpus = get_capstones_corpus()
+    engine = TopicRecommender(corpus)
+    matches = engine.find_similar(title, keywords, top_n=5)
+
+    return jsonify({"matches": matches})
