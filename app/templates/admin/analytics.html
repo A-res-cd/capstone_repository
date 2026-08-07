@@ -20,17 +20,88 @@
         {% endif %}
     {% endwith %}
 
-    {# ── Dashboard grid — 5 slots, each can hold one chart widget.
-       Empty slots show "Add a chart"; filled slots are draggable and
-       can be reordered or removed. Layout persists in localStorage. ── #}
-    <div class="analytics-grid" id="analytics-grid">
+    {# ── Summary cards ── #}
+    <div class="analytics-stats-row">
+        <div class="analytics-stat-card">
+            <span class="analytics-stat-card__icon"><i class="bx bx-collection"></i></span>
+            <div class="analytics-stat-card__body">
+                <span class="analytics-stat-card__value">{{ total_capstones }}</span>
+                <span class="analytics-stat-card__label">Total Capstones</span>
+            </div>
+        </div>
+        <div class="analytics-stat-card">
+            <span class="analytics-stat-card__icon"><i class="bx bx-mail-send"></i></span>
+            <div class="analytics-stat-card__body">
+                <span class="analytics-stat-card__value">{{ total_requests }}</span>
+                <span class="analytics-stat-card__label">Total Requests</span>
+            </div>
+        </div>
+        <div class="analytics-stat-card analytics-stat-card--accent">
+            <span class="analytics-stat-card__icon"><i class="bx bx-time-five"></i></span>
+            <div class="analytics-stat-card__body">
+                <span class="analytics-stat-card__value">{{ pending_requests }}</span>
+                <span class="analytics-stat-card__label">Pending Requests</span>
+            </div>
+        </div>
+        <div class="analytics-stat-card">
+            <span class="analytics-stat-card__icon"><i class="bx bx-trophy"></i></span>
+            <div class="analytics-stat-card__body">
+                <span class="analytics-stat-card__value">{{ top_cited_count }}</span>
+                <span class="analytics-stat-card__label">
+                    {% if top_cited_title %}Most Cited — {{ top_cited_title }}{% else %}Most Cited{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
 
-        <div class="analytics-widget-slot" data-slot="1"></div>
-        <div class="analytics-widget-slot" data-slot="2"></div>
-        <div class="analytics-widget-slot analytics-widget-slot--wide" data-slot="3"></div>
-        <div class="analytics-widget-slot" data-slot="4"></div>
-        <div class="analytics-widget-slot" data-slot="5"></div>
+    {# ── Fixed layout — drag/reorder temporarily removed. Main chart
+       left, status + top-cited stacked right, like a ledger spread. ── #}
+    <div class="analytics-main-grid">
 
+        <div class="analytics-panel analytics-panel--main">
+            <div class="analytics-panel__header">
+                <div>
+                    <h3>Capstones by Specialization</h3>
+                    <p>Manuscript count across research tracks</p>
+                </div>
+            </div>
+            <div class="analytics-panel__chart-wrap">
+                <canvas id="specialization-chart"></canvas>
+            </div>
+        </div>
+
+        <aside class="analytics-sidebar">
+
+            <div class="analytics-panel analytics-panel--side">
+                <div class="analytics-panel__header">
+                    <h4>Requests by Status</h4>
+                </div>
+                <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
+                    <canvas id="status-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="analytics-panel analytics-panel--side">
+                <div class="analytics-panel__header">
+                    <h4>Top Cited Capstones</h4>
+                </div>
+                <ul class="analytics-list">
+                    {% for c in top_cited %}
+                    <li class="analytics-list__item">
+                        <span class="analytics-list__icon"><i class="bx bx-file-blank"></i></span>
+                        <div class="analytics-list__body">
+                            <span class="analytics-list__title">{{ c.capstone_title }}</span>
+                            <span class="analytics-list__meta">{{ c.program_name }}</span>
+                        </div>
+                        <span class="analytics-list__badge">{{ c.citation_count }}</span>
+                    </li>
+                    {% else %}
+                    <li class="analytics-list__empty">No citations recorded yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+        </aside>
     </div>
 </section>
 

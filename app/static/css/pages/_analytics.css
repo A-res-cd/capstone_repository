@@ -1,10 +1,9 @@
 /* ============================================================
    PAGE: Analytics & Reports
-   Drag-and-drop dashboard grid. Empty slots offer an "Add a
-   chart" picker; filled slots are draggable and can be
-   reordered or removed. Fixed to the viewport — no scrolling,
-   matching the Explore Archive page's "calc(80vh - 60px)"
-   convention.
+   Fixed two-column dashboard (drag-and-drop grid + "Add a
+   chart" picker temporarily removed). Stat cards on top, a
+   main chart panel on the left, status donut + top-cited
+   list stacked on the right — paper/index-card theme.
 ============================================================ */
 @import url('../base/root.css');
 
@@ -31,141 +30,146 @@
     margin: 0;
 }
 
-/* ── Dashboard grid — 2 / 1-wide / 2, all rows equal height,
-   fills whatever vertical space is left after the header. ── */
-.analytics-grid {
-    flex: 1;
-    min-height: 0;
+/* ── Summary stat cards — like punch-cards clipped to a ledger.
+   Each reads as a small filed record: icon chip, big number,
+   label, corner "punch-hole" detail. ── */
+.analytics-stats-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-    gap: var(--space-lg);
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
 }
 
-.analytics-widget-slot--wide {
-    grid-column: 1 / -1;
-}
-
-/* ── Empty widget slot — reserved for future drag-and-drop charts ── */
-.analytics-widget-slot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-sm);
-    border: 2px dashed #D8D3C4;
-    border-radius: 3px 14px 14px 14px;
-    background: #FDFCF7;
-    color: var(--color-gray-dark);
-    transition: border-color 0.15s, background 0.15s;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.analytics-widget-slot:hover {
-    border-color: var(--color-accent);
-    background: #FBF3E2;
-}
-
-.analytics-widget-slot__prompt {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-sm);
-    width: 100%;
-    height: 100%;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: inherit;
-    font: inherit;
-}
-
-.analytics-widget-slot i {
-    font-size: 30px;
-    color: var(--color-gray);
-}
-
-.analytics-widget-slot span {
-    font-size: var(--text-sm);
-    font-weight: 600;
-}
-
-/* ── Filled widget — chart card in the paper/index-card style ── */
-.analytics-widget-slot--filled {
+.analytics-stat-card {
     position: relative;
-    align-items: stretch;
-    justify-content: stretch;
-    border: 1px solid #ECE9DD;
-    border-radius: 3px 14px 14px 14px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
     background: #FDFCF7;
-    cursor: grab;
-    padding: var(--space-md) var(--space-sm) var(--space-sm);
+    border: 1px solid #ECE9DD;
+    border-left: 3px solid var(--color-primary);
+    border-radius: 2px 10px 10px 2px;
+    box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
 }
 
-.analytics-widget-slot--filled:active {
-    cursor: grabbing;
+.analytics-stat-card::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-bg, #FBF3E2);
+    border: 1px solid #ECE9DD;
 }
 
-.analytics-widget-slot--dragging {
-    opacity: 0.4;
+.analytics-stat-card--accent {
+    border-left-color: var(--color-accent);
 }
 
-.analytics-widget-slot--dragover {
-    border-color: var(--color-accent);
+.analytics-stat-card__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 8px;
     background: #FBF3E2;
 }
 
-.analytics-widget__tab {
-    position: absolute;
-    top: -12px;
-    left: 20px;
-    background: var(--color-primary);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.6px;
+.analytics-stat-card__icon i {
+    font-size: 20px;
+    color: var(--color-accent);
+}
+
+.analytics-stat-card__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.analytics-stat-card__value {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1.1;
+}
+
+.analytics-stat-card__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
-    padding: 5px 11px;
-    border-radius: 4px 4px 0 0;
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
-    pointer-events: none;
-    max-width: 80%;
+    color: var(--color-gray-dark);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.analytics-widget__remove {
-    position: absolute;
-    top: 8px;
-    right: 8px;
+/* ── Main dashboard grid — fixed, no drag/drop ── */
+.analytics-main-grid {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-lg);
+}
+
+.analytics-panel {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
+    flex-direction: column;
+    background: #FDFCF7;
     border: 1px solid #ECE9DD;
-    background: var(--color-white);
+    border-radius: 3px 14px 14px 14px;
+    box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
+    padding: var(--space-md);
+    min-height: 0;
+}
+
+.analytics-panel--main {
+    overflow: hidden;
+}
+
+.analytics-panel__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-sm);
+}
+
+.analytics-panel__header h3 {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0 0 2px;
+}
+
+.analytics-panel__header h4 {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.analytics-panel__header p {
+    font-size: var(--text-sm);
     color: var(--color-gray-dark);
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    z-index: 2;
+    margin: 0;
 }
 
-.analytics-widget__remove:hover {
-    border-color: var(--color-red);
-    color: var(--color-red);
-}
-
-.analytics-widget__canvas-wrap {
+.analytics-panel__chart-wrap {
     flex: 1;
     min-height: 0;
     position: relative;
-    margin-top: var(--space-sm);
+}
+
+.analytics-panel__chart-wrap--small {
+    min-height: 180px;
 }
 
 .analytics-widget__empty-msg {
@@ -177,71 +181,114 @@
     font-size: var(--text-sm);
 }
 
-/* ── "Add a chart" picker popover ── */
-.analytics-widget-picker {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 10;
-    min-width: 220px;
-    background: var(--color-white);
-    border: 1px solid #ECE9DD;
-    border-radius: 3px 14px 14px 14px;
-    box-shadow: 0 8px 24px rgba(30,40,90,0.16);
-    padding: var(--space-sm);
+/* ── Right column — stacked side panels ── */
+.analytics-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-lg);
+    min-height: 0;
 }
 
-.analytics-widget-picker__item {
+.analytics-sidebar .analytics-panel--side:last-child {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* ── Top-cited list — reads like a filed index card list ── */
+.analytics-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.analytics-list__item {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-sm);
-    border: 1px solid transparent;
-    border-radius: 8px;
-    background: none;
-    text-align: left;
-    font: inherit;
-    font-size: var(--text-sm);
-    color: var(--color-primary);
-    cursor: pointer;
+    padding: var(--space-sm) 4px;
+    border-bottom: 1px dashed #ECE9DD;
 }
 
-.analytics-widget-picker__item:hover {
+.analytics-list__item:last-child {
+    border-bottom: none;
+}
+
+.analytics-list__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 6px;
     background: #FBF3E2;
-    border-color: #ECE9DD;
 }
 
-.analytics-widget-picker__item i {
-    font-size: 18px;
+.analytics-list__icon i {
+    font-size: 15px;
+    color: var(--color-primary);
+}
+
+.analytics-list__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.analytics-list__title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.analytics-list__meta {
+    font-size: 11px;
+    color: var(--color-gray-dark);
+}
+
+.analytics-list__badge {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--color-accent);
+    background: #FBF3E2;
+    border-radius: 10px;
+    padding: 3px 9px;
 }
 
-.analytics-widget-picker__empty {
-    padding: var(--space-sm);
+.analytics-list__empty {
+    padding: var(--space-md);
+    text-align: center;
     font-size: var(--text-sm);
     color: var(--color-gray-dark);
-    text-align: center;
 }
 
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
+    .analytics-stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
     .analytics-section {
         height: auto;
         overflow: visible;
     }
 
-    .analytics-grid {
+    .analytics-main-grid {
         grid-template-columns: 1fr;
-        grid-template-rows: none;
     }
 
-    .analytics-widget-slot {
-        min-height: 160px;
+    .analytics-panel__chart-wrap {
+        min-height: 240px;
     }
 }

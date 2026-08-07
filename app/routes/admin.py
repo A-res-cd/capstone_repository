@@ -116,6 +116,13 @@ def analytics():
     status_labels  = [row["request_status"].capitalize() for row in by_status]
     status_totals  = [row["total"]                       for row in by_status]
 
+    # ── Summary card figures ──
+    total_capstones  = sum(specialization_totals)
+    total_requests   = sum(status_totals)
+    pending_requests = next((t for l, t in zip(status_labels, status_totals) if l == "Pending"), 0)
+    top_cited_title  = top_cited[0]["capstone_title"]  if top_cited else None
+    top_cited_count  = top_cited[0]["citation_count"]  if top_cited else 0
+
     return render_template(
         "admin/analytics.html",
         specialization_labels=specialization_labels,
@@ -124,6 +131,11 @@ def analytics():
         status_totals=status_totals,
         top_cited=top_cited,
         has_db_errors=bool(db_errors),
+        total_capstones=total_capstones,
+        total_requests=total_requests,
+        pending_requests=pending_requests,
+        top_cited_title=top_cited_title,
+        top_cited_count=top_cited_count,
     )
 
 

@@ -315,7 +315,7 @@ def sign_in(username, password, device_ip=None):
         if not row:
             return None, "Invalid username or password."
 
-        if row["account_status"] != "approved":
+        if row["account_status"] != "active":
             if row["account_status"] == "pending":
                 return None, "Account is pending verification. Please wait for approval."
             if row["account_status"] == "rejected":
