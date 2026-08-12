@@ -132,8 +132,8 @@ def reapply_for_verification(user_id):
  
     except Exception as exc:
         conn.rollback()
-        print(f"Database error: {exc}")
-        return False, f"Database error: {exc}"
+        logger.error("Database error: %s", exc)
+        return False, "Something went wrong creating your account. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -279,7 +279,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
 
     finally:
         mithrix.close()
@@ -315,14 +315,7 @@ def sign_in(username, password, device_ip=None):
         if not row:
             return None, "Invalid username or password."
 
-        if row["account_status"] != "active":
-            if row["account_status"] == "pending":
-                return None, "Account is pending verification. Please wait for approval."
-            if row["account_status"] == "rejected":
-                return None, "Account registration was rejected. Contact support for help."
-            return None, "Account is not allowed to sign in."
-
-# start of new sign in with lockout and audit logging (if the bruth force defence is not needed delete the code from here to the end of the next comment)
+        # start of new sign in with lockout and audit logging (if the bruth force defence is not needed delete the code from here to the end of the next comment)
         if row["locked_until"]:
             locked_until = row["locked_until"]
             if locked_until.tzinfo is None:
@@ -365,8 +358,20 @@ def sign_in(username, password, device_ip=None):
                 return None, f"Too many failed attempts. Account locked for {LOCKOUT_DURATION} minutes."
 
             conn.commit()
-            remaining_attempts = LOCKOUT_THRESHOLD - fails
-            return None, f"Invalid username or password. {remaining_attempts} attempt(s) remaining before lockout."
+            # Deliberately generic — a differing message here (e.g. "X attempts
+            # remaining") would let an attacker infer that this username exists,
+            # since non-existent usernames never reach this branch at all.
+            return None, "Invalid username or password."
+
+        # Account-status is only disclosed *after* the password has been
+        # proven correct — checking it earlier (even for a real username)
+        # would let anyone probe account status without knowing the password.
+        if row["account_status"] != "active":
+            if row["account_status"] == "pending":
+                return None, "Account is pending verification. Please wait for approval."
+            if row["account_status"] == "rejected":
+                return None, "Account registration was rejected. Contact support for help."
+            return None, "Account is not allowed to sign in."
 
         user_id = row["user_id"]
 
@@ -397,7 +402,7 @@ def sign_in(username, password, device_ip=None):
     except Exception as exc:
         logger.error("Database error: %s", exc)
         conn.rollback()
-        return None, f"Database error: {exc}"
+        return None, "Something went wrong while signing in. Please try again."
 
     finally:
         mithrix.close()
@@ -433,7 +438,7 @@ def lookup_user_for_reset(username, email):
 
     except Exception as exc:
         logger.error("Database error: %s", exc)
-        return None, None, f"Database error: {exc}"
+        return None, None, "A database error occurred. Please try again."
 
     finally:
         mithrix.close()
@@ -525,7 +530,7 @@ def verify_otp(reset_id, otp_entered):
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
 
     finally:
         mithrix.close()
@@ -584,7 +589,7 @@ def change_password(reset_id, user_id, new_password):
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
 
     finally:
         mithrix.close()
@@ -618,7 +623,7 @@ def sign_out(user_id, device_ip=None):
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
 
     finally:
         mithrix.close()
@@ -628,7 +633,7 @@ def sign_out(user_id, device_ip=None):
 
 def create_capstone_project(keyword_id, specialization_id, program_id,
                             capstone_title, capstone_year, capstone_file,
-                            citation_count, semester, term=None):
+                            citation_count, semester, term=None, acting_user_id=None):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -641,12 +646,16 @@ def create_capstone_project(keyword_id, specialization_id, program_id,
         """, (keyword_id, specialization_id, program_id, capstone_title,
               capstone_year, capstone_file, citation_count, semester, term))
         capstone_id = mithrix.fetchone()[0]
+
+        log_audit(mithrix, acting_user_id, "create_capstone", "capstone", capstone_id,
+                   new_values=capstone_title)
+
         conn.commit()
         return True, capstone_id
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -667,7 +676,7 @@ def insert_keywords(capstone_keywords):
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -733,7 +742,7 @@ def update_keyword(keyword_id, capstone_keywords):
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -766,7 +775,7 @@ def get_capstone_details(capstone_id):
 
 def update_capstone_record(capstone_id, keyword_id, specialization_id, program_id,
                            capstone_title, capstone_year, capstone_file,
-                           citation_count, semester, term=None):
+                           citation_count, semester, term=None, acting_user_id=None):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -784,12 +793,16 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
             WHERE capstone_id = %s
         """, (keyword_id, specialization_id, program_id, capstone_title,
               capstone_year, capstone_file, citation_count, semester, term, capstone_id))
+
+        log_audit(mithrix, acting_user_id, "update_capstone", "capstone", capstone_id,
+                   new_values=capstone_title)
+
         conn.commit()
         return True, None
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -875,7 +888,7 @@ def purge_expired_archived_capstones():
         deleted_count = 0
 
         for row in expired_rows:
-            ok, _ = delete_capstone(row["capstone_id"])
+            ok, _ = delete_capstone(row["capstone_id"], acting_user_id=None)
             if ok:
                 deleted_count += 1
 
@@ -888,10 +901,14 @@ def purge_expired_archived_capstones():
         conn.close()
 
 
-def delete_capstone(capstone_id):
+def delete_capstone(capstone_id, acting_user_id=None):
     """
     Permanently delete an archived capstone project by ID, with cascading
     deletes for related records.
+
+    acting_user_id is None when called from purge_expired_archived_capstones()
+    (system-triggered, no admin in the loop) — log_audit accepts a NULL
+    user_id for that case so the audit trail still records the deletion.
 
     Two admins can have the recycle bin open on the same item at once —
     one clicking Restore while the other clicks Delete. `SELECT ... FOR
@@ -904,7 +921,7 @@ def delete_capstone(capstone_id):
     mithrix = conn.cursor()
     try:
         mithrix.execute("""
-            SELECT keyword_id, is_archived FROM capstone
+            SELECT keyword_id, is_archived, capstone_title FROM capstone
             WHERE capstone_id = %s
             FOR UPDATE
         """, (capstone_id,))
@@ -913,7 +930,7 @@ def delete_capstone(capstone_id):
             conn.rollback()
             return False, "Capstone not found. It may have already been deleted by another admin."
 
-        keyword_id, is_archived = row
+        keyword_id, is_archived, capstone_title = row
         if not is_archived:
             conn.rollback()
             return False, "This capstone was just restored by another admin and can no longer be deleted from the recycle bin."
@@ -936,18 +953,21 @@ def delete_capstone(capstone_id):
               )
         """, (keyword_id, keyword_id))
 
+        log_audit(mithrix, acting_user_id, "delete_capstone", "capstone", capstone_id,
+                   old_values=capstone_title)
+
         conn.commit()
         return True, "Capstone deleted successfully"
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
 
 
-def add_to_bin(capstone_id):
+def add_to_bin(capstone_id, acting_user_id=None):
     """
     Soft-delete (archive) a capstone into the recycle bin.
 
@@ -980,17 +1000,20 @@ def add_to_bin(capstone_id):
             WHERE capstone_id = %s
         """, (now, capstone_id))
 
+        log_audit(mithrix, acting_user_id, "archive_capstone", "capstone", capstone_id)
+
         conn.commit()
         return True, "Capstone moved to the recycle bin."
     except Exception as exc:
         conn.rollback()
-        return False, f"Database error: {exc}"
+        logger.error("Database error: %s", exc)
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
 
 
-def restore_capstone(capstone_id):
+def restore_capstone(capstone_id, acting_user_id=None):
     """
     Restore an archived capstone back to the live repository.
 
@@ -1022,11 +1045,14 @@ def restore_capstone(capstone_id):
             WHERE capstone_id = %s
         """, (capstone_id,))
 
+        log_audit(mithrix, acting_user_id, "restore_capstone", "capstone", capstone_id)
+
         conn.commit()
         return True, "Capstone restored to the repository."
     except Exception as exc:
         conn.rollback()
-        return False, f"Database error: {exc}"
+        logger.error("Database error: %s", exc)
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -1200,17 +1226,23 @@ def upsert_user_contact(user_id, contact_type, contact_value, is_primary=True):
                 "UPDATE contact SET contact_value = %s, is_primary = %s, created_at = %s WHERE contact_id = %s",
                 (contact_value, is_primary, now, row[0]),
             )
+            contact_id = row[0]
         else:
             mithrix.execute(
-                "INSERT INTO contact (user_id, contact_type, contact_value, is_primary, created_at) VALUES (%s, %s, %s, %s, %s)",
+                "INSERT INTO contact (user_id, contact_type, contact_value, is_primary, created_at) VALUES (%s, %s, %s, %s, %s) RETURNING contact_id",
                 (user_id, contact_type, contact_value, is_primary, now),
             )
+            contact_id = mithrix.fetchone()[0]
+
+        log_audit(mithrix, user_id, "update_contact", "contact", contact_id,
+                   new_values=f"{contact_type}: {contact_value}")
 
         conn.commit()
         return True, None
     except Exception as exc:
         conn.rollback()
-        return False, f"Database error: {exc}"
+        logger.error("Database error: %s", exc)
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -1261,7 +1293,7 @@ def update_user_role(user_id, new_role_id, acting_admin_id):
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -1309,7 +1341,7 @@ def delete_user_account(user_id, acting_admin_id):
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()
@@ -1337,7 +1369,7 @@ def request_fullview(user_id, capstone_id, request_reason):
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
 
     finally:
         mithrix.close()
@@ -1394,12 +1426,15 @@ def review_request(request_id, request_status, status_reason, reviewed_by):
             WHERE request_id = %s         
         """, (request_status, status_reason, reviewed_by, now, request_id))
 
+        log_audit(mithrix, reviewed_by, "review_request", "request", request_id,
+                   new_values=request_status)
+
         conn.commit()
         return True, None
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
 
     finally:
         mithrix.close()
@@ -1433,6 +1468,31 @@ def get_user_requests(user_id):
 
 
 # ______________________________Admin Analytics___________________________
+
+def get_capstones_corpus():
+    """
+    Lightweight (capstone_id, title, keywords) list for every non-archived
+    capstone — feeds the TF-IDF topic-similarity recommender. Kept as its
+    own narrow query rather than reusing get_all_capstones() since the
+    recommender only needs these three fields per record.
+    """
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT c.capstone_id, c.capstone_title, k.capstone_keywords
+            FROM capstone c
+            LEFT JOIN keyword k ON k.keyword_id = c.keyword_id
+            WHERE c.is_archived IS NOT TRUE
+        """)
+        return mithrix.fetchall()
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
 
 def get_capstones_by_specialization():
     """Capstone count grouped by specialization — for the Analytics bar chart."""
@@ -1507,13 +1567,15 @@ def cancel_manuscript_request(request_id, user_id):
             AND request_status = 'pending'
         """, (request_id, user_id))
 
+        log_audit(mithrix, user_id, "cancel_request", "request", request_id)
+
         conn.commit()
         return True, None
 
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
 
     finally:
         mithrix.close()
@@ -1591,7 +1653,7 @@ def get_capstone_people(capstone_id):
         mithrix.close()
 
 
-def set_capstone_people(capstone_id, authors, adviser):
+def set_capstone_people(capstone_id, authors, adviser, acting_user_id=None):
     conn = db_connect()
     mithrix = conn.cursor()
 
@@ -1641,12 +1703,14 @@ def set_capstone_people(capstone_id, authors, adviser):
             VALUES (%s, %s, %s, 'Adviser')
         """, (capstone_id, adviser_id, order))
 
+        log_audit(mithrix, acting_user_id, "update_capstone_people", "capstone", capstone_id)
+
         conn.commit()
         return True, None
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
-        return False, f"Database error: {exc}"
+        return False, "A database error occurred. Please try again."
     finally:
         mithrix.close()
         conn.close()

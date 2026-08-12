@@ -279,7 +279,8 @@ def admin_create_capstone():
                 success, message = create_capstone_project(
                     keyword_id, specialization, program,
                     capstone_title, capstone_year,
-                    file_path, citation, sem
+                    file_path, citation, sem,
+                    acting_user_id=session.get("user_id")
                 )
                 if success:
                     new_capstone_id = message
@@ -291,7 +292,8 @@ def admin_create_capstone():
                         return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
 
                     ok, err = set_capstone_people(
-                        new_capstone_id, authors, adviser)
+                        new_capstone_id, authors, adviser,
+                        acting_user_id=session.get("user_id"))
                     if not ok:
                         flash(
                             f"Capstone created, but author/adviser save failed: {err}", "warning")
@@ -356,7 +358,7 @@ def update_capstone(capstone_id):
         success, message = update_capstone_record(
             capstone_id, keyword_id, new_specialization, new_program,
             new_capstone_title, new_capstone_year, file_path, new_citation,
-            new_sem)
+            new_sem, acting_user_id=session.get("user_id"))
 
         if not success:
             flash(f"Error updating capstone: {message}", "danger")
@@ -368,7 +370,8 @@ def update_capstone(capstone_id):
             flash("Adviser information is required.", "danger")
             return render_template("admin/update_capstone.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations, used_keywords=used_keywords, capstone=capstone)
 
-        ok, err = set_capstone_people(capstone_id, authors, adviser)
+        ok, err = set_capstone_people(capstone_id, authors, adviser,
+                                       acting_user_id=session.get("user_id"))
         if not ok:
             flash(
                 f"Capstone updated, but author/adviser save failed: {err}", "warning")
@@ -377,7 +380,8 @@ def update_capstone(capstone_id):
         return redirect(url_for("admin.view_capstone_repository"))
 
     except Exception as e:
-        flash(f"Error: {e}", "danger")
+        current_app.logger.error("update_capstone_route error: %s", e)
+        flash("Something went wrong updating this capstone. Please try again.", "danger")
 
     return render_template(
         "admin/update_capstone.html",
@@ -393,10 +397,11 @@ def update_capstone(capstone_id):
 @role_required(3)
 def delete_capstone_route(capstone_id):
     try:
-        success, message = delete_capstone(capstone_id)
+        success, message = delete_capstone(capstone_id, acting_user_id=session.get("user_id"))
         flash(message, "success" if success else "danger")
     except Exception as e:
-        flash(f"Error: {e}", "danger")
+        current_app.logger.error("delete_capstone_route error: %s", e)
+        flash("Something went wrong deleting this capstone. Please try again.", "danger")
 
     return redirect(url_for("admin.view_capstone_repository"))
 
@@ -509,7 +514,7 @@ def decide_request(request_id):
 @admin.route("/repository/archive/<int:capstone_id>", methods=["POST"])
 @role_required(3)
 def archive_capstone(capstone_id):
-    success, message = add_to_bin(capstone_id)
+    success, message = add_to_bin(capstone_id, acting_user_id=session.get("user_id"))
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.view_capstone_repository"))
 
@@ -517,6 +522,6 @@ def archive_capstone(capstone_id):
 @admin.route("/recyclebin/restore/<int:capstone_id>", methods=["POST"])
 @role_required(3)
 def restore_capstone_route(capstone_id):
-    success, message = restore_capstone(capstone_id)
+    success, message = restore_capstone(capstone_id, acting_user_id=session.get("user_id"))
     flash(message, "success" if success else "danger")
     return redirect(url_for("admin.view_capstone_repository"))
