@@ -1,0 +1,179 @@
+/* ============================================================
+   PAGE: Propose Topic
+   Content-based similarity check (TF-IDF + cosine) — form on
+   the left, live results list on the right. Paper/index-card
+   theme, matching Analytics and Explore Archive.
+============================================================ */
+@import url('../base/root.css');
+
+.propose-topic-section {
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.propose-topic-header h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0 0 4px;
+}
+
+.propose-topic-header p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+.propose-topic-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: start;
+}
+
+/* ── Form panel ── */
+.propose-topic-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    background: #FDFCF7;
+    border: 1px solid #ECE9DD;
+    border-radius: 3px 14px 14px 14px;
+    padding: var(--space-lg);
+    box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
+}
+
+.propose-topic-form label {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-top: var(--space-sm);
+}
+
+.propose-topic-form label span {
+    font-weight: 400;
+    color: var(--color-gray-dark);
+}
+
+.propose-topic-form input,
+.propose-topic-form textarea {
+    font: inherit;
+    padding: var(--space-sm);
+    border: 1px solid #ECE9DD;
+    border-radius: 6px;
+    background: var(--color-white, #fff);
+    color: var(--color-primary);
+    resize: vertical;
+}
+
+.propose-topic-form input:focus,
+.propose-topic-form textarea:focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+.propose-topic-hint {
+    margin-top: var(--space-md);
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    font-style: italic;
+}
+
+/* ── Results panel ── */
+.propose-topic-results {
+    background: #FDFCF7;
+    border: 1px solid #ECE9DD;
+    border-radius: 3px 14px 14px 14px;
+    padding: var(--space-lg);
+    min-height: 260px;
+    box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
+}
+
+.propose-topic-results__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    height: 220px;
+    color: var(--color-gray-dark);
+}
+
+.propose-topic-results__empty i {
+    font-size: 34px;
+    color: var(--color-gray);
+}
+
+.propose-topic-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pt-match {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 4px;
+    border-bottom: 1px dashed #ECE9DD;
+}
+
+.pt-match:last-child {
+    border-bottom: none;
+}
+
+.pt-match__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    background: #FBF3E2;
+}
+
+.pt-match__icon i {
+    font-size: 16px;
+    color: var(--color-primary);
+}
+
+.pt-match__body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.pt-match__title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+.pt-badge {
+    align-self: flex-start;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 2px 9px;
+}
+
+.pt-badge--high   { background: #FDE8E8; color: #C0392B; }
+.pt-badge--medium { background: #FBF3E2; color: #B9770E; }
+.pt-badge--low    { background: #EAF3EC; color: #27713F; }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .propose-topic-layout {
+        grid-template-columns: 1fr;
+    }
+}

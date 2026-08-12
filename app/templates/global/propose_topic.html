@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_propose-topic.css') }}">
+{% endblock %}
+
+{% block title %}Propose Topic{% endblock %}
+
+{% block content %}
+<section class="propose-topic-section">
+
+    <div class="propose-topic-header">
+        <h2>Propose a Topic</h2>
+        <p>Type a working title and keywords — we'll check it against the existing archive as you go.</p>
+    </div>
+
+    <div class="propose-topic-layout">
+
+        <form class="propose-topic-form" id="propose-topic-form" autocomplete="off">
+            <label for="pt-title">Proposed Title</label>
+            <input type="text" id="pt-title" name="title" placeholder="e.g. AI-Powered Attendance Tracking System" maxlength="255">
+
+            <label for="pt-keywords">Keywords <span>(comma-separated)</span></label>
+            <textarea id="pt-keywords" name="keywords" rows="3" placeholder="e.g. facial recognition, attendance, machine learning"></textarea>
+
+            <p class="propose-topic-hint" id="pt-status">Start typing to check for similar existing capstones.</p>
+        </form>
+
+        <div class="propose-topic-results" id="pt-results">
+            <div class="propose-topic-results__empty" id="pt-empty">
+                <i class="bx bx-search-alt"></i>
+                <span>No matches checked yet</span>
+            </div>
+            <ul class="propose-topic-list" id="pt-list" hidden></ul>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{{ url_for('static', filename='js/propose_topic.js') }}"></script>
+{% endblock %}
