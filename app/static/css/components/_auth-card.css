@@ -131,3 +131,16 @@
 .otp-timer.expired span {
     color: #A32D2D;
 }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .auth-section {
+        padding: var(--space-md);
+    }
+
+    .auth-form--grid .form-group.half-width {
+        width: 100%;
+    }
+}

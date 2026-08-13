@@ -33,5 +33,21 @@
             {% endif %}
         </div>
 
+        <!-- USER — moved here from the sidebar to reclaim vertical space -->
+        <div class="header-user">
+            <div class="header-user__avatar">
+                <span>{{ current_user.initials }}</span>
+            </div>
+            <div class="header-user__info">
+                <span class="header-user__name">{{ current_user.display_name }}</span>
+                {% if role_meta %}
+                <span class="header-user__role {{ role_meta.badge_class }}">
+                    <i class="{{ role_meta.icon }}"></i>
+                    {{ role_meta.label }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
     </div>
 </header>

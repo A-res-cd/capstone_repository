@@ -125,6 +125,93 @@
     font-weight: 600;
 }
 
+/* ── User block — moved here from the sidebar (nav-container-user)
+   to reclaim vertical space in the nav. Sits at the far right since
+   .header-breadcrumb above has flex:1 and pushes everything after
+   it outward. ── */
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    padding-left: 16px;
+    border-left: 1px solid #ECE9DD;
+}
+
+.header-user__avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(243,156,18,0.3);
+}
+
+.header-user__avatar span {
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+    user-select: none;
+}
+
+.header-user__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.header-user__name {
+    font-family: var(--font-display, var(--font-heading));
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
+.header-user__role {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+    padding: 1px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.header-user__role i {
+    font-size: 10px;
+}
+
 @media (max-width: 900px) {
     .header-logo { display: none; }
+
+    /* Name/role text hidden on small screens — avatar alone is enough,
+       matching how the nav-toggle and logo already shed labels here */
+    .header-user__info {
+        display: none;
+    }
+
+    .header-user {
+        padding-left: 10px;
+        gap: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-user {
+        border-left: none;
+        padding-left: 4px;
+    }
 }

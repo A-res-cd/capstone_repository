@@ -21,12 +21,22 @@
     overflow: hidden;
     overflow-x: auto;
     background: #fff;
+    -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: var(--text-sm);
+}
+
+@media (max-width: 900px) {
+    /* Columns already wrap onto one line via white-space: nowrap on th —
+       below this width that starts crushing cells illegibly, so force a
+       floor and let .table-wrap's overflow-x handle scrolling instead. */
+    .data-table {
+        min-width: 640px;
+    }
 }
 
 .data-table thead {

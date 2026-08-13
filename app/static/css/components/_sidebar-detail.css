@@ -238,3 +238,15 @@
     color: var(--color-gray);
     margin-bottom: var(--space-sm);
 }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — full width once it drops below the list
+   (see .archive-layout-wrapper stacking in _archive.css)
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .archive-sidebar {
+        width: 100%;
+        height: auto;
+        min-height: 260px;
+    }
+}

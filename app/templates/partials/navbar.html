@@ -3,21 +3,6 @@
     <!-- BODY -->
     <div class="nav-container-body">
 
-        <!-- USER -->
-        <div class="nav-container-user">
-            <div class="avatar">
-                <span class="avatar__initials">{{ current_user.initials }}</span>
-            </div>
-            <p class="nav-display-name">{{ current_user.display_name }}</p>
-            <p class="nav-username">@{{ current_user.username }}</p>
-            {% if role_meta %}
-            <div class="role-badge {{ role_meta.badge_class }}">
-                <i class="{{ role_meta.icon }}"></i>
-                <span class="role-label">{{ role_meta.label }}</span>
-            </div>
-            {% endif %}
-        </div>
-
         <!-- LINKS -->
         <div class="nav-links">
             {% if nav_sections %}

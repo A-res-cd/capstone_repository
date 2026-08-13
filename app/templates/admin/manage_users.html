@@ -29,6 +29,59 @@
     {% endwith %}
 
     {# ══════════════════════════════════════════════════════
+       PANEL — PENDING ACCOUNT VERIFICATIONS
+       Only shown when there are requests waiting. Separate from
+       Panel A's role/delete list since this is an activation
+       decision, not a role edit.
+    ══════════════════════════════════════════════════════ #}
+    {% if pending_verifications %}
+    <div class="mu-panel" id="panel-pending">
+        <div class="mu-panel-header">
+            <h3><i class="bx bx-user-check"></i> Pending Account Verifications</h3>
+            <p>New sign-ups waiting for approval before they can sign in.</p>
+        </div>
+
+        <div class="record-list">
+            {% for pv in pending_verifications %}
+            <div class="record-card">
+                <div class="record-card__avatar">{{ pv.full_name[:1] }}</div>
+                <div class="record-card__body">
+                    <p class="record-card__title">{{ pv.full_name }}</p>
+                    <div class="record-card__meta">
+                        <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ pv.university_no }}</span>
+                        <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ pv.email or '—' }}</span>
+                        <span class="pill
+                            {% if pv.role == 'Admin' %}pill--admin
+                            {% elif pv.role == 'Faculty' %}pill--faculty
+                            {% else %}pill--student{% endif %}">
+                            {{ pv.role }}
+                        </span>
+                    </div>
+                </div>
+                <div class="record-card__actions">
+                    <form method="POST" action="{{ url_for('admin.decide_verification', request_id=pv.request_id) }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="decision" value="approved">
+                        <button type="submit" class="btn-row btn-row--edit">
+                            <i class="bx bx-check"></i> Approve
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin.decide_verification', request_id=pv.request_id) }}" style="display:inline;"
+                          onsubmit="return confirm('Reject this account? The user will not be able to sign in.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="decision" value="rejected">
+                        <button type="submit" class="btn-row btn-row--edit" style="color:#B23A28;">
+                            <i class="bx bx-x"></i> Reject
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>{# end panel-pending #}
+    {% endif %}
+
+    {# ══════════════════════════════════════════════════════
        PANEL A — USER LIST
     ══════════════════════════════════════════════════════ #}
     <div class="mu-panel" id="panel-list">

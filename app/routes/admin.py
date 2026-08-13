@@ -10,7 +10,9 @@ from app.db.database import (
     delete_capstone, get_users, update_user_role, get_all_roles,
     get_all_requests, review_request, set_capstone_people, get_capstone_people,
     get_capstones_by_specialization, get_requests_by_status, get_top_cited_capstones, add_to_bin,
-    restore_capstone, ARCHIVE_RETENTION_DAYS
+    restore_capstone, ARCHIVE_RETENTION_DAYS,
+    get_pending_verifications, review_verification_request,
+    get_capstones_by_program, get_capstone_trend_by_specialization
 )
 from app.routes.decorators import role_required
 from app.utils.pdf_extractor import extract_capstone_data, _parse_abstract_page
@@ -98,6 +100,14 @@ def analytics():
     if err:
         db_errors.append(f"Capstones by specialization: {err}")
 
+    by_program, err = get_capstones_by_program()
+    if err:
+        db_errors.append(f"Capstones by program: {err}")
+
+    trend_years, trend_series, err = get_capstone_trend_by_specialization()
+    if err:
+        db_errors.append(f"Capstone trend by specialization: {err}")
+
     by_status, err = get_requests_by_status()
     if err:
         db_errors.append(f"Requests by status: {err}")
@@ -113,20 +123,38 @@ def analytics():
     specialization_labels = [row["specialization_name"] for row in by_specialization]
     specialization_totals = [row["total"] for row in by_specialization]
 
+    program_labels = [row["program_name"] for row in by_program]
+    program_totals = [row["total"] for row in by_program]
+
     status_labels  = [row["request_status"].capitalize() for row in by_status]
     status_totals  = [row["total"]                       for row in by_status]
 
     # ── Summary card figures ──
-    total_capstones  = sum(specialization_totals)
+    total_capstones  = sum(program_totals)
     total_requests   = sum(status_totals)
     pending_requests = next((t for l, t in zip(status_labels, status_totals) if l == "Pending"), 0)
     top_cited_title  = top_cited[0]["capstone_title"]  if top_cited else None
     top_cited_count  = top_cited[0]["citation_count"]  if top_cited else 0
 
+    # ── Per-program stat cards, in the reference dashboard's style ──
+    program_cards = []
+    for row in by_program:
+        pct = round((row["total"] / total_capstones) * 100, 1) if total_capstones else 0
+        program_cards.append({
+            "name": row["program_name"],
+            "total": row["total"],
+            "pct": pct,
+        })
+
     return render_template(
         "admin/analytics.html",
         specialization_labels=specialization_labels,
         specialization_totals=specialization_totals,
+        program_labels=program_labels,
+        program_totals=program_totals,
+        program_cards=program_cards,
+        trend_years=trend_years,
+        trend_series=trend_series,
         status_labels=status_labels,
         status_totals=status_totals,
         top_cited=top_cited,
@@ -146,7 +174,34 @@ def analytics():
 def manage_users():
     users = get_users()
     roles = get_all_roles()
-    return render_template("admin/manage_users.html", users=users, roles=roles)
+    pending_verifications = get_pending_verifications()
+    return render_template(
+        "admin/manage_users.html",
+        users=users,
+        roles=roles,
+        pending_verifications=pending_verifications,
+    )
+
+
+@admin.route("/manage_users/verify/<int:request_id>", methods=["POST"])
+@role_required(3)
+def decide_verification(request_id):
+    decision = request.form.get("decision")  # 'approved' or 'rejected'
+    status_reason = request.form.get("status_reason", "")
+    reviewed_by = session.get("user_id")
+
+    if decision not in ("approved", "rejected"):
+        flash("Invalid decision.", "danger")
+        return redirect(url_for("admin.manage_users"))
+
+    ok, err = review_verification_request(request_id, decision, status_reason, reviewed_by)
+    flash(
+        "Account activated." if (ok and decision == "approved")
+        else "Account verification rejected." if ok
+        else f"Error: {err}",
+        "success" if ok else "danger",
+    )
+    return redirect(url_for("admin.manage_users"))
 
 
 @admin.route("/manage_users/update_role/<int:user_id>", methods=["GET","POST"])

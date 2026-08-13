@@ -1,10 +1,9 @@
 /* app/static/js/analytics.js
  *
- * Fixed-layout chart dashboard for the Analytics page.
- *
- * NOTE: drag-and-drop widget slots / the "Add a chart" picker have been
- * temporarily removed in favor of a fixed two-column layout. Charts render
- * straight into #specialization-chart and #status-chart on load.
+ * Fixed-layout chart dashboard for the Analytics page, styled after the
+ * CICT reference dashboard: stat cards, a per-specialization trend line chart,
+ * a requests-by-status donut + top-cited list sidebar, and a program
+ * donut + summary table along the bottom.
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -23,36 +22,98 @@ document.addEventListener('DOMContentLoaded', () => {
     const accent       = styles.getPropertyValue('--color-accent').trim()        || '#F39C12';
     const grayLight    = styles.getPropertyValue('--color-gray-light').trim()    || '#E5E7EB';
 
-    // ── Capstones by Specialization (bar) ──────────────────────────────
-    const specCanvas = document.getElementById('specialization-chart');
-    if (specCanvas) {
-        const labels = window.chartData.specialization_labels || [];
-        const wrap = specCanvas.closest('.analytics-panel__chart-wrap');
-        if (!labels.length) {
-            if (wrap) wrap.innerHTML = '<p class="analytics-widget__empty-msg">No data available.</p>';
+    // Shared palette — used for both the trend lines and the program
+    // donut, so a given program keeps the same color across the page.
+    const PALETTE = [primary, '#27AE60', accent, '#1E96A3', '#7C56D1', '#B23A28'];
+    const colorFor = (i) => PALETTE[i % PALETTE.length];
+
+    function showEmpty(canvas, message) {
+        const wrap = canvas.closest('.analytics-panel__chart-wrap');
+        if (wrap) wrap.innerHTML = `<p class="analytics-widget__empty-msg">${message}</p>`;
+    }
+
+    // ── Capstone Trend per Year (multi-line) ───────────────────────────
+    const trendCanvas = document.getElementById('trend-chart');
+    if (trendCanvas) {
+        const years = window.chartData.trend_years || [];
+        const series = window.chartData.trend_series || {};
+        const specializations = Object.keys(series);
+
+        if (!years.length || !specializations.length) {
+            showEmpty(trendCanvas, 'No capstone data available yet.');
         } else {
-            const specializationColors = { 'DST': '#92422e', 'WST': '#4A5ED1', 'NST': '#F39C12' };
-            new Chart(specCanvas, {
-                type: 'bar',
+            // Y-axis: starts at 0, base ceiling of 50 stepping by 10. If the
+            // highest value in any series exceeds the current ceiling, bump
+            // the ceiling by another 50 (100, 150, ...) — step stays fixed
+            // at 10 the whole way up.
+            const dataMax = Math.max(0, ...specializations.flatMap(p => series[p]));
+            let axisMax = 50;
+            while (dataMax > axisMax) axisMax += 50;
+            const axisStep = 10;
+
+            new Chart(trendCanvas, {
+                type: 'line',
                 data: {
-                    labels,
-                    datasets: [{
-                        label: 'Capstones',
-                        data: window.chartData.specialization_totals,
-                        backgroundColor: labels.map(l => specializationColors[l] || primaryLight),
-                        borderRadius: 6,
-                        maxBarThickness: 48
-                    }]
+                    labels: years,
+                    datasets: specializations.map((specialization, i) => ({
+                        label: specialization,
+                        data: series[specialization],
+                        borderColor: colorFor(i),
+                        backgroundColor: colorFor(i),
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        tension: 0.35,
+                        fill: false,
+                    })),
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
+                    },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: grayLight } },
-                        x: { grid: { display: false } }
-                    }
-                }
+                        y: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: axisMax,
+                            ticks: { stepSize: axisStep },
+                            grid: { color: grayLight },
+                        },
+                        x: { grid: { display: false } },
+                    },
+                },
+            });
+        }
+    }
+
+    // ── Total Capstone by Program (donut) ──────────────────────────────
+    const programCanvas = document.getElementById('program-chart');
+    if (programCanvas) {
+        const labels = window.chartData.program_labels || [];
+        if (!labels.length) {
+            showEmpty(programCanvas, 'No program data available.');
+        } else {
+            new Chart(programCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: window.chartData.program_totals,
+                        backgroundColor: labels.map((_, i) => colorFor(i)),
+                        borderWidth: 0,
+                        hoverOffset: 6,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } },
+                    },
+                },
             });
         }
     }
@@ -61,9 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusCanvas = document.getElementById('status-chart');
     if (statusCanvas) {
         const labels = window.chartData.status_labels || [];
-        const wrap = statusCanvas.closest('.analytics-panel__chart-wrap');
         if (!labels.length) {
-            if (wrap) wrap.innerHTML = '<p class="analytics-widget__empty-msg">No data available.</p>';
+            showEmpty(statusCanvas, 'No data available.');
         } else {
             const statusColors = {
                 'Pending': accent, 'Approved': '#2ecc71',

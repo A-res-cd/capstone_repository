@@ -143,3 +143,13 @@
     color: var(--color-primary);
     font-style: italic;
 }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: var(--space-sm);
+    }
+}

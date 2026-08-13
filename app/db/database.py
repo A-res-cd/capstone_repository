@@ -115,7 +115,7 @@ def reapply_for_verification(user_id):
 
         role_row = mithrix.fetchone()
         if role_row:
-            role_name = role_row[role_name]
+            role_name = role_row["role_name"]
 
         track, error = screen_account(mithrix, user_id, role_name)
         if error:
@@ -1182,6 +1182,97 @@ def get_users():
         conn.close()
 
 
+def get_pending_verifications():
+    """
+    Pending account-verification requests (request_type starts with
+    'verification_') for the Manage Users > Pending Accounts tab.
+
+    Kept as its own query rather than reused from get_all_requests(),
+    since that one INNER JOINs on capstone — verification requests have
+    capstone_id = NULL and would silently disappear from that join.
+    """
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT r.request_id, r.user_id, r.request_type, r.request_status, r.request_date,
+                   CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
+                   u.university_no,
+                   r_role.role_name AS role,
+                   c.contact_value AS email
+            FROM request r
+            JOIN "user" u ON u.user_id = r.user_id
+            JOIN role r_role ON r_role.role_id = u.role_id
+            LEFT JOIN contact c ON c.user_id = u.user_id AND c.contact_type = 'email' AND c.is_primary = TRUE
+            WHERE r.request_type LIKE 'verification_%%'
+              AND r.request_status = 'pending'
+            ORDER BY r.request_date ASC
+        """)
+        return mithrix.fetchall()
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def review_verification_request(request_id, decision, status_reason, reviewed_by):
+    """
+    Approve/reject an account-verification request. Unlike review_request()
+    (used for manuscript-access requests), this also flips the underlying
+    user's account_status — that's the step that was previously missing
+    entirely, leaving approved users stuck on 'pending' forever with no
+    way to sign in.
+
+    decision: 'approved' or 'rejected'
+    """
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    now = datetime.now(timezone.utc)
+
+    try:
+        mithrix.execute("""
+            SELECT user_id, request_type FROM request
+            WHERE request_id = %s AND request_type LIKE 'verification_%%'
+            FOR UPDATE
+        """, (request_id,))
+        row = mithrix.fetchone()
+        if not row:
+            conn.rollback()
+            return False, "Verification request not found."
+
+        user_id = row["user_id"]
+
+        mithrix.execute("""
+            UPDATE request SET
+                request_status = %s,
+                status_reason = %s,
+                reviewed_by = %s,
+                decision_date = %s
+            WHERE request_id = %s
+        """, (decision, status_reason, reviewed_by, now, request_id))
+
+        new_account_status = "active" if decision == "approved" else "rejected"
+        mithrix.execute("""
+            UPDATE "user" SET account_status = %s
+            WHERE user_id = %s
+        """, (new_account_status, user_id))
+
+        log_audit(mithrix, reviewed_by, "review_verification_request", "request", request_id,
+                   new_values=f"{decision} -> account_status={new_account_status}")
+
+        conn.commit()
+        return True, None
+    except Exception as exc:
+        conn.rollback()
+        logger.error("Database error: %s", exc)
+        return False, "A database error occurred. Please try again."
+    finally:
+        mithrix.close()
+        conn.close()
+
+
 def get_user_contacts(user_id):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1489,6 +1580,64 @@ def get_capstones_corpus():
     except Exception as exc:
         logger.error("Database error: %s", exc)
         return []
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def get_capstones_by_program():
+    """Capstone count grouped by program — mirrors the reference dashboard's
+    per-program stat cards and program donut chart."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT p.program_id, p.program_name, COUNT(c.capstone_id) AS total
+            FROM program p
+            LEFT JOIN capstone c ON c.program_id = p.program_id AND c.is_archived IS NOT TRUE
+            GROUP BY p.program_id, p.program_name
+            ORDER BY total DESC
+        """)
+        return mithrix.fetchall(), None
+    except Exception as exc:
+        return [], str(exc)
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def get_capstone_trend_by_specialization():
+    """
+    Capstone count per specialization per academic year — feeds the
+    multi-line 'Capstone Trend per Year' chart. Returns (years, {specialization_name: [counts...]})
+    with years ascending and each specialization's list aligned to that
+    year list (0 where a specialization had no capstones that year).
+    """
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT c.capstone_year, s.specialization_name, COUNT(c.capstone_id) AS total
+            FROM capstone c
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            WHERE c.capstone_year IS NOT NULL AND c.is_archived IS NOT TRUE
+            GROUP BY c.capstone_year, s.specialization_name
+            ORDER BY c.capstone_year ASC
+        """)
+        rows = mithrix.fetchall()
+
+        years = sorted({row["capstone_year"] for row in rows})
+        specializations = sorted({row["specialization_name"] for row in rows})
+
+        lookup = {(row["capstone_year"], row["specialization_name"]): row["total"] for row in rows}
+        series = {
+            specialization: [lookup.get((year, specialization), 0) for year in years]
+            for specialization in specializations
+        }
+
+        return years, series, None
+    except Exception as exc:
+        return [], {}, str(exc)
     finally:
         mithrix.close()
         conn.close()

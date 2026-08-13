@@ -98,7 +98,7 @@ def signup():
         )
 
         if success:
-            flash("Account created successfully! Please sign in.", "success")
+            flash("Account created successfully! Please wait for approval.", "success")
             return redirect(url_for("auth.signin"))
         else:
             flash(message, "danger")
@@ -246,11 +246,11 @@ def get_current_user(user_id):
 
     return user
 
-@auth.route("/debug-ip")
-def debug_ip():
-    logger.debug("Device IP: %s", get_device_ip(request))
-    logger.debug("Remote Addr: %s", request.remote_addr)
-    logger.debug("X-Forwarded-For: %s", request.headers.get("X-Forwarded-For"))
-    logger.debug("Headers: %s", dict(request.headers))
+# @auth.route("/debug-ip")
+# def debug_ip():
+#     logger.debug("Device IP: %s", get_device_ip(request))
+#     logger.debug("Remote Addr: %s", request.remote_addr)
+#     logger.debug("X-Forwarded-For: %s", request.headers.get("X-Forwarded-For"))
+#     logger.debug("Headers: %s", dict(request.headers))
 
-    return "Check terminal"
+#     return "Check terminal"

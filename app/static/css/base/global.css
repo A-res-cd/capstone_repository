@@ -28,3 +28,9 @@ main {
     padding: 24px;
     flex: 1;
 }
+
+@media (max-width: 900px) {
+    main {
+        padding: 16px;
+    }
+}

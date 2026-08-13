@@ -292,3 +292,49 @@
 }
 
 .page-indicator { font-size: var(--text-sm); }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .explore-archive-section {
+        height: auto;
+        overflow: visible;
+    }
+
+    .explore-archive-container {
+        height: auto;
+    }
+
+    .filter-input { width: 100%; }
+
+    .filter-group {
+        flex: 1;
+        min-width: 140px;
+    }
+
+    /* Sidebar drops below the list instead of sitting beside it */
+    .archive-layout-wrapper {
+        flex-direction: column;
+    }
+
+    .archive-main-content {
+        overflow: visible;
+    }
+
+    .archive-grid {
+        overflow-y: visible;
+        max-height: 60vh;
+    }
+
+    /* Metadata dots wrap onto their own line instead of getting
+       squeezed into an unreadable single row */
+    .archive-card {
+        flex-wrap: wrap;
+        padding: var(--space-md) var(--space-md) var(--space-md) 56px;
+    }
+
+    .archive-card .col-title {
+        flex-basis: 100%;
+    }
+}

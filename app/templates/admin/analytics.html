@@ -20,53 +20,41 @@
         {% endif %}
     {% endwith %}
 
-    {# ── Summary cards ── #}
+    {# ── Summary cards — Total Capstones + one per program, matching
+       the reference dashboard's icon-card row. Dynamic: however many
+       programs exist in the DB, that many cards render. ── #}
     <div class="analytics-stats-row">
-        <div class="analytics-stat-card">
+        <div class="analytics-stat-card analytics-stat-card--accent">
             <span class="analytics-stat-card__icon"><i class="bx bx-collection"></i></span>
             <div class="analytics-stat-card__body">
                 <span class="analytics-stat-card__value">{{ total_capstones }}</span>
                 <span class="analytics-stat-card__label">Total Capstones</span>
             </div>
         </div>
+        {% for card in program_cards %}
         <div class="analytics-stat-card">
-            <span class="analytics-stat-card__icon"><i class="bx bx-mail-send"></i></span>
+            <span class="analytics-stat-card__icon"><i class="bx bx-group"></i></span>
             <div class="analytics-stat-card__body">
-                <span class="analytics-stat-card__value">{{ total_requests }}</span>
-                <span class="analytics-stat-card__label">Total Requests</span>
+                <span class="analytics-stat-card__value">{{ card.total }}</span>
+                <span class="analytics-stat-card__label">{{ card.name }}</span>
+                <span class="analytics-stat-card__pct">{{ card.pct }}% of Total</span>
             </div>
         </div>
-        <div class="analytics-stat-card analytics-stat-card--accent">
-            <span class="analytics-stat-card__icon"><i class="bx bx-time-five"></i></span>
-            <div class="analytics-stat-card__body">
-                <span class="analytics-stat-card__value">{{ pending_requests }}</span>
-                <span class="analytics-stat-card__label">Pending Requests</span>
-            </div>
-        </div>
-        <div class="analytics-stat-card">
-            <span class="analytics-stat-card__icon"><i class="bx bx-trophy"></i></span>
-            <div class="analytics-stat-card__body">
-                <span class="analytics-stat-card__value">{{ top_cited_count }}</span>
-                <span class="analytics-stat-card__label">
-                    {% if top_cited_title %}Most Cited — {{ top_cited_title }}{% else %}Most Cited{% endif %}
-                </span>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 
-    {# ── Fixed layout — drag/reorder temporarily removed. Main chart
-       left, status + top-cited stacked right, like a ledger spread. ── #}
+    {# ── Row 2 — Trend chart (main) + Requests/Top Cited (sidebar) ── #}
     <div class="analytics-main-grid">
 
         <div class="analytics-panel analytics-panel--main">
             <div class="analytics-panel__header">
                 <div>
-                    <h3>Capstones by Specialization</h3>
-                    <p>Manuscript count across research tracks</p>
+                    <h3>Capstone Trend per Year</h3>
+                    <p>Number of capstones submitted per specialization, by academic year</p>
                 </div>
             </div>
             <div class="analytics-panel__chart-wrap">
-                <canvas id="specialization-chart"></canvas>
+                <canvas id="trend-chart"></canvas>
             </div>
         </div>
 
@@ -103,12 +91,64 @@
 
         </aside>
     </div>
+
+    {# ── Row 3 — Program donut + Summary table, matching the reference
+       dashboard's bottom section ── #}
+    <div class="analytics-bottom-grid">
+
+        <div class="analytics-panel analytics-panel--donut">
+            <div class="analytics-panel__header">
+                <h3>Total Capstone by Program</h3>
+            </div>
+            <div class="analytics-panel__chart-wrap">
+                <canvas id="program-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="analytics-panel analytics-panel--table">
+            <div class="analytics-panel__header">
+                <h3>Summary by Program</h3>
+            </div>
+            <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Program</th>
+                            <th>Total Capstones</th>
+                            <th>% of Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for card in program_cards %}
+                        <tr>
+                            <td><span class="analytics-table__dot" style="background: var(--chart-color-{{ loop.index0 % 6 }});"></span>{{ card.name }}</td>
+                            <td>{{ card.total }}</td>
+                            <td>{{ card.pct }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>Total</td>
+                            <td>{{ total_capstones }}</td>
+                            <td>100%</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+    </div>
 </section>
 
 <script>
     window.chartData = {
         specialization_labels: {{ specialization_labels | tojson }},
         specialization_totals: {{ specialization_totals | tojson }},
+        program_labels: {{ program_labels | tojson }},
+        program_totals: {{ program_totals | tojson }},
+        trend_years: {{ trend_years | tojson }},
+        trend_series: {{ trend_series | tojson }},
         status_labels: {{ status_labels | tojson }},
         status_totals: {{ status_totals | tojson }}
     };

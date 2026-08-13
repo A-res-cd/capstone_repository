@@ -1,19 +1,28 @@
 /* ============================================================
    PAGE: Analytics & Reports
-   Fixed two-column dashboard (drag-and-drop grid + "Add a
-   chart" picker temporarily removed). Stat cards on top, a
-   main chart panel on the left, status donut + top-cited
-   list stacked on the right — paper/index-card theme.
+   Styled after the CICT reference dashboard: stat-card row,
+   a trend chart + requests sidebar, then a program donut +
+   summary table along the bottom — paper/index-card theme,
+   drag-and-drop grid removed (see analytics.js note).
 ============================================================ */
 @import url('../base/root.css');
 
+:root {
+    /* Shared with analytics.js's PALETTE array — keep in sync so a given
+       program's color matches between the charts and the table dots. */
+    --chart-color-0: var(--color-primary);
+    --chart-color-1: #27AE60;
+    --chart-color-2: var(--color-accent);
+    --chart-color-3: #1E96A3;
+    --chart-color-4: #7C56D1;
+    --chart-color-5: #B23A28;
+}
+
 .analytics-section {
     padding: var(--space-lg) var(--space-xl);
-    height: calc(80vh - 60px); /* subtract header height */
-    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    gap: var(--space-lg);
 }
 
 .analytics-page-header h2 {
@@ -31,11 +40,11 @@
 }
 
 /* ── Summary stat cards — like punch-cards clipped to a ledger.
-   Each reads as a small filed record: icon chip, big number,
-   label, corner "punch-hole" detail. ── */
+   Total Capstones + one card per program, so the row grows or
+   shrinks with however many programs actually exist. ── */
 .analytics-stats-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
     gap: var(--space-md);
 }
 
@@ -109,13 +118,18 @@
     text-overflow: ellipsis;
 }
 
-/* ── Main dashboard grid — fixed, no drag/drop ── */
+.analytics-stat-card__pct {
+    font-size: 11px;
+    font-weight: 700;
+    color: #27AE60;
+}
+
+/* ── Row 2 — trend chart (main) + requests/top-cited sidebar ── */
 .analytics-main-grid {
-    flex: 1;
-    min-height: 0;
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: var(--space-lg);
+    min-height: 280px;
 }
 
 .analytics-panel {
@@ -164,8 +178,13 @@
 
 .analytics-panel__chart-wrap {
     flex: 1;
-    min-height: 0;
+    min-height: 260px;
     position: relative;
+}
+
+.analytics-panel--main .analytics-panel__chart-wrap {
+    min-height: 200px;
+    max-height: 280px;
 }
 
 .analytics-panel__chart-wrap--small {
@@ -192,7 +211,6 @@
 .analytics-sidebar .analytics-panel--side:last-child {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
 }
 
 /* ── Top-cited list — reads like a filed index card list ── */
@@ -271,6 +289,65 @@
     color: var(--color-gray-dark);
 }
 
+/* ── Row 3 — program donut + summary table ── */
+.analytics-bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: var(--space-lg);
+}
+
+.analytics-panel--donut .analytics-panel__chart-wrap {
+    min-height: 260px;
+}
+
+.analytics-table-wrap {
+    overflow-x: auto;
+}
+
+.analytics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+.analytics-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--color-gray-dark);
+    border-bottom: 2px solid #ECE9DD;
+    white-space: nowrap;
+}
+
+.analytics-table td {
+    padding: 9px 10px;
+    color: var(--color-primary);
+    border-bottom: 1px dashed #ECE9DD;
+    white-space: nowrap;
+}
+
+.analytics-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.analytics-table tfoot td {
+    padding: 10px;
+    font-weight: 700;
+    border-top: 2px solid #ECE9DD;
+    border-bottom: none;
+}
+
+.analytics-table__dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
@@ -279,12 +356,12 @@
         grid-template-columns: 1fr 1fr;
     }
 
-    .analytics-section {
-        height: auto;
-        overflow: visible;
+    .analytics-main-grid {
+        grid-template-columns: 1fr;
+        min-height: 0;
     }
 
-    .analytics-main-grid {
+    .analytics-bottom-grid {
         grid-template-columns: 1fr;
     }
 
