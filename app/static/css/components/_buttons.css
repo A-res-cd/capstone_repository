@@ -16,7 +16,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: 9px 20px;
+    padding: 8px 17px;
     border: none;
     border-radius: var(--radius-pill);
     font-size: var(--text-sm);
@@ -73,8 +73,8 @@
 .btn-row {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 5px 14px;
+    gap: 3px;
+    padding: 4px 12px;
     border: none;
     border-radius: var(--radius-sm);
     font-size: var(--text-xs);
@@ -101,9 +101,9 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 22px;
+    font-size: 19px;
     color: var(--color-gray-dark);
-    padding: 4px;
+    padding: 3px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -119,7 +119,7 @@
 /* ── Filter bar buttons (archive search) ── */
 .btn-filter,
 .btn-clear {
-    padding: 6px 16px;
+    padding: 5px 14px;
     border-radius: var(--radius-sm);
     font-size: var(--text-sm);
     font-weight: 600;
@@ -146,7 +146,7 @@
 .btn-abstract,
 .btn-manuscript,
 .btn-cite {
-    padding: 8px 12px;
+    padding: 7px 10px;
     border-radius: var(--radius-sm);
     font-size: var(--text-sm);
     font-weight: 600;
@@ -182,7 +182,7 @@
 
 /* ── Pagination buttons ── */
 .page-btn {
-    padding: 4px 10px;
+    padding: 3px 8px;
     border: var(--border-light);
     border-radius: var(--radius-sm);
     background: var(--color-white);

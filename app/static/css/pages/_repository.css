@@ -3,14 +3,19 @@
 @import url('../components/_record-card.css');
 @import url('../components/_detail-card.css');
 
-main { padding: 0; }
+main:has(.repo-section) {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
 
 .repo-section {
     padding: var(--space-lg) var(--space-xl);
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
-    height: calc(85vh - 60px);
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
 }
 
@@ -29,7 +34,7 @@ main { padding: 0; }
     font-size: var(--text-xl);
     font-weight: 600;
     color: var(--color-primary);
-    margin: 0 0 4px;
+    margin: 0 0 3px;
 }
 
 .repo-page-header__text p {
@@ -126,7 +131,7 @@ main { padding: 0; }
 }
 
 .keyword-chip {
-    padding: 4px 12px;
+    padding: 3px 10px;
     border-radius: var(--radius-pill);
     border: 1px solid var(--color-primary-soft);
     background: var(--color-white);

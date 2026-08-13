@@ -30,7 +30,7 @@
     font-size: var(--text-xl);
     font-weight: 600;
     color: var(--color-primary);
-    margin: 0 0 4px;
+    margin: 0 0 3px;
 }
 
 .analytics-page-header p {
@@ -57,17 +57,17 @@
     background: #FDFCF7;
     border: 1px solid #ECE9DD;
     border-left: 3px solid var(--color-primary);
-    border-radius: 2px 10px 10px 2px;
+    border-radius: 2px 8px 8px 2px;
     box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
 }
 
 .analytics-stat-card::after {
     content: '';
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 6px;
-    height: 6px;
+    top: 7px;
+    right: 7px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: var(--color-bg, #FBF3E2);
     border: 1px solid #ECE9DD;
@@ -81,15 +81,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
-    border-radius: 8px;
+    border-radius: 7px;
     background: #FBF3E2;
 }
 
 .analytics-stat-card__icon i {
-    font-size: 20px;
+    font-size: 17px;
     color: var(--color-accent);
 }
 
@@ -108,7 +108,7 @@
 }
 
 .analytics-stat-card__label {
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 600;
     letter-spacing: 0.3px;
     text-transform: uppercase;
@@ -119,7 +119,7 @@
 }
 
 .analytics-stat-card__pct {
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 700;
     color: #27AE60;
 }
@@ -129,7 +129,7 @@
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: var(--space-lg);
-    min-height: 280px;
+    min-height: 238px;
 }
 
 .analytics-panel {
@@ -137,7 +137,7 @@
     flex-direction: column;
     background: #FDFCF7;
     border: 1px solid #ECE9DD;
-    border-radius: 3px 14px 14px 14px;
+    border-radius: 3px 12px 12px 12px;
     box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
     padding: var(--space-md);
     min-height: 0;
@@ -178,17 +178,17 @@
 
 .analytics-panel__chart-wrap {
     flex: 1;
-    min-height: 260px;
+    min-height: 221px;
     position: relative;
 }
 
 .analytics-panel--main .analytics-panel__chart-wrap {
-    min-height: 200px;
-    max-height: 280px;
+    min-height: 170px;
+    max-height: 238px;
 }
 
 .analytics-panel__chart-wrap--small {
-    min-height: 180px;
+    min-height: 153px;
 }
 
 .analytics-widget__empty-msg {
@@ -227,7 +227,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-sm) 4px;
+    padding: var(--space-sm) 3px;
     border-bottom: 1px dashed #ECE9DD;
 }
 
@@ -239,15 +239,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 26px;
+    height: 26px;
     flex-shrink: 0;
-    border-radius: 6px;
+    border-radius: 5px;
     background: #FBF3E2;
 }
 
 .analytics-list__icon i {
-    font-size: 15px;
+    font-size: 13px;
     color: var(--color-primary);
 }
 
@@ -268,18 +268,18 @@
 }
 
 .analytics-list__meta {
-    font-size: 11px;
+    font-size: 9px;
     color: var(--color-gray-dark);
 }
 
 .analytics-list__badge {
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 700;
     color: var(--color-accent);
     background: #FBF3E2;
-    border-radius: 10px;
-    padding: 3px 9px;
+    border-radius: 8px;
+    padding: 3px 8px;
 }
 
 .analytics-list__empty {
@@ -297,7 +297,7 @@
 }
 
 .analytics-panel--donut .analytics-panel__chart-wrap {
-    min-height: 260px;
+    min-height: 221px;
 }
 
 .analytics-table-wrap {
@@ -312,8 +312,8 @@
 
 .analytics-table th {
     text-align: left;
-    padding: 8px 10px;
-    font-size: 11px;
+    padding: 7px 8px;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.3px;
     text-transform: uppercase;
@@ -323,7 +323,7 @@
 }
 
 .analytics-table td {
-    padding: 9px 10px;
+    padding: 8px 8px;
     color: var(--color-primary);
     border-bottom: 1px dashed #ECE9DD;
     white-space: nowrap;
@@ -334,7 +334,7 @@
 }
 
 .analytics-table tfoot td {
-    padding: 10px;
+    padding: 8px;
     font-weight: 700;
     border-top: 2px solid #ECE9DD;
     border-bottom: none;
@@ -342,10 +342,10 @@
 
 .analytics-table__dot {
     display: inline-block;
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    margin-right: 8px;
+    margin-right: 7px;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -366,6 +366,6 @@
     }
 
     .analytics-panel__chart-wrap {
-        min-height: 240px;
+        min-height: 204px;
     }
 }

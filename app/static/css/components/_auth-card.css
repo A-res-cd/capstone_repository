@@ -27,16 +27,16 @@
 .auth-card {
     background-color: var(--color-white);
     padding: var(--space-xl);
-    border-radius: 20px;
+    border-radius: 17px;
     box-shadow: var(--shadow-lg);
     width: 100%;
-    max-width: 450px;
+    max-width: 382px;
     text-align: center;
 }
 
 /* sign-up has more fields, so it gets a wider card */
 .auth-card--wide {
-    max-width: 550px;
+    max-width: 468px;
 }
 
 .auth-card h2 {
@@ -48,7 +48,7 @@
 
 .auth-card .subtitle {
     display: block;
-    margin-top: calc(var(--space-lg) * -1 + 8px);
+    margin-top: calc(var(--space-lg) * -1 + 7px);
     margin-bottom: var(--space-lg);
     font-size: var(--text-sm);
     color: var(--color-gray-dark);
@@ -64,7 +64,7 @@
 .auth-form--grid {
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 13px;
     justify-content: space-between;
 }
 
@@ -73,7 +73,7 @@
 }
 
 .auth-form--grid .form-group.half-width {
-    width: calc(50% - 8px);
+    width: calc(50% - 7px);
 }
 
 .auth-footer {
@@ -108,7 +108,7 @@
 
 /* ── OTP-specific bits (verify-otp page) ── */
 .otp-input {
-    height: 60px !important;
+    height: 51px !important;
     text-align: center;
     font-size: var(--text-xxl) !important;
     font-weight: 700;

@@ -16,7 +16,7 @@
 
 .table-wrap {
     border: 1px solid #ECE9DD;
-    border-radius: 3px 12px 12px 12px;
+    border-radius: 3px 10px 10px 10px;
     box-shadow: 0 8px 20px rgba(30,40,90,0.05);
     overflow: hidden;
     overflow-x: auto;
@@ -35,7 +35,7 @@
        below this width that starts crushing cells illegibly, so force a
        floor and let .table-wrap's overflow-x handle scrolling instead. */
     .data-table {
-        min-width: 640px;
+        min-width: 544px;
     }
 }
 
@@ -83,7 +83,7 @@
 /* ── Status / role pills ── */
 .pill {
     display: inline-block;
-    padding: 2px 10px;
+    padding: 2px 8px;
     border-radius: var(--radius-pill);
     font-size: var(--text-xs);
     font-weight: 700;

@@ -18,7 +18,7 @@
     font-size: var(--text-xl);
     font-weight: 600;
     color: var(--color-primary);
-    margin: 0 0 4px;
+    margin: 0 0 3px;
 }
 
 .propose-topic-header p {
@@ -41,7 +41,7 @@
     gap: var(--space-xs);
     background: #FDFCF7;
     border: 1px solid #ECE9DD;
-    border-radius: 3px 14px 14px 14px;
+    border-radius: 3px 12px 12px 12px;
     padding: var(--space-lg);
     box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
 }
@@ -63,7 +63,7 @@
     font: inherit;
     padding: var(--space-sm);
     border: 1px solid #ECE9DD;
-    border-radius: 6px;
+    border-radius: 5px;
     background: var(--color-white, #fff);
     color: var(--color-primary);
     resize: vertical;
@@ -86,9 +86,9 @@
 .propose-topic-results {
     background: #FDFCF7;
     border: 1px solid #ECE9DD;
-    border-radius: 3px 14px 14px 14px;
+    border-radius: 3px 12px 12px 12px;
     padding: var(--space-lg);
-    min-height: 260px;
+    min-height: 221px;
     box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
 }
 
@@ -98,12 +98,12 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-sm);
-    height: 220px;
+    height: 187px;
     color: var(--color-gray-dark);
 }
 
 .propose-topic-results__empty i {
-    font-size: 34px;
+    font-size: 29px;
     color: var(--color-gray);
 }
 
@@ -120,7 +120,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-sm) 4px;
+    padding: var(--space-sm) 3px;
     border-bottom: 1px dashed #ECE9DD;
 }
 
@@ -132,15 +132,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 27px;
+    height: 27px;
     flex-shrink: 0;
-    border-radius: 6px;
+    border-radius: 5px;
     background: #FBF3E2;
 }
 
 .pt-match__icon i {
-    font-size: 16px;
+    font-size: 14px;
     color: var(--color-primary);
 }
 
@@ -159,10 +159,10 @@
 
 .pt-badge {
     align-self: flex-start;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 700;
-    border-radius: 10px;
-    padding: 2px 9px;
+    border-radius: 8px;
+    padding: 2px 8px;
 }
 
 .pt-badge--high   { background: #FDE8E8; color: #C0392B; }

@@ -7,7 +7,7 @@
 @import url('../base/root.css');
 
 .archive-sidebar {
-    width: 320px;
+    width: 272px;
     flex-shrink: 0;
     height: 100%;
     display: flex;
@@ -19,7 +19,7 @@
     height: 100%;
     background: var(--bg-card-neutral);
     border: 1px solid #ECE9DD;
-    border-radius: 3px 14px 14px 3px;
+    border-radius: 3px 12px 12px 3px;
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
@@ -28,17 +28,17 @@
 /* Folder tab, matching auth-form-card / doc-card / role-card */
 .sidebar-card__tab {
     position: absolute;
-    top: -13px;
-    left: 24px;
+    top: -11px;
+    left: 20px;
     z-index: 1;
     background: var(--color-accent);
     color: #fff;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 800;
     letter-spacing: 1px;
     text-transform: uppercase;
-    padding: 5px 12px;
-    border-radius: 4px 4px 0 0;
+    padding: 4px 10px;
+    border-radius: 3px 3px 0 0;
     box-shadow: 0 -2px 6px rgba(0,0,0,0.08);
 }
 
@@ -47,9 +47,9 @@
 .sidebar-card::after {
     content: '';
     position: absolute;
-    left: 12px;
-    width: 7px;
-    height: 7px;
+    left: 10px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #F1F2F8;
     box-shadow: inset 0 1px 3px rgba(30,40,90,0.18);
@@ -65,7 +65,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    padding: var(--space-lg) var(--space-lg) var(--space-md) 34px;
+    padding: var(--space-lg) var(--space-lg) var(--space-md) 29px;
     border-bottom: 1px solid #ECE9DD;
 }
 
@@ -78,7 +78,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
-    padding: var(--space-md) var(--space-lg) var(--space-lg) 34px;
+    padding: var(--space-md) var(--space-lg) var(--space-lg) 29px;
 }
 
 /* Only the section actually touching the bottom edge should clip to the
@@ -86,20 +86,20 @@
    Archive, but .sidebar-card__bottom on Admin Requests (which has a
    pinned action bar after the scroll area). */
 .sidebar-card__scroll:not(:has(~ .sidebar-card__bottom)) {
-    border-radius: 0 0 14px 3px;
+    border-radius: 0 0 12px 3px;
 }
 
 .sidebar-card__eyebrow {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     width: fit-content;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 700;
     color: var(--color-accent-hover);
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    padding-bottom: 4px;
+    padding-bottom: 3px;
     border-bottom: 2px solid var(--color-accent);
 }
 
@@ -122,13 +122,13 @@
 .sidebar-meta-row {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
+    gap: 8px;
     font-size: var(--text-sm);
     color: var(--text-dark);
 }
 
 .sidebar-meta-row i {
-    font-size: 16px;
+    font-size: 14px;
     color: var(--color-primary-light);
     flex-shrink: 0;
     margin-top: 1px;
@@ -140,19 +140,19 @@
 }
 
 .sidebar-section-label {
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 700;
     color: var(--color-gray-dark);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin: 0 0 6px;
+    margin: 0 0 5px;
 }
 
 /* ── Keyword / tag chips ── */
 .sidebar-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 5px;
 }
 
 .sidebar-tag {
@@ -160,7 +160,7 @@
     border: 1px solid #D8D3C4;
     color: var(--color-gray-dark);
     font-size: var(--text-xs);
-    padding: 1px 9px;
+    padding: 1px 8px;
     border-radius: var(--radius-pill);
     font-weight: 600;
 }
@@ -179,7 +179,7 @@
     flex: 1;
     min-width: 0;
     text-align: center;
-    padding: var(--space-sm) 4px;
+    padding: var(--space-sm) 3px;
 }
 
 .sidebar-stat + .sidebar-stat {
@@ -196,7 +196,7 @@
 }
 
 .sidebar-stat-label {
-    font-size: 10px;
+    font-size: 8px;
     color: var(--color-gray-dark);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -206,9 +206,9 @@
 /* ── Fixed bottom section: pinned action bar (requests sidebar) ── */
 .sidebar-card__bottom {
     flex-shrink: 0;
-    border-radius: 0 0 14px 3px;
+    border-radius: 0 0 12px 3px;
     overflow: hidden;
-    padding: var(--space-md) var(--space-lg) var(--space-lg) 34px;
+    padding: var(--space-md) var(--space-lg) var(--space-lg) 29px;
     border-top: 1px solid #ECE9DD;
 }
 
@@ -234,7 +234,7 @@
 }
 
 .sidebar-empty i {
-    font-size: 36px;
+    font-size: 31px;
     color: var(--color-gray);
     margin-bottom: var(--space-sm);
 }
@@ -247,6 +247,6 @@
     .archive-sidebar {
         width: 100%;
         height: auto;
-        min-height: 260px;
+        min-height: 221px;
     }
 }
