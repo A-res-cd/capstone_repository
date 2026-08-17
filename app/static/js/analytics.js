@@ -1,9 +1,9 @@
 /* app/static/js/analytics.js
  *
- * Fixed-layout chart dashboard for the Analytics page, styled after the
- * CICT reference dashboard: stat cards, a per-specialization trend line chart,
- * a requests-by-status donut + top-cited list sidebar, and a program
- * donut + summary table along the bottom.
+ * Fixed-layout, no-scroll chart dashboard for the Analytics page, styled
+ * after the RET Chair reference dashboard: stat cards, a per-specialization
+ * trend line chart, a 2x2 Published/Utilized/Presented/Copyright donut
+ * grid, and a program donut + summary table along the bottom.
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -111,54 +111,52 @@ document.addEventListener('DOMContentLoaded', () => {
                     maintainAspectRatio: false,
                     cutout: '62%',
                     plugins: {
-                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } },
+                        legend: { position: 'right', labels: { boxWidth: 8, font: { size: 10 } } },
                     },
                 },
             });
         }
     }
 
-    // ── Requests by Status (donut) ─────────────────────────────────────
-    const statusCanvas = document.getElementById('status-chart');
-    if (statusCanvas) {
-        const labels = window.chartData.status_labels || [];
-        if (!labels.length) {
-            showEmpty(statusCanvas, 'No data available.');
-        } else {
-            const statusColors = {
-                'Pending': accent, 'Approved': '#2ecc71',
-                'Rejected': '#e74c3c', 'Cancelled': grayLight,
-            };
-            new Chart(statusCanvas, {
-                type: 'doughnut',
-                data: {
-                    labels,
-                    datasets: [{
-                        data: window.chartData.status_totals,
-                        backgroundColor: labels.map(l => statusColors[l] || primaryLight),
-                        borderWidth: 0,
-                        hoverOffset: 6,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '68%',
-                    onClick: (event, elements) => {
-                        if (elements.length === 0) return;
-                        const status = labels[elements[0].index];
-                        window.location.href = `/requests?status=${encodeURIComponent(status)}`;
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => `${ctx.label}: ${ctx.raw}. Click to view requests`
-                            }
-                        },
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } }
-                    }
-                }
-            });
+    // ── Published / Utilized / Presented / Copyright Registered
+    // (2x2 small-donut grid) — shares one helper since all four follow
+    // the same yes/no shape. See SESSION_HANDOFF.md #9. ─────────────────
+    function renderStatusDonut(canvasId, labels, totals, yesColor) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const total = (totals || []).reduce((a, b) => a + b, 0);
+        if (!total) {
+            showEmpty(canvas, 'No data available.');
+            return;
         }
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: totals,
+                    backgroundColor: [yesColor, grayLight],
+                    borderWidth: 0,
+                    hoverOffset: 6,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 7, font: { size: 9 } } },
+                },
+            },
+        });
     }
+
+    renderStatusDonut('published-chart',
+        window.chartData.published_labels, window.chartData.published_totals, primary);
+    renderStatusDonut('utilized-chart',
+        window.chartData.utilized_labels, window.chartData.utilized_totals, '#27AE60');
+    renderStatusDonut('presented-chart',
+        window.chartData.presented_labels, window.chartData.presented_totals, accent);
+    renderStatusDonut('copyright-chart',
+        window.chartData.copyright_labels, window.chartData.copyright_totals, '#7C56D1');
 });

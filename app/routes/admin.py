@@ -12,7 +12,8 @@ from app.db.database import (
     get_capstones_by_specialization, get_requests_by_status, get_top_cited_capstones, add_to_bin,
     restore_capstone, ARCHIVE_RETENTION_DAYS,
     get_pending_verifications, review_verification_request,
-    get_capstones_by_program, get_capstone_trend_by_specialization
+    get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags,
+    get_capstone_program_summary
 )
 from app.routes.decorators import role_required
 from app.utils.pdf_extractor import extract_capstone_data, _parse_abstract_page
@@ -108,13 +109,13 @@ def analytics():
     if err:
         db_errors.append(f"Capstone trend by specialization: {err}")
 
-    by_status, err = get_requests_by_status()
+    status_flags, err = get_capstone_status_flags()
     if err:
-        db_errors.append(f"Requests by status: {err}")
+        db_errors.append(f"Capstone status flags: {err}")
 
-    top_cited, err = get_top_cited_capstones(limit=5)
+    program_summary, err = get_capstone_program_summary()
     if err:
-        db_errors.append(f"Top cited capstones: {err}")
+        db_errors.append(f"Capstone program summary: {err}")
 
     if db_errors:
         for msg in db_errors:
@@ -126,15 +127,24 @@ def analytics():
     program_labels = [row["program_name"] for row in by_program]
     program_totals = [row["total"] for row in by_program]
 
-    status_labels  = [row["request_status"].capitalize() for row in by_status]
-    status_totals  = [row["total"]                       for row in by_status]
-
     # ── Summary card figures ──
-    total_capstones  = sum(program_totals)
-    total_requests   = sum(status_totals)
-    pending_requests = next((t for l, t in zip(status_labels, status_totals) if l == "Pending"), 0)
-    top_cited_title  = top_cited[0]["capstone_title"]  if top_cited else None
-    top_cited_count  = top_cited[0]["citation_count"]  if top_cited else 0
+    total_capstones = sum(program_totals)
+
+    # ── Published / Utilized / Presented / Copyright Registered donuts.
+    # Every archived-in record is inherently "published" (no draft
+    # workflow state exists), so Published is always total/total. ──
+    status_flags = status_flags or {}
+    published_labels = ["Published", "Not Published"]
+    published_totals = [total_capstones, 0]
+
+    utilized_labels = ["Utilized", "Not Utilized"]
+    utilized_totals = [status_flags.get("utilized", 0), status_flags.get("not_utilized", 0)]
+
+    presented_labels = ["Presented", "Not Presented"]
+    presented_totals = [status_flags.get("presented", 0), status_flags.get("not_presented", 0)]
+
+    copyright_labels = ["Registered", "Not Registered"]
+    copyright_totals = [status_flags.get("copyright_registered", 0), status_flags.get("not_copyright_registered", 0)]
 
     # ── Per-program stat cards, in the reference dashboard's style ──
     program_cards = []
@@ -146,6 +156,35 @@ def analytics():
             "pct": pct,
         })
 
+    # ── Summary-by-program table rows, with per-metric percentages ──
+    def _pct(part, whole):
+        return round((part / whole) * 100, 1) if whole else 0
+
+    summary_rows = []
+    for row in (program_summary or []):
+        total = row["total"]
+        summary_rows.append({
+            "name": row["program_name"],
+            "total": total,
+            "total_pct": _pct(total, total_capstones),
+            "published": total,
+            "published_pct": _pct(total, total),
+            "utilized": row["utilized"],
+            "utilized_pct": _pct(row["utilized"], total),
+            "presented": row["presented"],
+            "presented_pct": _pct(row["presented"], total),
+            "copyright_registered": row["copyright_registered"],
+            "copyright_pct": _pct(row["copyright_registered"], total),
+        })
+
+    summary_totals = {
+        "total": total_capstones,
+        "published": total_capstones,
+        "utilized": sum(r["utilized"] for r in summary_rows),
+        "presented": sum(r["presented"] for r in summary_rows),
+        "copyright_registered": sum(r["copyright_registered"] for r in summary_rows),
+    }
+
     return render_template(
         "admin/analytics.html",
         specialization_labels=specialization_labels,
@@ -155,15 +194,18 @@ def analytics():
         program_cards=program_cards,
         trend_years=trend_years,
         trend_series=trend_series,
-        status_labels=status_labels,
-        status_totals=status_totals,
-        top_cited=top_cited,
         has_db_errors=bool(db_errors),
         total_capstones=total_capstones,
-        total_requests=total_requests,
-        pending_requests=pending_requests,
-        top_cited_title=top_cited_title,
-        top_cited_count=top_cited_count,
+        published_labels=published_labels,
+        published_totals=published_totals,
+        utilized_labels=utilized_labels,
+        utilized_totals=utilized_totals,
+        presented_labels=presented_labels,
+        presented_totals=presented_totals,
+        copyright_labels=copyright_labels,
+        copyright_totals=copyright_totals,
+        summary_rows=summary_rows,
+        summary_totals=summary_totals,
     )
 
 
@@ -304,6 +346,9 @@ def admin_create_capstone():
             capstone_year = request.form.get('capstone_year')
             citation = request.form.get('citation_count')
             sem = request.form.get('semester')
+            is_utilized = request.form.get('is_utilized') == 'on'
+            is_presented = request.form.get('is_presented') == 'on'
+            is_copyright_registered = request.form.get('is_copyright_registered') == 'on'
 
             file = request.files.get('capstone_file')
             extracted_filename = request.form.get("extracted_filename")
@@ -335,7 +380,10 @@ def admin_create_capstone():
                     keyword_id, specialization, program,
                     capstone_title, capstone_year,
                     file_path, citation, sem,
-                    acting_user_id=session.get("user_id")
+                    acting_user_id=session.get("user_id"),
+                    is_utilized=is_utilized,
+                    is_presented=is_presented,
+                    is_copyright_registered=is_copyright_registered
                 )
                 if success:
                     new_capstone_id = message
@@ -390,6 +438,9 @@ def update_capstone(capstone_id):
         new_citation = request.form.get('citation_count') or 0
         new_sem = request.form.get('semester') or None
         new_keywords = request.form.get('capstone_keywords', '').strip()
+        new_is_utilized = request.form.get('is_utilized') == 'on'
+        new_is_presented = request.form.get('is_presented') == 'on'
+        new_is_copyright_registered = request.form.get('is_copyright_registered') == 'on'
 
         file_path = capstone['capstone_file']
         file = request.files.get('capstone_file')
@@ -413,7 +464,10 @@ def update_capstone(capstone_id):
         success, message = update_capstone_record(
             capstone_id, keyword_id, new_specialization, new_program,
             new_capstone_title, new_capstone_year, file_path, new_citation,
-            new_sem, acting_user_id=session.get("user_id"))
+            new_sem, acting_user_id=session.get("user_id"),
+            is_utilized=new_is_utilized,
+            is_presented=new_is_presented,
+            is_copyright_registered=new_is_copyright_registered)
 
         if not success:
             flash(f"Error updating capstone: {message}", "danger")

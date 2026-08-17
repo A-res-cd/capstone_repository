@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('file-label-note', '(required)');
         setText('current-file-note', '');
         setDisplay('extract-section', 'block');
+        document.getElementById('extract-file-input').required = true;
         document.getElementById('capstone-form').action =
             "/repository/create";
         showForm();
@@ -52,12 +53,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const semester = btn.dataset.semester;
         const citations = btn.dataset.citations;
         const file = btn.dataset.file;
+        const utilized = btn.dataset.utilized === 'true';
+        const presented = btn.dataset.presented === 'true';
+        const copyrightRegistered = btn.dataset.copyright === 'true';
 
         document.getElementById('field-capstone-id').value = id;
         document.getElementById('capstone_title').value = title;
         document.getElementById('capstone_keywords').value = keywords;
         document.getElementById('capstone_year').value = year;
         document.getElementById('citation_count').value = citations || 0;
+        document.getElementById('is_utilized').checked = utilized;
+        document.getElementById('is_presented').checked = presented;
+        document.getElementById('is_copyright_registered').checked = copyrightRegistered;
 
         // select dropdowns
         setSelect('program_id', program);
@@ -70,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('file-label-note', '(leave blank to keep existing)');
         setText('current-file-note', file ? ' · Current: ' + file : ' · No file uploaded');
         setDisplay('extract-section', 'none');
+        document.getElementById('extract-file-input').required = false;
 
         document.getElementById('capstone-form').action =
             "/repository/update/" + id;

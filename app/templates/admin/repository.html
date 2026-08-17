@@ -69,7 +69,10 @@
                         data-year="{{ c.capstone_year }}"
                         data-semester="{{ c.semester }}"
                         data-citations="{{ c.citation_count }}"
-                        data-file="{{ c.capstone_file }}">
+                        data-file="{{ c.capstone_file }}"
+                        data-utilized="{{ 'true' if c.is_utilized else 'false' }}"
+                        data-presented="{{ 'true' if c.is_presented else 'false' }}"
+                        data-copyright="{{ 'true' if c.is_copyright_registered else 'false' }}">
                         <i class="bx bx-edit-alt"></i> Edit
                     </button>
                     <button class="btn-row btn-row--delete"
@@ -119,15 +122,15 @@
                    Only shown when creating (not editing). #}
                 <div class="form-group form-group--full" id="extract-section">
                     <label>
-                        Upload PDF to Auto-fill Fields
-                        <span class="label-note">(optional — PDF only)</span>
+                        Upload Capstone File <span class="req">*</span>
+                        <span class="label-note">(PDF, DOC, or DOCX — PDFs also auto-fill the form)</span>
                     </label>
                     <div class="file-upload-wrapper">
-                        <input type="file" id="extract-file-input" accept=".pdf"
+                        <input type="file" id="extract-file-input" name="capstone_file" accept=".pdf,.doc,.docx" required
                                data-extract-url="{{ url_for('admin.extract_capstone_pdf') }}">
                         <p class="file-hint">
                             <i class="bx bx-info-circle"></i>
-                            Upload the capstone PDF first — the form will pre-fill automatically.
+                            Upload the capstone file — a PDF will pre-fill the fields below automatically.
                             You can still edit anything before submitting.
                         </p>
                     </div>
@@ -197,6 +200,24 @@
                         </div>
                     </div>
                 </div>
+
+                <fieldset class="form-group form-group--full">
+                    <legend>Status</legend>
+                    <div class="status-checkbox-row">
+                        <label class="status-checkbox">
+                            <input type="checkbox" id="is_utilized" name="is_utilized">
+                            <span>Utilized</span>
+                        </label>
+                        <label class="status-checkbox">
+                            <input type="checkbox" id="is_presented" name="is_presented">
+                            <span>Presented</span>
+                        </label>
+                        <label class="status-checkbox">
+                            <input type="checkbox" id="is_copyright_registered" name="is_copyright_registered">
+                            <span>Copyright Registered</span>
+                        </label>
+                    </div>
+                </fieldset>
 
                 <fieldset class="form-group form-group--full">
                     <legend>Authors (up to 4)</legend>

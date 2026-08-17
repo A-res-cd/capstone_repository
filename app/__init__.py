@@ -4,6 +4,7 @@ from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_debugtoolbar import DebugToolbarExtension
 
 from .auth_utils import load_current_user
 
@@ -19,7 +20,9 @@ def create_app():
     mail.init_app(app)
     csrf.init_app(app)
 
+    app.debug = True
     app.secret_key = app.config["SECRET_KEY"]
+    toolbar = DebugToolbarExtension(app)
 
     app.before_request(load_current_user)
 
@@ -40,5 +43,8 @@ def create_app():
             next_run_time=datetime.now(),
         )
         scheduler.start()
+
+    
+
 
     return app

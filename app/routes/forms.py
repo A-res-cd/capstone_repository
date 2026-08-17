@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField
+from flask_wtf.file import FileField, FileAllowed, FileRequired
+from wtforms import StringField, PasswordField, IntegerField, SelectField, BooleanField, HiddenField
 from wtforms.validators import DataRequired, Email, Length ,Regexp, EqualTo, Optional
 
 class SigninForm(FlaskForm):
@@ -30,3 +31,15 @@ class VerifyOTPForm(FlaskForm):
     otp = StringField("OTP", validators=[DataRequired(message = "Please enter the OTP."), Length(min=6, max=6, message="OTP must be 6 digit."), Regexp(r'^\d{6}$', message="OTP must be numbers onyl.")])
 
 #ts took me 1hr to code 💀 (i see you reading the code 👀) i know it's shit man
+
+
+
+# Create Capstone Form
+class CreateCapstoneForm(FlaskForm):
+
+    capstone_id = HiddenField()
+    extracted_filename = HiddenField()
+
+    capstone_file = FileField()
+
+    pass

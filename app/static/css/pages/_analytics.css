@@ -1,9 +1,10 @@
 /* ============================================================
    PAGE: Analytics & Reports
-   Styled after the CICT reference dashboard: stat-card row,
-   a trend chart + requests sidebar, then a program donut +
-   summary table along the bottom — paper/index-card theme,
-   drag-and-drop grid removed (see analytics.js note).
+   Styled after the RET Chair reference dashboard: stat-card row,
+   a trend chart + Published/Utilized/Presented/Copyright donut
+   grid, then a program donut + summary table along the bottom.
+   The whole page is sized to fit one viewport — no page scroll,
+   for admin convenience (see main:has() override below).
 ============================================================ */
 @import url('../base/root.css');
 
@@ -18,11 +19,24 @@
     --chart-color-5: #B23A28;
 }
 
-.analytics-section {
-    padding: var(--space-lg) var(--space-xl);
+/* ── Page shell — main becomes the flex column that pins this
+   section to exactly the viewport's remaining height, so nothing
+   here ever needs its own scrollbar. ── */
+main:has(.analytics-section) {
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    overflow: hidden;
+}
+
+.analytics-section {
+    padding: var(--space-md) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .analytics-page-header h2 {
@@ -44,8 +58,9 @@
    shrinks with however many programs actually exist. ── */
 .analytics-stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--space-md);
+    flex: 0 0 auto;
 }
 
 .analytics-stat-card {
@@ -81,15 +96,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     flex-shrink: 0;
     border-radius: 7px;
     background: #FBF3E2;
 }
 
 .analytics-stat-card__icon i {
-    font-size: 17px;
+    font-size: 16px;
     color: var(--color-accent);
 }
 
@@ -101,7 +116,7 @@
 
 .analytics-stat-card__value {
     font-family: var(--font-display);
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--color-primary);
     line-height: 1.1;
@@ -124,12 +139,13 @@
     color: #27AE60;
 }
 
-/* ── Row 2 — trend chart (main) + requests/top-cited sidebar ── */
+/* ── Row 2 — trend chart (main) + 2x2 status-donut grid ── */
 .analytics-main-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1.7fr 1fr;
     gap: var(--space-lg);
-    min-height: 238px;
+    flex: 1.15;
+    min-height: 0;
 }
 
 .analytics-panel {
@@ -151,7 +167,8 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
+    flex: 0 0 auto;
 }
 
 .analytics-panel__header h3 {
@@ -164,7 +181,7 @@
 
 .analytics-panel__header h4 {
     font-family: var(--font-display);
-    font-size: var(--text-md);
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-primary);
     margin: 0;
@@ -178,17 +195,8 @@
 
 .analytics-panel__chart-wrap {
     flex: 1;
-    min-height: 221px;
+    min-height: 0;
     position: relative;
-}
-
-.analytics-panel--main .analytics-panel__chart-wrap {
-    min-height: 170px;
-    max-height: 238px;
-}
-
-.analytics-panel__chart-wrap--small {
-    min-height: 153px;
 }
 
 .analytics-widget__empty-msg {
@@ -200,108 +208,63 @@
     font-size: var(--text-sm);
 }
 
-/* ── Right column — stacked side panels ── */
-.analytics-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-    min-height: 0;
-}
-
-.analytics-sidebar .analytics-panel--side:last-child {
-    flex: 1;
-    min-height: 0;
-}
-
-/* ── Top-cited list — reads like a filed index card list ── */
-.analytics-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.analytics-list__item {
-    display: flex;
-    align-items: center;
+/* ── 2x2 grid: Published / Utilized / Presented / Copyright.
+   Fixed (not flex:1) height on the chart-wrap — Chart.js's
+   maintainAspectRatio:false needs a definite container height up
+   front, otherwise the canvas and its flex parent fight over size
+   and the donut balloons past the panel (and the page). ── */
+.analytics-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
     gap: var(--space-sm);
-    padding: var(--space-sm) 3px;
-    border-bottom: 1px dashed #ECE9DD;
+    min-height: 0;
 }
 
-.analytics-list__item:last-child {
-    border-bottom: none;
+.analytics-panel--status {
+    padding: var(--space-sm) var(--space-sm);
 }
 
-.analytics-list__icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    flex-shrink: 0;
-    border-radius: 5px;
-    background: #FBF3E2;
+.analytics-panel--status .analytics-panel__header {
+    margin-bottom: 0;
 }
 
-.analytics-list__icon i {
-    font-size: 13px;
-    color: var(--color-primary);
-}
-
-.analytics-list__body {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    flex: 1;
-}
-
-.analytics-list__title {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--color-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.analytics-list__meta {
-    font-size: 9px;
-    color: var(--color-gray-dark);
-}
-
-.analytics-list__badge {
-    flex-shrink: 0;
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--color-accent);
-    background: #FBF3E2;
-    border-radius: 8px;
-    padding: 3px 8px;
-}
-
-.analytics-list__empty {
-    padding: var(--space-md);
-    text-align: center;
-    font-size: var(--text-sm);
-    color: var(--color-gray-dark);
+.analytics-panel--status .analytics-panel__chart-wrap {
+    flex: none;
+    height: 92px;
+    max-width: 220px;
+    margin: 0 auto;
 }
 
 /* ── Row 3 — program donut + summary table ── */
 .analytics-bottom-grid {
     display: grid;
-    grid-template-columns: 1fr 1.4fr;
+    grid-template-columns: 1fr 1.7fr;
     gap: var(--space-lg);
+    flex: 1;
+    min-height: 0;
 }
 
 .analytics-panel--donut .analytics-panel__chart-wrap {
-    min-height: 221px;
+    flex: none;
+    height: 170px;
+    max-width: 240px;
+    margin: 0 auto;
+}
+
+.analytics-panel--donut,
+.analytics-panel--status {
+    justify-content: center;
+}
+
+.analytics-panel--table {
+    overflow: hidden;
 }
 
 .analytics-table-wrap {
-    overflow-x: auto;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
 }
 
 .analytics-table {
@@ -312,7 +275,7 @@
 
 .analytics-table th {
     text-align: left;
-    padding: 7px 8px;
+    padding: 6px 8px;
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.3px;
@@ -320,10 +283,13 @@
     color: var(--color-gray-dark);
     border-bottom: 2px solid #ECE9DD;
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: #FDFCF7;
 }
 
 .analytics-table td {
-    padding: 8px 8px;
+    padding: 7px 8px;
     color: var(--color-primary);
     border-bottom: 1px dashed #ECE9DD;
     white-space: nowrap;
@@ -334,7 +300,7 @@
 }
 
 .analytics-table tfoot td {
-    padding: 8px;
+    padding: 7px 8px;
     font-weight: 700;
     border-top: 2px solid #ECE9DD;
     border-bottom: none;
@@ -348,24 +314,67 @@
     margin-right: 7px;
 }
 
+.analytics-table__pct {
+    font-size: 9px;
+    color: var(--color-gray-dark);
+    font-weight: 500;
+}
+
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
+   Below 900px, the no-scroll page constraint is dropped —
+   a phone-sized screen genuinely can't fit this much data
+   in one view, so it reverts to normal scroll.
 ══════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
+    main:has(.analytics-section) {
+        overflow: visible;
+    }
+
+    .analytics-section {
+        overflow: visible;
+        flex: none;
+        padding: var(--space-md);
+    }
+
     .analytics-stats-row {
         grid-template-columns: 1fr 1fr;
     }
 
     .analytics-main-grid {
         grid-template-columns: 1fr;
-        min-height: 0;
-    }
-
-    .analytics-bottom-grid {
-        grid-template-columns: 1fr;
+        flex: none;
     }
 
     .analytics-panel__chart-wrap {
         min-height: 204px;
+    }
+
+    .analytics-status-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: none;
+    }
+
+    .analytics-panel--status .analytics-panel__chart-wrap {
+        min-height: 150px;
+    }
+
+    .analytics-bottom-grid {
+        grid-template-columns: 1fr;
+        flex: none;
+    }
+
+    .analytics-table-wrap {
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .analytics-stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .analytics-status-grid {
+        grid-template-columns: 1fr;
     }
 }

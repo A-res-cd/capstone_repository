@@ -28,7 +28,8 @@
             <span class="analytics-stat-card__icon"><i class="bx bx-collection"></i></span>
             <div class="analytics-stat-card__body">
                 <span class="analytics-stat-card__value">{{ total_capstones }}</span>
-                <span class="analytics-stat-card__label">Total Capstones</span>
+                <span class="analytics-stat-card__label">Total Capstone</span>
+                <span class="analytics-stat-card__pct">100% of Total</span>
             </div>
         </div>
         {% for card in program_cards %}
@@ -36,21 +37,21 @@
             <span class="analytics-stat-card__icon"><i class="bx bx-group"></i></span>
             <div class="analytics-stat-card__body">
                 <span class="analytics-stat-card__value">{{ card.total }}</span>
-                <span class="analytics-stat-card__label">{{ card.name }}</span>
+                <span class="analytics-stat-card__label">Total {{ card.name }} Capstone</span>
                 <span class="analytics-stat-card__pct">{{ card.pct }}% of Total</span>
             </div>
         </div>
         {% endfor %}
     </div>
 
-    {# ── Row 2 — Trend chart (main) + Requests/Top Cited (sidebar) ── #}
+    {# ── Row 2 — Trend chart (main) + Published/Utilized/Presented/Copyright
+       (2x2 donut grid), matching the reference dashboard's layout. ── #}
     <div class="analytics-main-grid">
 
         <div class="analytics-panel analytics-panel--main">
             <div class="analytics-panel__header">
                 <div>
                     <h3>Capstone Trend per Year</h3>
-                    <p>Number of capstones submitted per specialization, by academic year</p>
                 </div>
             </div>
             <div class="analytics-panel__chart-wrap">
@@ -58,38 +59,43 @@
             </div>
         </div>
 
-        <aside class="analytics-sidebar">
-
-            <div class="analytics-panel analytics-panel--side">
+        <div class="analytics-status-grid">
+            <div class="analytics-panel analytics-panel--status">
                 <div class="analytics-panel__header">
-                    <h4>Requests by Status</h4>
+                    <h4>Capstone Published</h4>
                 </div>
                 <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
-                    <canvas id="status-chart"></canvas>
+                    <canvas id="published-chart"></canvas>
                 </div>
             </div>
 
-            <div class="analytics-panel analytics-panel--side">
+            <div class="analytics-panel analytics-panel--status">
                 <div class="analytics-panel__header">
-                    <h4>Top Cited Capstones</h4>
+                    <h4>Capstone Utilized</h4>
                 </div>
-                <ul class="analytics-list">
-                    {% for c in top_cited %}
-                    <li class="analytics-list__item">
-                        <span class="analytics-list__icon"><i class="bx bx-file-blank"></i></span>
-                        <div class="analytics-list__body">
-                            <span class="analytics-list__title">{{ c.capstone_title }}</span>
-                            <span class="analytics-list__meta">{{ c.program_name }}</span>
-                        </div>
-                        <span class="analytics-list__badge">{{ c.citation_count }}</span>
-                    </li>
-                    {% else %}
-                    <li class="analytics-list__empty">No citations recorded yet.</li>
-                    {% endfor %}
-                </ul>
+                <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
+                    <canvas id="utilized-chart"></canvas>
+                </div>
             </div>
 
-        </aside>
+            <div class="analytics-panel analytics-panel--status">
+                <div class="analytics-panel__header">
+                    <h4>Capstone Presented</h4>
+                </div>
+                <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
+                    <canvas id="presented-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="analytics-panel analytics-panel--status">
+                <div class="analytics-panel__header">
+                    <h4>Capstone Copyright</h4>
+                </div>
+                <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
+                    <canvas id="copyright-chart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     {# ── Row 3 — Program donut + Summary table, matching the reference
@@ -114,24 +120,33 @@
                     <thead>
                         <tr>
                             <th>Program</th>
-                            <th>Total Capstones</th>
-                            <th>% of Total</th>
+                            <th>Total Capstone</th>
+                            <th>Published</th>
+                            <th>Utilized</th>
+                            <th>Presented</th>
+                            <th>Copyright Registered</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for card in program_cards %}
+                        {% for row in summary_rows %}
                         <tr>
-                            <td><span class="analytics-table__dot" style="background: var(--chart-color-{{ loop.index0 % 6 }});"></span>{{ card.name }}</td>
-                            <td>{{ card.total }}</td>
-                            <td>{{ card.pct }}%</td>
+                            <td><span class="analytics-table__dot" style="background: var(--chart-color-{{ loop.index0 % 6 }});"></span>{{ row.name }}</td>
+                            <td>{{ row.total }} <span class="analytics-table__pct">({{ row.total_pct }}%)</span></td>
+                            <td>{{ row.published }} <span class="analytics-table__pct">({{ row.published_pct }}%)</span></td>
+                            <td>{{ row.utilized }} <span class="analytics-table__pct">({{ row.utilized_pct }}%)</span></td>
+                            <td>{{ row.presented }} <span class="analytics-table__pct">({{ row.presented_pct }}%)</span></td>
+                            <td>{{ row.copyright_registered }} <span class="analytics-table__pct">({{ row.copyright_pct }}%)</span></td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td>Total</td>
-                            <td>{{ total_capstones }}</td>
-                            <td>100%</td>
+                            <td>{{ summary_totals.total }} <span class="analytics-table__pct">(100%)</span></td>
+                            <td>{{ summary_totals.published }} <span class="analytics-table__pct">(100%)</span></td>
+                            <td>{{ summary_totals.utilized }}</td>
+                            <td>{{ summary_totals.presented }}</td>
+                            <td>{{ summary_totals.copyright_registered }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -149,8 +164,14 @@
         program_totals: {{ program_totals | tojson }},
         trend_years: {{ trend_years | tojson }},
         trend_series: {{ trend_series | tojson }},
-        status_labels: {{ status_labels | tojson }},
-        status_totals: {{ status_totals | tojson }}
+        published_labels: {{ published_labels | tojson }},
+        published_totals: {{ published_totals | tojson }},
+        utilized_labels: {{ utilized_labels | tojson }},
+        utilized_totals: {{ utilized_totals | tojson }},
+        presented_labels: {{ presented_labels | tojson }},
+        presented_totals: {{ presented_totals | tojson }},
+        copyright_labels: {{ copyright_labels | tojson }},
+        copyright_totals: {{ copyright_totals | tojson }}
     };
 </script>
 {% endblock %}
