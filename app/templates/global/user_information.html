@@ -8,9 +8,23 @@
 <section class="user-information-section">
     <div class="user-information-content">
 
-        <div class="ui-page-header">
-            <h2>User Information</h2>
-            <p>View your profile details and manage how others can reach you.</p>
+        {# ── Identity header — avatar + name + role, so the page
+           confirms "this is you" at a glance instead of dropping
+           straight into form fields. ── #}
+        <div class="ui-identity-header">
+            <div class="ui-avatar">{{ (profile.user_first_name or '?')[0] | upper }}</div>
+            <div class="ui-identity-header__text">
+                <h2>{{ profile.user_first_name }} {{ profile.user_last_name }}</h2>
+                <p>View your profile details and manage how others can reach you.</p>
+            </div>
+            {% if profile.role_name %}
+            <span class="role-badge
+                {% if profile.role_name == 'Admin' %}role-badge--admin
+                {% elif profile.role_name == 'Faculty' %}role-badge--faculty
+                {% else %}role-badge--student{% endif %}">
+                {{ profile.role_name }}
+            </span>
+            {% endif %}
         </div>
 
         {# ── Flash Messages ── #}
@@ -73,11 +87,11 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Email</label>
-                            <input type="text" name="email" value="{{ contact_by_type.get('email').contact_value if contact_by_type.get('email') else '' }}" placeholder="Not provided" readonly>
+                            <input type="email" name="email" value="{{ contact_by_type.get('email').contact_value if contact_by_type.get('email') else '' }}" placeholder="Not provided" readonly>
                         </div>
                         <div class="form-group">
                             <label>Contact number</label>
-                            <input type="text" name="phone" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
+                            <input type="tel" name="phone" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
                         </div>
                     </div>
                     <div class="form-row">
@@ -90,12 +104,11 @@
                             <input type="text" name="instagram" value="{{ contact_by_type.get('instagram').contact_value if contact_by_type.get('instagram') else '' }}" placeholder="Not provided" readonly>
                         </div>
                     </div>
-                    <div class="form-row">
+                    <div class="form-row form-row--single">
                         <div class="form-group">
                             <label>Twitter/X</label>
                             <input type="text" name="twitter" value="{{ contact_by_type.get('twitter').contact_value if contact_by_type.get('twitter') else '' }}" placeholder="Not provided" readonly>
                         </div>
-                        <div class="form-group"></div>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn-pill btn-pill--secondary" id="edit-contact-btn">
@@ -111,6 +124,38 @@
                 </form>
             </div>
 
+        </div>
+
+        {# ── Change Password — full-width, kept visually separate from
+           the two info cards since it's a sensitive/security action,
+           not a display-info-about-yourself action. ── #}
+        <div class="user-information-update-group ui-password-card">
+            <div class="ui-card-header">
+                <h3><i class="bx bx-lock-alt"></i> Change Password</h3>
+                <p>Choose a password you don't use anywhere else.</p>
+            </div>
+            <form method="post" action="{{ url_for('pages.update_own_password') }}" id="password-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-row form-row--3col">
+                    <div class="form-group">
+                        <label for="current_password">Current password</label>
+                        <input type="password" id="current_password" name="current_password" placeholder="••••••••" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">New password</label>
+                        <input type="password" id="new_password" name="new_password" placeholder="At least 6 characters" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm new password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="6" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-pill btn-pill--primary">
+                        <i class="bx bx-lock-alt"></i> Update Password
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </section>
@@ -143,6 +188,24 @@
             editContactBtn.classList.remove('hidden');
             saveContactBtn.classList.add('hidden');
             cancelContactBtn.classList.add('hidden');
+        });
+    }
+
+    // Password confirmation check — catches typos before hitting the
+    // server, which still re-validates via EqualTo() regardless.
+    const passwordForm = document.getElementById('password-form');
+    if (passwordForm) {
+        passwordForm.addEventListener('submit', (e) => {
+            const newPw = document.getElementById('new_password').value;
+            const confirmPw = document.getElementById('confirm_password').value;
+            if (newPw !== confirmPw) {
+                e.preventDefault();
+                document.getElementById('confirm_password').setCustomValidity('Passwords do not match.');
+                document.getElementById('confirm_password').reportValidity();
+            }
+        });
+        document.getElementById('confirm_password').addEventListener('input', function () {
+            this.setCustomValidity('');
         });
     }
 </script>

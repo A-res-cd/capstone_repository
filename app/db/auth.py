@@ -573,6 +573,39 @@ def change_password(reset_id, user_id, new_password):
         mithrix.close()
         conn.close()
 
+def change_own_password(user_id, current_password, new_password):
+    """
+    Self-service password change from the User Information page —
+    distinct from change_password(), which is reached via the
+    forgot-password/OTP flow (proves identity through email instead of
+    a known current password). Verifies current_password first, then
+    reuses change_password()'s existing swap logic with reset_id=None
+    (there's no password_reset row to mark used in this flow).
+    """
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT r.password AS password_hash
+            FROM slug sl
+            JOIN ror r ON r.password_id = sl.password_id
+            WHERE sl.user_id = %s AND sl.is_current = TRUE
+            LIMIT 1
+        """, (user_id,))
+        row = mithrix.fetchone()
+
+        if not row or not check_password_hash(row["password_hash"], current_password):
+            return False, "Current password is incorrect."
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return False, "A database error occurred. Please try again."
+    finally:
+        mithrix.close()
+        conn.close()
+
+    return change_password(None, user_id, new_password)
+
+
 def sign_out(user_id, device_ip=None):
     conn = db_connect()
     mithrix = conn.cursor()

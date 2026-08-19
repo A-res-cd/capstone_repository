@@ -3,29 +3,32 @@ Manage Users: listing, contact info, roles, and account deletion.
 """
 import logging
 import psycopg2.extras
-from datetime import datetime, timezone
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
 
 def get_own_profile(user_id):
     """
-    A user's own first/middle/last name, university number, and current
-    username — feeds the User Information page's "Basic Information" tab.
-    (That tab previously showed hardcoded placeholder text since nothing
-    fetched this; see the kappa/slug join pattern reused from
-    app/db/auth.py's sign_in().)
+    A user's own first/middle/last name, university number, current
+    username, and role — feeds the User Information page (both the
+    "Basic Information" tab and the identity header). This tab
+    previously showed hardcoded placeholder text since nothing fetched
+    this; see the kappa/slug join pattern reused from
+    app/db/auth.py's sign_in().
     """
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         mithrix.execute("""
             SELECT u.user_first_name, u.user_middle_name, u.user_last_name,
-                   u.university_no, k.username
+                   u.university_no, k.username, r.role_name
             FROM "user" u
+            JOIN role r ON r.role_id = u.role_id
             LEFT JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
             LEFT JOIN kappa k ON k.username_id = sl.username_id
             WHERE u.user_id = %s

@@ -1,12 +1,14 @@
 from flask import Blueprint, render_template, request, flash, session, redirect, url_for, jsonify, current_app
 import os
+import re
 import logging
 from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact,
-get_capstones_corpus, get_own_profile
+get_capstones_corpus, get_own_profile, change_own_password
 )
 from app.routes.decorators import login_required, role_required
+from app.routes.forms import ChangePasswordForm
 from app.utils.pdf_extractor import extract_capstone_data
 from app.services.recommender import TopicRecommender
 
@@ -14,6 +16,8 @@ pages = Blueprint("pages", __name__)
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 12
+EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+PHONE_PATTERN = re.compile(r'^[0-9+()\-\s]{7,20}$')
 
 
 @pages.route("/archive")
@@ -85,6 +89,7 @@ def user_info():
         contacts=contacts,
         contact_labels=contact_labels,
         contact_by_type=contact_by_type,
+        password_form=ChangePasswordForm(),
     )
 
 
@@ -100,6 +105,14 @@ def update_user_contact_info():
         "twitter": request.form.get("twitter", "").strip(),
     }
 
+    if values["email"] and not EMAIL_PATTERN.match(values["email"]):
+        flash("That doesn't look like a valid email address.", "danger")
+        return redirect(url_for("pages.user_info"))
+
+    if values["phone"] and not PHONE_PATTERN.match(values["phone"]):
+        flash("That doesn't look like a valid contact number.", "danger")
+        return redirect(url_for("pages.user_info"))
+
     any_saved = False
     for contact_type, contact_value in values.items():
         if contact_value:
@@ -113,6 +126,30 @@ def update_user_contact_info():
         flash("Contact information updated successfully.", "success")
     else:
         flash("No contact information was entered.", "warning")
+    return redirect(url_for("pages.user_info"))
+
+
+@pages.route("/user-info/password", methods=["POST"])
+@login_required
+def update_own_password():
+    form = ChangePasswordForm()
+
+    if not form.validate_on_submit():
+        for field_errors in form.errors.values():
+            for err in field_errors:
+                flash(err, "danger")
+                break
+            break
+        return redirect(url_for("pages.user_info"))
+
+    user_id = session.get("user_id")
+    ok, err = change_own_password(
+        user_id, form.current_password.data, form.new_password.data)
+
+    if ok:
+        flash("Password changed successfully.", "success")
+    else:
+        flash(err, "danger")
     return redirect(url_for("pages.user_info"))
 
 

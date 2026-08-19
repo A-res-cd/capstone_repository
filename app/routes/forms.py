@@ -30,6 +30,15 @@ class ResetPasswordForm(FlaskForm):
     new_password = PasswordField("New Password", validators = [DataRequired(), Length(min=6, message="Password must be at least 6 characters.")])
     confirm_password = PasswordField("Confirm Password", validators = [DataRequired(), EqualTo("new_password", message="Passwords do not mathc.")])
 
+
+class ChangePasswordForm(FlaskForm):
+    """Self-service password change from the User Information page —
+    distinct from ResetPasswordForm, which is reached via the
+    forgot-password/OTP flow and doesn't need the current password."""
+    current_password = PasswordField("Current Password", validators=[DataRequired(message="Current password is required.")])
+    new_password = PasswordField("New Password", validators=[DataRequired(), Length(min=6, message="Password must be at least 6 characters.")])
+    confirm_password = PasswordField("Confirm New Password", validators=[DataRequired(), EqualTo("new_password", message="Passwords do not match.")])
+
 class VerifyOTPForm(FlaskForm):
     otp = StringField("OTP", validators=[DataRequired(message = "Please enter the OTP."), Length(min=6, max=6, message="OTP must be 6 digit."), Regexp(r'^\d{6}$', message="OTP must be numbers onyl.")])
 

@@ -33,6 +33,7 @@ from app.db.auth import (
     create_verification_request, reapply_for_verification,
     get_device_ip, get_role_id, create_user, sign_in,
     lookup_user_for_reset, create_otp, verify_otp, change_password,
+    change_own_password,
     sign_out, get_pending_verifications, review_verification_request,
 )
 
