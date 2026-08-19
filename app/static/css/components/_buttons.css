@@ -96,6 +96,16 @@
     color: var(--color-white);
 }
 
+.btn-row--approve {
+    background: #27AE60;
+    color: var(--color-white);
+}
+
+.btn-row--reject {
+    background: #B23A28;
+    color: var(--color-white);
+}
+
 /* ── Small icon-only button (card header close/back) ── */
 .btn-icon {
     background: none;

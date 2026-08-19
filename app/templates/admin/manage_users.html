@@ -62,7 +62,7 @@
                     <form method="POST" action="{{ url_for('admin.decide_verification', request_id=pv.request_id) }}" style="display:inline;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="decision" value="approved">
-                        <button type="submit" class="btn-row btn-row--edit">
+                        <button type="submit" class="btn-row btn-row--approve">
                             <i class="bx bx-check"></i> Approve
                         </button>
                     </form>
@@ -70,7 +70,7 @@
                           onsubmit="return confirm('Reject this account? The user will not be able to sign in.');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="decision" value="rejected">
-                        <button type="submit" class="btn-row btn-row--edit" style="color:#B23A28;">
+                        <button type="submit" class="btn-row btn-row--reject">
                             <i class="bx bx-x"></i> Reject
                         </button>
                     </form>
@@ -86,13 +86,49 @@
     ══════════════════════════════════════════════════════ #}
     <div class="mu-panel" id="panel-list">
 
+        {# ── Filter Bar ── #}
+        <div class="mu-filters">
+            <form method="GET" action="{{ url_for('admin.manage_users') }}" class="mu-filter-form">
+                <div class="filter-group">
+                    <span>Search:</span>
+                    <input type="text" name="search" class="filter-input"
+                           placeholder="Name, university no., or email…" value="{{ search }}">
+                </div>
+                <div class="filter-group">
+                    <span>Role:</span>
+                    <select name="role" class="filter-select">
+                        <option value="">All</option>
+                        {% for r in roles %}
+                        <option value="{{ r[0] }}" {% if selected_role == r[0]|string %}selected{% endif %}>{{ r[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <span>Status:</span>
+                    <select name="status" class="filter-select">
+                        <option value="">All</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="deactivated" {% if selected_status == 'deactivated' %}selected{% endif %}>Deactivated</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-filter">Search</button>
+                {% if search or selected_role or selected_status %}
+                <a href="{{ url_for('admin.manage_users') }}" class="btn-clear">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
         {% if users %}
+        <p class="mu-results-count">{{ total_users }} user{{ 's' if total_users != 1 else '' }} found</p>
         <div class="record-list">
             {% for u in users %}
             <div class="record-card">
                 <div class="record-card__avatar">{{ u.full_name[:1] }}</div>
                 <div class="record-card__body">
-                    <p class="record-card__title">{{ u.full_name }}</p>
+                    <p class="record-card__title">
+                        {{ u.full_name }}
+                        {% if u.user_id == session.get('user_id') %}<span class="mu-you-tag">You</span>{% endif %}
+                    </p>
                     <div class="record-card__meta">
                         <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ u.university_no }}</span>
                         <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ u.email or '—' }}</span>
@@ -102,6 +138,9 @@
                             {% else %}role-badge--student{% endif %}">
                             {{ u.role }}
                         </span>
+                        <span class="status-badge {% if u.account_status == 'active' %}status-badge--active{% else %}status-badge--inactive{% endif %}">
+                            {{ u.account_status | capitalize }}
+                        </span>
                     </div>
                 </div>
                 <div class="record-card__actions">
@@ -110,17 +149,43 @@
                         data-name="{{ u.full_name }}"
                         data-univ="{{ u.university_no }}"
                         data-email="{{ u.email or '' }}"
-                        data-role="{{ u.role }}">
+                        data-role="{{ u.role }}"
+                        data-role-id="{{ u.role_id }}"
+                        data-status="{{ u.account_status }}"
+                        data-is-self="{{ 'true' if u.user_id == session.get('user_id') else 'false' }}">
                         <i class="bx bx-edit-alt"></i> Edit
                     </button>
                 </div>
             </div>
             {% endfor %}
         </div>
+
+        {# ── Pagination ── #}
+        {% if total_pages > 1 %}
+        <div class="mu-pagination">
+            {% set qs = {'search': search, 'role': selected_role, 'status': selected_status} %}
+            <a href="{{ url_for('admin.manage_users', page=page-1, **qs) }}"
+               class="btn-pill btn-pill--ghost {% if page <= 1 %}mu-pagination__link--disabled{% endif %}">
+                <i class="bx bx-left-arrow-alt"></i> Prev
+            </a>
+            <span class="mu-pagination__status">Page {{ page }} of {{ total_pages }}</span>
+            <a href="{{ url_for('admin.manage_users', page=page+1, **qs) }}"
+               class="btn-pill btn-pill--ghost {% if page >= total_pages %}mu-pagination__link--disabled{% endif %}">
+                Next <i class="bx bx-right-arrow-alt"></i>
+            </a>
+        </div>
+        {% endif %}
+
         {% else %}
         <div class="empty-state">
             <i class="bx bx-group"></i>
-            <p>No users found in the system.</p>
+            <p>
+                {% if search or selected_role or selected_status %}
+                No users match your filters. <a href="{{ url_for('admin.manage_users') }}">Clear filters</a>
+                {% else %}
+                No users found in the system.
+                {% endif %}
+            </p>
         </div>
         {% endif %}
 
@@ -161,11 +226,26 @@
                     <span class="info-label">Current Role</span>
                     <span class="role-badge" id="info-role">—</span>
                 </div>
+                <div class="info-chip">
+                    <span class="info-label">Account Status</span>
+                    <span class="status-badge" id="info-status">—</span>
+                </div>
             </div>
 
-            {# ── Role Change + Danger Zone side by side — makes use of
-               the card's full width instead of one narrow stacked column ── #}
-            <div class="mu-edit-grid">
+            {# ── Self-account notice — role change and delete are
+               blocked (both here and server-side) when the admin opens
+               their own account, instead of silently failing after
+               submit. ── #}
+            <div class="mu-self-notice hidden" id="self-notice">
+                <i class="bx bx-info-circle"></i>
+                This is your own account. Role changes, deactivation, and deletion
+                aren't available here — ask another admin if you need any of these changed.
+            </div>
+
+            {# ── Role Change + Status/Danger Zone side by side — makes
+               use of the card's full width instead of one narrow
+               stacked column ── #}
+            <div class="mu-edit-grid" id="mu-edit-actions">
 
                 <form id="form-role"
                       method="POST"
@@ -174,9 +254,6 @@
 
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                    <input type="hidden" name="acting_admin_id"
-                           value="{{ session.get('user_id', '') }}">
-
                     <h4 class="mu-edit-grid__heading">Assign Role</h4>
 
                     <div class="form-group">
@@ -184,7 +261,7 @@
                             Assign New Role <span class="req">*</span>
                         </label>
                         <select id="role_id" name="role_id" required>
-                            <option value="" disabled selected>Select a role</option>
+                            <option value="" disabled>Select a role</option>
                             {% for r in roles %}
                             <option value="{{ r[0] }}">{{ r[1] }}</option>
                             {% endfor %}
@@ -203,23 +280,36 @@
 
                 <div class="mu-edit-grid__divider"></div>
 
-                <div class="danger-zone mu-edit-grid__col">
-                    <div class="danger-zone__header">
-                        <i class="bx bx-error-circle"></i>
-                        <span>Danger Zone</span>
-                    </div>
-                    <p>Permanently deletes the user account and all associated data. This action <strong>cannot be undone</strong>.</p>
-
-                    <form id="form-delete"
-                          method="POST"
-                          action="{{ url_for('admin.delete_user', user_id=0) }}"
-                          onsubmit="return confirmDelete(event)">
-                        <input type="hidden" name="acting_admin_id"
-                               value="{{ session.get('user_id', '') }}">
-                        <button type="submit" class="btn-pill btn-pill--danger">
-                            <i class="bx bx-trash"></i> Delete Account
+                <div class="mu-edit-grid__col">
+                    <h4 class="mu-edit-grid__heading">Account Access</h4>
+                    <form id="form-status" method="POST" action="{{ url_for('admin.change_account_status', user_id=0) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="status" id="status-target-value">
+                        <p class="mu-status-note" id="status-note">
+                            Deactivating blocks sign-in without deleting any data — reversible any time, unlike Delete below.
+                        </p>
+                        <button type="submit" class="btn-pill btn-pill--secondary" id="btn-toggle-status">
+                            <i class="bx bx-block"></i> <span id="btn-toggle-status-label">Deactivate Account</span>
                         </button>
                     </form>
+
+                    <div class="danger-zone">
+                        <div class="danger-zone__header">
+                            <i class="bx bx-error-circle"></i>
+                            <span>Danger Zone</span>
+                        </div>
+                        <p>Permanently deletes the user account and all associated data. This action <strong>cannot be undone</strong>.</p>
+
+                        <form id="form-delete"
+                              method="POST"
+                              action="{{ url_for('admin.delete_user', user_id=0) }}"
+                              onsubmit="return confirmDelete(event)">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-pill btn-pill--danger">
+                                <i class="bx bx-trash"></i> Delete Account
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
             </div>
@@ -244,14 +334,22 @@ function showList() {
     panelList.classList.remove('mu-panel--hidden');
 }
 
+function setStatusBadge(el, status) {
+    el.textContent = status === 'active' ? 'Active' : 'Deactivated';
+    el.className = 'status-badge ' + (status === 'active' ? 'status-badge--active' : 'status-badge--inactive');
+}
+
 // Wire Edit buttons
 document.querySelectorAll('.btn-row--edit').forEach(btn => {
     btn.addEventListener('click', () => {
-        const id    = btn.dataset.id;
-        const name  = btn.dataset.name;
-        const univ  = btn.dataset.univ;
-        const email = btn.dataset.email;
-        const role  = btn.dataset.role;
+        const id       = btn.dataset.id;
+        const name     = btn.dataset.name;
+        const univ     = btn.dataset.univ;
+        const email    = btn.dataset.email;
+        const role     = btn.dataset.role;
+        const roleId   = btn.dataset.roleId;
+        const status   = btn.dataset.status;
+        const isSelf   = btn.dataset.isSelf === 'true';
 
         // populate info strip
         document.getElementById('info-name').textContent  = name;
@@ -263,6 +361,8 @@ document.querySelectorAll('.btn-row--edit').forEach(btn => {
             role === 'Admin' ? 'role-badge--admin' :
             role === 'Faculty' ? 'role-badge--faculty' : 'role-badge--student'
         );
+        setStatusBadge(document.getElementById('info-status'), status);
+
         document.getElementById('edit-subheading').textContent =
             `Editing: ${name}`;
 
@@ -271,9 +371,39 @@ document.querySelectorAll('.btn-row--edit').forEach(btn => {
             `/manage_users/update_role/${id}`;
         document.getElementById('form-delete').action =
             `/manage_users/delete/${id}`;
+        document.getElementById('form-status').action =
+            `/manage_users/status/${id}`;
 
-        // reset role select
-        document.getElementById('role_id').value = '';
+        // Pre-select their current role instead of resetting blank —
+        // an admin usually isn't changing the role, just confirming/
+        // adjusting it, and a blank select forces them to re-pick even
+        // when nothing needs to change.
+        document.getElementById('role_id').value = roleId;
+
+        // Deactivate/Reactivate toggle — label, target value, and icon
+        // flip based on their current status.
+        const toggleBtn = document.getElementById('btn-toggle-status');
+        const toggleLabel = document.getElementById('btn-toggle-status-label');
+        const statusTarget = document.getElementById('status-target-value');
+        const statusNote = document.getElementById('status-note');
+        if (status === 'active') {
+            toggleLabel.textContent = 'Deactivate Account';
+            statusTarget.value = 'deactivated';
+            toggleBtn.querySelector('i').className = 'bx bx-block';
+            statusNote.textContent = 'Deactivating blocks sign-in without deleting any data — reversible any time, unlike Delete below.';
+        } else {
+            toggleLabel.textContent = 'Reactivate Account';
+            statusTarget.value = 'active';
+            toggleBtn.querySelector('i').className = 'bx bx-check-circle';
+            statusNote.textContent = 'Reactivating restores sign-in access immediately.';
+        }
+
+        // Self-account guard — role change/deactivate/delete blocked
+        // client-side too, not just server-side, so it's obvious why
+        // instead of failing silently after submit.
+        document.getElementById('self-notice').classList.toggle('hidden', !isSelf);
+        document.getElementById('mu-edit-actions').classList.toggle('hidden', isSelf);
+
         showEdit();
     });
 });
@@ -289,5 +419,22 @@ function confirmDelete(e) {
     }
     return true;
 }
+
+document.getElementById('form-status').addEventListener('submit', (e) => {
+    const isReactivating = document.getElementById('status-target-value').value === 'active';
+    const name = document.getElementById('info-name').textContent;
+    const msg = isReactivating
+        ? `Reactivate "${name}"? They'll be able to sign in again immediately.`
+        : `Deactivate "${name}"? They won't be able to sign in until reactivated.`;
+    if (!confirm(msg)) e.preventDefault();
+});
+
+// Prevent double-submit on the sensitive forms — small polish, avoids
+// duplicate role-change/status/delete requests on a slow connection.
+['form-role', 'form-status', 'form-delete'].forEach(id => {
+    document.getElementById(id).addEventListener('submit', function () {
+        this.querySelector('button[type="submit"]').disabled = true;
+    });
+});
 </script>
 {% endblock %}

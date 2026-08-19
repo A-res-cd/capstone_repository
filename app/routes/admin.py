@@ -7,7 +7,7 @@ from app.db.database import (
     delete_user_account, get_all_capstones, get_archived_capstones, get_programs, get_specializations,
     get_used_keyword, insert_keywords, create_capstone_project,
     get_capstone_details, update_capstone_record, update_keyword,
-    delete_capstone, get_users, update_user_role, get_all_roles,
+    delete_capstone, get_users, update_user_role, get_all_roles, set_account_status,
     get_all_requests, review_request, set_capstone_people, get_capstone_people,
     get_capstones_by_specialization, get_requests_by_status, get_top_cited_capstones, add_to_bin,
     restore_capstone, ARCHIVE_RETENTION_DAYS,
@@ -242,7 +242,21 @@ def analytics():
 @admin.route("/manage_users")
 @role_required(3)
 def manage_users():
-    users = get_users()
+    search = request.args.get("search", "").strip()
+    role_id = request.args.get("role", "").strip()
+    status = request.args.get("status", "").strip()
+    page = request.args.get("page", 1, type=int)
+    page_size = 20
+
+    users, total = get_users(
+        search=search or None,
+        role_id=int(role_id) if role_id.isdigit() else None,
+        status=status or None,
+        page=page,
+        page_size=page_size,
+    )
+    total_pages = max(1, (total + page_size - 1) // page_size)
+
     roles = get_all_roles()
     pending_verifications = get_pending_verifications()
     return render_template(
@@ -250,6 +264,12 @@ def manage_users():
         users=users,
         roles=roles,
         pending_verifications=pending_verifications,
+        search=search,
+        selected_role=role_id,
+        selected_status=status,
+        page=page,
+        total_pages=total_pages,
+        total_users=total,
     )
 
 
@@ -278,7 +298,11 @@ def decide_verification(request_id):
 @role_required(3)
 def update_role(user_id):
     new_role_id = request.form.get("role_id")
-    acting_admin_id = request.form.get("acting_admin_id")
+    # Derived from the session, not a client-supplied form field — a
+    # hidden acting_admin_id input could otherwise be edited in devtools
+    # to spoof a different admin, defeating both the audit trail and the
+    # self-protection check below.
+    acting_admin_id = session.get("user_id")
 
     if not new_role_id:
         flash("No role selected.", "error")
@@ -295,13 +319,30 @@ def update_role(user_id):
 @admin.route("/manage_users/delete/<int:user_id>", methods=["POST"])
 @role_required(3)
 def delete_user(user_id):
-    acting_admin_id = request.form.get("acting_admin_id")
+    acting_admin_id = session.get("user_id")
     ok, err = delete_user_account(user_id, acting_admin_id)
     flash(
         "User account deleted." if ok else f"Error: {err}",
         "success" if ok else "error",
     )
     return redirect(url_for("admin.manage_users"))
+
+
+@admin.route("/manage_users/status/<int:user_id>", methods=["POST"])
+@role_required(3)
+def change_account_status(user_id):
+    new_status = request.form.get("status")
+    acting_admin_id = session.get("user_id")
+
+    ok, err = set_account_status(user_id, new_status, acting_admin_id)
+    flash(
+        ("Account deactivated." if new_status == "deactivated" else "Account reactivated.")
+        if ok else f"Error: {err}",
+        "success" if ok else "error",
+    )
+    return redirect(url_for("admin.manage_users"))
+
+
 
 
 # ── Requests ──────────────────────────────────────────────────────────────────

@@ -3,11 +3,10 @@ Manage Users: listing, contact info, roles, and account deletion.
 """
 import logging
 import psycopg2.extras
+from datetime import datetime, timezone
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
-
-from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +42,52 @@ def get_own_profile(user_id):
         conn.close()
 
 
-def get_users():
+def get_users(search=None, role_id=None, status=None, page=1, page_size=20):
+    """
+    Fetch users for the Manage Users list — search by name/university
+    no./email, filter by role or account_status, paginated.
+    Returns (rows: list[RealDictRow], total: int).
+    """
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        mithrix.execute("""
+        conditions = []
+        params = []
+
+        if search:
+            conditions.append("""(
+                CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) ILIKE %s
+                OR u.university_no ILIKE %s
+                OR c.contact_value ILIKE %s
+            )""")
+            like = f"%{search}%"
+            params += [like, like, like]
+
+        if role_id:
+            conditions.append("u.role_id = %s")
+            params.append(role_id)
+
+        if status:
+            conditions.append("u.account_status = %s")
+            params.append(status)
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+        mithrix.execute(f"""
+            SELECT COUNT(*) AS total
+            FROM "user" u
+            JOIN role r ON u.role_id = r.role_id
+            LEFT JOIN contact c ON c.user_id = u.user_id AND c.contact_type = 'email' AND c.is_primary = TRUE
+            {where}
+        """, params)
+        total = mithrix.fetchone()["total"]
+
+        offset = (page - 1) * page_size
+
+        mithrix.execute(f"""
             SELECT u.user_id,
+                   u.role_id,
+                   u.account_status,
                    CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
                    u.university_no,
                    r.role_name AS role,
@@ -56,12 +95,15 @@ def get_users():
             FROM "user" u
             JOIN role r ON u.role_id = r.role_id
             LEFT JOIN contact c ON c.user_id = u.user_id AND c.contact_type = 'email' AND c.is_primary = TRUE
-            ORDER BY u.user_id
-        """)
-        return mithrix.fetchall()
+            {where}
+            ORDER BY u.user_first_name, u.user_last_name
+            LIMIT %s OFFSET %s
+        """, params + [page_size, offset])
+
+        return mithrix.fetchall(), total
     except Exception as exc:
         logger.error("Database error: %s", exc)
-        return []
+        return [], 0
     finally:
         mithrix.close()
         conn.close()
@@ -147,6 +189,9 @@ def get_all_roles():
 
 def update_user_role(user_id, new_role_id, acting_admin_id):
     """Change a user's role and write an audit entry."""
+    if str(user_id) == str(acting_admin_id):
+        return False, "You can't change your own role from here."
+
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -184,6 +229,9 @@ def delete_user_account(user_id, acting_admin_id):
     Hard-delete a user and all dependent rows.
     Order matters — FK constraints cascade from least to most dependent.
     """
+    if str(user_id) == str(acting_admin_id):
+        return False, "You can't delete your own account from here."
+
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -215,6 +263,52 @@ def delete_user_account(user_id, acting_admin_id):
         mithrix.execute("""
             DELETE FROM "user"  WHERE user_id = %s
         """, (user_id,))
+
+        conn.commit()
+        return True, None
+    except Exception as exc:
+        conn.rollback()
+        logger.error("Database error: %s", exc)
+        return False, "A database error occurred. Please try again."
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def set_account_status(user_id, new_status, acting_admin_id):
+    """
+    Soft-suspend/restore an account — 'deactivated' blocks sign-in
+    (same check sign_in() already does for account_status) without
+    destroying any data, unlike delete_user_account()'s permanent
+    hard-delete. Mirrors the Capstone Repository's own soft-delete
+    (Recycle Bin) pattern, which Manage Users previously had no
+    equivalent of.
+    """
+    if str(user_id) == str(acting_admin_id):
+        return False, "You can't deactivate your own account from here."
+
+    if new_status not in ("active", "deactivated"):
+        return False, "Invalid account status."
+
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute(
+            'SELECT account_status FROM "user" WHERE user_id = %s', (user_id,)
+        )
+        row = mithrix.fetchone()
+        old_status = row["account_status"] if row else None
+
+        mithrix.execute(
+            'UPDATE "user" SET account_status = %s WHERE user_id = %s',
+            (new_status, user_id),
+        )
+
+        log_audit(
+            mithrix, acting_admin_id,
+            "account_status_change", "user", user_id,
+            old_values=old_status, new_values=new_status,
+        )
 
         conn.commit()
         return True, None

@@ -54,7 +54,7 @@ from app.db.archive import (
 
 from app.db.users import (
     get_users, get_own_profile, get_user_contacts, upsert_user_contact, get_all_roles,
-    update_user_role, delete_user_account,
+    update_user_role, delete_user_account, set_account_status,
 )
 
 from app.db.requests import (
