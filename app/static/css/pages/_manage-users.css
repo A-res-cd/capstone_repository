@@ -79,13 +79,71 @@ main:has(.mu-section) {
     margin-bottom: var(--space-md);
 }
 
+/* ── Edit User panel — now full-width instead of a narrow centered
+   card, so it uses the page instead of leaving dead space beside it ── */
+.info-strip--wide {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.mu-edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
+}
+
+.mu-edit-grid__col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    min-width: 0;
+}
+
+.mu-edit-grid__col .form-actions {
+    border-top: none;
+    padding-top: 0;
+    margin-top: auto;
+}
+
+.mu-edit-grid__col.danger-zone {
+    gap: var(--space-sm);
+    padding: 0;
+}
+
+.mu-edit-grid__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.mu-edit-grid__divider {
+    background: #ECE9DD;
+}
+
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .info-strip--wide { grid-template-columns: 1fr 1fr; }
+
+    .mu-edit-grid {
+        grid-template-columns: 1fr;
+        padding: var(--space-lg);
+    }
+
+    .mu-edit-grid__divider {
+        height: 1px;
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     .mu-section { padding: var(--space-md); }
 
-    .info-strip { grid-template-columns: 1fr; }
+    .info-strip,
+    .info-strip--wide { grid-template-columns: 1fr; }
 
     .detail-card__header,
     .detail-card__body,

@@ -10,7 +10,7 @@
 <section class="repo-section">
 
     {# ── Page Header ── #}
-    <div class="repo-page-header">
+    <div class="repo-page-header" id="repo-page-header">
         <div class="repo-page-header__text">
             <h2>Capstone Repository</h2>
             <p>Manage capstone projects — create, edit, or remove records from the archive.</p>
@@ -117,6 +117,24 @@
                 <input type="hidden" name="capstone_id" id="field-capstone-id">
                 <input type="hidden" name="extracted_filename" id="extracted-filename">
 
+                {# ── Step indicator ── #}
+                <div class="form-steps-indicator">
+                    <div class="form-step-dot form-step-dot--active" data-step-dot="1">
+                        <span class="form-step-dot__num">1</span>
+                        <span class="form-step-dot__label">Capstone Details</span>
+                    </div>
+                    <div class="form-step-dot__line"></div>
+                    <div class="form-step-dot" data-step-dot="2">
+                        <span class="form-step-dot__num">2</span>
+                        <span class="form-step-dot__label">Authors</span>
+                    </div>
+                </div>
+
+                {# ══════════════════════════════════════════════
+                   STEP 1 — Capstone Details
+                ══════════════════════════════════════════════ #}
+                <div class="form-step" data-step="1">
+
                 {# ── Step 0: Upload PDF for auto-extraction ──
                    This sits above the fields and auto-fills them on upload.
                    Only shown when creating (not editing). #}
@@ -219,21 +237,41 @@
                     </div>
                 </fieldset>
 
+                <div class="form-actions" data-step-actions="1">
+                    <button type="button" class="btn-pill btn-pill--primary" id="btn-step-next">
+                        Next: Authors <i class="bx bx-right-arrow-alt"></i>
+                    </button>
+                    <button type="reset" class="btn-pill btn-pill--ghost" id="btn-reset">
+                        <i class="bx bx-revision"></i> Clear
+                    </button>
+                    <button type="button" class="btn-pill btn-pill--secondary" id="btn-cancel">
+                        <i class="bx bx-arrow-back"></i> Cancel
+                    </button>
+                </div>
+
+                </div>
+                {# ── end Step 1 ── #}
+
+                {# ══════════════════════════════════════════════
+                   STEP 2 — Authors & Adviser
+                ══════════════════════════════════════════════ #}
+                <div class="form-step form-step--hidden" data-step="2">
+
                 <fieldset class="form-group form-group--full">
                     <legend>Authors (up to 4)</legend>
-                    {% for i in range(1, 5) %}
+                    {% for i in range(4) %}
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="author_first_{{ i }}">Author {{ i }} — First</label>
-                            <input type="text" id="author_first_{{ i }}" name="author_first_{{ i }}" placeholder="First name">
+                            <label for="authors-{{ i }}-first_name">Author {{ i + 1 }} — First</label>
+                            <input type="text" id="authors-{{ i }}-first_name" name="authors-{{ i }}-first_name" placeholder="First name">
                         </div>
                         <div class="form-group">
-                            <label for="author_middle_{{ i }}">Middle</label>
-                            <input type="text" id="author_middle_{{ i }}" name="author_middle_{{ i }}" placeholder="Middle name">
+                            <label for="authors-{{ i }}-middle_name">Middle</label>
+                            <input type="text" id="authors-{{ i }}-middle_name" name="authors-{{ i }}-middle_name" placeholder="Middle name">
                         </div>
                         <div class="form-group">
-                            <label for="author_last_{{ i }}">Last</label>
-                            <input type="text" id="author_last_{{ i }}" name="author_last_{{ i }}" placeholder="Last name">
+                            <label for="authors-{{ i }}-last_name">Last</label>
+                            <input type="text" id="authors-{{ i }}-last_name" name="authors-{{ i }}-last_name" placeholder="Last name">
                         </div>
                     </div>
                     {% endfor %}
@@ -243,33 +281,36 @@
                     <legend>Adviser <span class="req">*</span></legend>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="adviser_first">First <span class="req">*</span></label>
-                            <input type="text" id="adviser_first" name="adviser_first" placeholder="First name" required>
+                            <label for="adviser-first_name">First <span class="req">*</span></label>
+                            <input type="text" id="adviser-first_name" name="adviser-first_name" placeholder="First name" required>
                         </div>
                         <div class="form-group">
-                            <label for="adviser_middle">Middle</label>
-                            <input type="text" id="adviser_middle" name="adviser_middle" placeholder="Middle name">
+                            <label for="adviser-middle_name">Middle</label>
+                            <input type="text" id="adviser-middle_name" name="adviser-middle_name" placeholder="Middle name">
                         </div>
                         <div class="form-group">
-                            <label for="adviser_last">Last <span class="req">*</span></label>
-                            <input type="text" id="adviser_last" name="adviser_last" placeholder="Last name" required>
+                            <label for="adviser-last_name">Last <span class="req">*</span></label>
+                            <input type="text" id="adviser-last_name" name="adviser-last_name" placeholder="Last name" required>
                         </div>
                     </div>
                 </fieldset>
 
 
-                <div class="form-actions">
+                <div class="form-actions" data-step-actions="2">
+                    <button type="button" class="btn-pill btn-pill--ghost" id="btn-step-back">
+                        <i class="bx bx-left-arrow-alt"></i> Back
+                    </button>
                     <button type="submit" class="btn-pill btn-pill--primary" id="btn-submit">
                         <i class="bx bx-save"></i>
                         <span id="btn-submit-label">Submit Capstone</span>
                     </button>
-                    <button type="reset" class="btn-pill btn-pill--ghost" id="btn-reset">
-                        <i class="bx bx-revision"></i> Clear
-                    </button>
-                    <button type="button" class="btn-pill btn-pill--secondary" id="btn-cancel">
+                    <button type="button" class="btn-pill btn-pill--secondary" id="btn-cancel-2">
                         <i class="bx bx-arrow-back"></i> Cancel
                     </button>
                 </div>
+
+                </div>
+                {# ── end Step 2 ── #}
 
             </form>
         </div>

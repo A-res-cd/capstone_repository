@@ -7,82 +7,110 @@
 {% block content %}
 <section class="user-information-section">
     <div class="user-information-content">
-        <!-- Tab Navigation -->
-        <div class="update-selection">
-            <button class="tab-btn active" data-tab="personal">Personal info</button>
-            <button class="tab-btn" data-tab="contact">Contact info</button>
+
+        <div class="ui-page-header">
+            <h2>User Information</h2>
+            <p>View your profile details and manage how others can reach you.</p>
         </div>
 
-        <!-- Section 1: Basic Info -->
-        <div class="user-information-update-group user-info-tab" id="tab-personal">
-            <h2>Basic Information</h2>
-            
-            <div class="input-row">
-                <div class="input-field-wrapper">
-                    <label>First name</label>
-                    <input type="text" placeholder="Juan">
+        {# ── Flash Messages ── #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <ul class="flash-list">
+            {% for category, message in messages %}
+            <li class="flash-{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+
+        {# ── Personal Info + Contact Info, side by side — no more
+           tab-switching, both are always visible. ── #}
+        <div class="ui-grid">
+
+            <div class="user-information-update-group">
+                <div class="ui-card-header">
+                    <h3><i class="bx bx-id-card"></i> Basic Information</h3>
+                    <p>Managed by the university registrar — reach out to Admin to request a correction.</p>
                 </div>
-                <div class="input-field-wrapper">
-                    <label>Middle name</label>
-                    <input type="text" placeholder="Dela Cruz">
+
+                <div class="form-row form-row--3col">
+                    <div class="form-group">
+                        <label>First name</label>
+                        <input type="text" value="{{ profile.user_first_name or '' }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Middle name</label>
+                        <input type="text" value="{{ profile.user_middle_name or '' }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Last name</label>
+                        <input type="text" value="{{ profile.user_last_name or '' }}" readonly>
+                    </div>
                 </div>
-                <div class="input-field-wrapper">
-                    <label>Last name</label>
-                    <input type="text" placeholder="Miguel">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" value="{{ profile.username or '' }}" readonly>
+                        <span class="helper-text">This cannot be changed</span>
+                    </div>
+                    <div class="form-group">
+                        <label>University ID</label>
+                        <input type="text" value="{{ profile.university_no or '' }}" readonly>
+                        <span class="helper-text">Assigned by university</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="input-row">
-                <div class="input-field-wrapper">
-                    <label>User name</label>
-                    <input type="text" placeholder="juanDaMan">
-                    <span class="helper-text">This cannot be changed</span>
+            <div class="user-information-update-group">
+                <div class="ui-card-header">
+                    <h3><i class="bx bx-address-book"></i> Contact Information</h3>
+                    <p>Kept on file for faculty/admin outreach — not shown publicly in the archive.</p>
                 </div>
-                <div class="input-field-wrapper">
-                    <label>University ID</label>
-                    <input type="text" placeholder="SUM2020-01055">
-                    <span class="helper-text">Assigned by university</span>
-                </div>
+                <form method="post" action="{{ url_for('pages.update_user_contact_info') }}" id="contact-info-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="text" name="email" value="{{ contact_by_type.get('email').contact_value if contact_by_type.get('email') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Contact number</label>
+                            <input type="text" name="phone" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Facebook</label>
+                            <input type="text" name="facebook" value="{{ contact_by_type.get('facebook').contact_value if contact_by_type.get('facebook') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Instagram</label>
+                            <input type="text" name="instagram" value="{{ contact_by_type.get('instagram').contact_value if contact_by_type.get('instagram') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Twitter/X</label>
+                            <input type="text" name="twitter" value="{{ contact_by_type.get('twitter').contact_value if contact_by_type.get('twitter') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                        <div class="form-group"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-pill btn-pill--secondary" id="edit-contact-btn">
+                            <i class="bx bx-edit-alt"></i> Edit contact info
+                        </button>
+                        <button type="submit" class="btn-pill btn-pill--primary hidden" id="save-contact-btn">
+                            <i class="bx bx-save"></i> Save contact info
+                        </button>
+                        <button type="button" class="btn-pill btn-pill--ghost hidden" id="cancel-contact-btn">
+                            <i class="bx bx-x"></i> Cancel
+                        </button>
+                    </div>
+                </form>
             </div>
-        </div>
 
-        <div class="user-information-update-group user-info-tab hidden" id="tab-contact">
-            <h2>Contact Information</h2>
-            <form method="post" action="{{ url_for('pages.update_user_contact_info') }}" id="contact-info-form">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="input-row">
-                    <div class="input-field-wrapper">
-                        <label>Email</label>
-                        <input type="text" name="email" value="{{ contact_by_type.get('email').contact_value if contact_by_type.get('email') else '' }}" placeholder="Not provided" readonly>
-                    </div>
-                    <div class="input-field-wrapper">
-                        <label>Contact number</label>
-                        <input type="text" name="phone" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
-                    </div>
-                </div>
-                <div class="input-row">
-                    <div class="input-field-wrapper">
-                        <label>Facebook</label>
-                        <input type="text" name="facebook" value="{{ contact_by_type.get('facebook').contact_value if contact_by_type.get('facebook') else '' }}" placeholder="Not provided" readonly>
-                    </div>
-                    <div class="input-field-wrapper">
-                        <label>Instagram</label>
-                        <input type="text" name="instagram" value="{{ contact_by_type.get('instagram').contact_value if contact_by_type.get('instagram') else '' }}" placeholder="Not provided" readonly>
-                    </div>
-                </div>
-                <div class="input-row">
-                    <div class="input-field-wrapper">
-                        <label>Twitter/X</label>
-                        <input type="text" name="twitter" value="{{ contact_by_type.get('twitter').contact_value if contact_by_type.get('twitter') else '' }}" placeholder="Not provided" readonly>
-                    </div>
-                    <div class="input-field-wrapper"></div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="edit-contact-btn">Edit contact info</button>
-                    <button type="submit" class="btn btn-primary hidden" id="save-contact-btn">Save contact info</button>
-                    <button type="button" class="btn btn-secondary hidden" id="cancel-contact-btn">Cancel</button>
-                </div>
-            </form>
         </div>
     </div>
 </section>
@@ -90,19 +118,9 @@
 
 {% block extra_js %}
 <script>
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabs = document.querySelectorAll('.user-info-tab');
     const editContactBtn = document.getElementById('edit-contact-btn');
     const saveContactBtn = document.getElementById('save-contact-btn');
     const contactForm = document.getElementById('contact-info-form');
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const tabName = button.getAttribute('data-tab');
-            tabButtons.forEach(btn => btn.classList.toggle('active', btn === button));
-            tabs.forEach(tab => tab.classList.toggle('hidden', tab.id !== 'tab-' + tabName));
-        });
-    });
 
     if (editContactBtn && saveContactBtn && contactForm) {
         const cancelContactBtn = document.getElementById('cancel-contact-btn');

@@ -193,9 +193,9 @@
 
 #pdf-container {
     flex: 1;
-    overflow: auto;
+    overflow: hidden;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     padding: var(--space-xl) var(--space-lg);
     background: #FAF9F4;

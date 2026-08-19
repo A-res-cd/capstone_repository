@@ -4,7 +4,7 @@ import logging
 from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact,
-get_capstones_corpus
+get_capstones_corpus, get_own_profile
 )
 from app.routes.decorators import login_required, role_required
 from app.utils.pdf_extractor import extract_capstone_data
@@ -67,6 +67,7 @@ def browse():
 @login_required
 def user_info():
     user_id = session.get("user_id")
+    profile = get_own_profile(user_id)
     contacts = get_user_contacts(user_id)
     contact_labels = [
         ("email", "Email"),
@@ -80,6 +81,7 @@ def user_info():
     return render_template(
         "global/user_information.html",
         hide_nav=False,
+        profile=profile,
         contacts=contacts,
         contact_labels=contact_labels,
         contact_by_type=contact_by_type,

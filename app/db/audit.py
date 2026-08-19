@@ -2,7 +2,7 @@
 log_audit() must be called on every action process/funtion
 
 """
-
+from datetime import datetime, timezone
 
 def log_audit(mithrix, user_id, action_type, affected_table, affected_record_id, old_values=None, new_values=None):
     mithrix.execute("""

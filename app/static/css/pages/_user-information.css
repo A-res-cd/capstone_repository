@@ -1,161 +1,111 @@
 /* ============================================================
    PAGE: User Information
-   Currently a static profile-info mockup (see BUGS.md notes on
-   this page being unfinished — tabs and inputs aren't wired up
-   to any backend yet). Styling kept as-is, with the shared
-   .form-group input styling now coming from components/_forms.css
-   where it overlaps.
+   Restyled to match the rest of the admin/global pages: shared
+   .form-group inputs (components/_forms.css), .btn-pill buttons
+   (components/_buttons.css). Personal Info and Contact Info sit
+   side by side in one full-width grid — no tab-switching, both
+   are always visible, filling the page instead of leaving space
+   beside a narrow centered column.
 ============================================================ */
 @import url('../base/root.css');
+@import url('../components/_forms.css');
 
 .user-information-section {
     padding: var(--space-xl);
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
     font-family: var(--font-primary);
 }
 
 .user-information-content {
     width: 100%;
-    max-width: 935px;
 }
 
-/* ── Tab navigation ── */
-.update-selection {
-    display: flex;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-md);
-    border-bottom: 2px solid var(--color-gray-light);
-    padding-bottom: var(--space-md);
+.ui-page-header {
+    margin-bottom: var(--space-lg);
 }
 
-.tab-btn {
-    padding: var(--space-sm) var(--space-lg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-primary);
-    background: var(--color-white);
-    font-family: var(--font-primary);
-    font-size: var(--text-sm);
-    font-weight: 700;
+.ui-page-header h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
     color: var(--color-primary);
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
+    margin: 0 0 3px;
 }
 
-.tab-btn.active,
-.tab-btn:hover:not(.active) {
-    background: var(--color-primary-light);
-    color: var(--color-white);
+.ui-page-header p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+/* ── Personal Info + Contact Info, side by side ── */
+.ui-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: start;
 }
 
 /* ── Card ── */
 .user-information-update-group {
     background: var(--color-white);
-    border-radius: var(--radius-md);
+    border: var(--border-light);
+    border-radius: 3px 12px 12px 12px;
     padding: var(--space-xl);
-    margin-bottom: var(--space-lg);
     box-shadow: var(--shadow-md);
+    height: 100%;
+    box-sizing: border-box;
 }
 
-.user-information-update-group h2 {
-    font-family: var(--font-heading);
-    font-size: var(--text-md);
-    font-weight: 800;
-    text-transform: uppercase;
-    margin-bottom: var(--space-xl);
-    color: var(--color-black);
-}
-
-/* ── Form grid — consistent with sign-in/sign-up inputs ── */
-.input-row {
-    display: flex;
-    gap: var(--space-lg);
+.ui-card-header {
     margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 2px dashed #ECE9DD;
 }
 
-.input-field-wrapper {
-    flex: 1;
+.ui-card-header h3 {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0 0 2px;
 }
 
-.input-field-wrapper label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
+.ui-card-header p {
     font-size: var(--text-sm);
-    color: var(--text-dark);
-}
-
-.input-field-wrapper input {
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid #D1D1D1;
-    border-radius: 10px;
-    box-sizing: border-box;
-    font-size: var(--text-md);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-    outline: none;
-    transition: border-color 0.3s;
-    font-family: var(--font-primary);
-    color: var(--text-dark);
-}
-
-.input-field-wrapper input::placeholder {
-    color: #BDBDBD;
-}
-
-.input-field-wrapper input:focus {
-    border-color: var(--color-primary);
-}
-
-.input-field-wrapper .helper-text {
-    font-size: var(--text-xs);
     color: var(--color-gray-dark);
-    margin-top: var(--space-xs);
-    font-weight: 500;
+    margin: 0;
 }
 
-.input-field-wrapper input {
-    width: 100%;
-    padding: 0.8rem;
-    border: 1px solid #D1D1D1;
-    border-radius: 10px;
-    box-sizing: border-box;
-    font-size: var(--text-md);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-    outline: none;
-    transition: border-color 0.3s;
-    font-family: var(--font-primary);
+/* Read-only fields (Basic Information) — visually distinct from the
+   editable contact fields so it's clear these aren't meant to be typed
+   into, without looking disabled/broken. */
+.form-group input[readonly] {
+    background: var(--bg-card-header, #FAF9F4);
     color: var(--text-dark);
+    box-shadow: none;
+    cursor: default;
 }
 
-.input-field-wrapper input:focus {
-    border-color: var(--color-primary);
+.form-group input[readonly]:focus {
+    border-color: #D1D1D1;
+    box-shadow: none;
+}
+
+.form-row--3col {
+    grid-template-columns: 1fr 1fr 1fr;
 }
 
 .form-actions {
     display: flex;
+    gap: var(--space-md);
     justify-content: flex-end;
     margin-top: var(--space-lg);
-}
-
-.btn {
-    border: none;
-    padding: 0.9rem 1.6rem;
-    border-radius: 10px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.btn-primary {
-    background: var(--color-primary);
-    color: var(--color-white);
-}
-
-.btn-primary:hover {
-    opacity: 0.9;
+    padding-top: var(--space-lg);
+    border-top: var(--border-light);
 }
 
 .hidden {
@@ -165,28 +115,30 @@
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
-@media (max-width: 900px) {
-    .update-selection {
-        flex-wrap: wrap;
-    }
-
-    .tab-btn {
-        flex: 1;
-        min-width: 102px;
-        padding: var(--space-sm) var(--space-md);
+@media (max-width: 1100px) {
+    .ui-grid {
+        grid-template-columns: 1fr;
     }
 
     .user-information-update-group {
-        padding: var(--space-lg);
+        height: auto;
     }
+}
 
-    .input-row {
-        flex-direction: column;
-        gap: var(--space-sm);
-        margin-bottom: var(--space-sm);
+@media (max-width: 900px) {
+    .user-information-section { padding: var(--space-md); }
+
+    .user-information-update-group {
+        padding: var(--space-lg);
+        border-radius: var(--radius-lg);
     }
 
     .form-actions {
         flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-row--3col {
+        grid-template-columns: 1fr;
     }
 }

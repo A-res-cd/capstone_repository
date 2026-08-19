@@ -1,3 +1,5 @@
+# UNCOMMENT DEBUG TOOLBAR IF IN DEVELOPMENT
+
 import os
 from flask import Flask
 from flask_mail import Mail
@@ -20,6 +22,7 @@ def create_app():
     mail.init_app(app)
     csrf.init_app(app)
 
+    # 
     app.debug = True
     app.secret_key = app.config["SECRET_KEY"]
     toolbar = DebugToolbarExtension(app)

@@ -50,10 +50,10 @@
                     <div class="record-card__meta">
                         <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ pv.university_no }}</span>
                         <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ pv.email or '—' }}</span>
-                        <span class="pill
-                            {% if pv.role == 'Admin' %}pill--admin
-                            {% elif pv.role == 'Faculty' %}pill--faculty
-                            {% else %}pill--student{% endif %}">
+                        <span class="role-badge
+                            {% if pv.role == 'Admin' %}role-badge--admin
+                            {% elif pv.role == 'Faculty' %}role-badge--faculty
+                            {% else %}role-badge--student{% endif %}">
                             {{ pv.role }}
                         </span>
                     </div>
@@ -96,10 +96,10 @@
                     <div class="record-card__meta">
                         <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ u.university_no }}</span>
                         <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ u.email or '—' }}</span>
-                        <span class="pill
-                            {% if u.role == 'Admin' %}pill--admin
-                            {% elif u.role == 'Faculty' %}pill--faculty
-                            {% else %}pill--student{% endif %}">
+                        <span class="role-badge
+                            {% if u.role == 'Admin' %}role-badge--admin
+                            {% elif u.role == 'Faculty' %}role-badge--faculty
+                            {% else %}role-badge--student{% endif %}">
                             {{ u.role }}
                         </span>
                     </div>
@@ -130,7 +130,7 @@
        PANEL B — EDIT FORM (hidden by default)
     ══════════════════════════════════════════════════════ #}
     <div class="mu-panel mu-panel--hidden" id="panel-edit">
-        <div class="detail-card detail-card--compact">
+        <div class="detail-card">
 
             {# Card header #}
             <div class="detail-card__header">
@@ -144,7 +144,7 @@
             </div>
 
             {# Read-only user info strip #}
-            <div class="info-strip">
+            <div class="info-strip info-strip--wide">
                 <div class="info-chip">
                     <span class="info-label">Name</span>
                     <span class="info-value" id="info-name">—</span>
@@ -159,61 +159,69 @@
                 </div>
                 <div class="info-chip">
                     <span class="info-label">Current Role</span>
-                    <span class="info-value" id="info-role">—</span>
+                    <span class="role-badge" id="info-role">—</span>
                 </div>
             </div>
 
-            {# ── Role Change Form ── #}
-            <form id="form-role"
-                  method="POST"
-                  action="{{ url_for('admin.update_role', user_id=0) }}"
-                  class="detail-card__body detail-card__body--bordered">
+            {# ── Role Change + Danger Zone side by side — makes use of
+               the card's full width instead of one narrow stacked column ── #}
+            <div class="mu-edit-grid">
 
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                <input type="hidden" name="acting_admin_id"
-                       value="{{ session.get('user_id', '') }}">
-
-                <div class="form-group">
-                    <label for="role_id">
-                        Assign New Role <span class="req">*</span>
-                    </label>
-                    <select id="role_id" name="role_id" required>
-                        <option value="" disabled selected>Select a role</option>
-                        {% for r in roles %}
-                        <option value="{{ r[0] }}">{{ r[1] }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn-pill btn-pill--primary">
-                        <i class="bx bx-save"></i> Save Role
-                    </button>
-                    <button type="button" class="btn-pill btn-pill--ghost" id="btn-back-role">
-                        <i class="bx bx-arrow-back"></i> Cancel
-                    </button>
-                </div>
-            </form>
-
-            {# ── Danger Zone ── #}
-            <div class="danger-zone">
-                <div class="danger-zone__header">
-                    <i class="bx bx-error-circle"></i>
-                    <span>Danger Zone</span>
-                </div>
-                <p>Permanently deletes the user account and all associated data. This action <strong>cannot be undone</strong>.</p>
-
-                <form id="form-delete"
+                <form id="form-role"
                       method="POST"
-                      action="{{ url_for('admin.delete_user', user_id=0) }}"
-                      onsubmit="return confirmDelete(event)">
+                      action="{{ url_for('admin.update_role', user_id=0) }}"
+                      class="mu-edit-grid__col">
+
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                     <input type="hidden" name="acting_admin_id"
                            value="{{ session.get('user_id', '') }}">
-                    <button type="submit" class="btn-pill btn-pill--danger">
-                        <i class="bx bx-trash"></i> Delete Account
-                    </button>
+
+                    <h4 class="mu-edit-grid__heading">Assign Role</h4>
+
+                    <div class="form-group">
+                        <label for="role_id">
+                            Assign New Role <span class="req">*</span>
+                        </label>
+                        <select id="role_id" name="role_id" required>
+                            <option value="" disabled selected>Select a role</option>
+                            {% for r in roles %}
+                            <option value="{{ r[0] }}">{{ r[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-pill btn-pill--primary">
+                            <i class="bx bx-save"></i> Save Role
+                        </button>
+                        <button type="button" class="btn-pill btn-pill--ghost" id="btn-back-role">
+                            <i class="bx bx-arrow-back"></i> Cancel
+                        </button>
+                    </div>
                 </form>
+
+                <div class="mu-edit-grid__divider"></div>
+
+                <div class="danger-zone mu-edit-grid__col">
+                    <div class="danger-zone__header">
+                        <i class="bx bx-error-circle"></i>
+                        <span>Danger Zone</span>
+                    </div>
+                    <p>Permanently deletes the user account and all associated data. This action <strong>cannot be undone</strong>.</p>
+
+                    <form id="form-delete"
+                          method="POST"
+                          action="{{ url_for('admin.delete_user', user_id=0) }}"
+                          onsubmit="return confirmDelete(event)">
+                        <input type="hidden" name="acting_admin_id"
+                               value="{{ session.get('user_id', '') }}">
+                        <button type="submit" class="btn-pill btn-pill--danger">
+                            <i class="bx bx-trash"></i> Delete Account
+                        </button>
+                    </form>
+                </div>
+
             </div>
 
         </div>
@@ -249,7 +257,12 @@ document.querySelectorAll('.btn-row--edit').forEach(btn => {
         document.getElementById('info-name').textContent  = name;
         document.getElementById('info-univ').textContent  = univ;
         document.getElementById('info-email').textContent = email || '—';
-        document.getElementById('info-role').textContent  = role;
+        const roleEl = document.getElementById('info-role');
+        roleEl.textContent = role;
+        roleEl.className = 'role-badge ' + (
+            role === 'Admin' ? 'role-badge--admin' :
+            role === 'Faculty' ? 'role-badge--faculty' : 'role-badge--student'
+        );
         document.getElementById('edit-subheading').textContent =
             `Editing: ${name}`;
 

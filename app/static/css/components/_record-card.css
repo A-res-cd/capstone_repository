@@ -113,6 +113,28 @@
     color: var(--color-primary-light);
 }
 
+/* ── Role badge — outlined ink stamp, matching the request-status
+   badge on Explore Archive. Replaces the old solid-filled .pill. ── */
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-sm);
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1.5px solid currentColor;
+    transform: rotate(-2deg);
+}
+
+.role-badge--admin   { color: #C0392B; }
+.role-badge--faculty { color: #1A5276; }
+.role-badge--student { color: #1E8449; }
+
 .record-card__tags {
     display: flex;
     flex-wrap: wrap;

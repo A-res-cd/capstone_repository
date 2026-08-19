@@ -3,11 +3,41 @@ Manage Users: listing, contact info, roles, and account deletion.
 """
 import logging
 import psycopg2.extras
+from datetime import datetime, timezone
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
 
 logger = logging.getLogger(__name__)
+
+
+def get_own_profile(user_id):
+    """
+    A user's own first/middle/last name, university number, and current
+    username — feeds the User Information page's "Basic Information" tab.
+    (That tab previously showed hardcoded placeholder text since nothing
+    fetched this; see the kappa/slug join pattern reused from
+    app/db/auth.py's sign_in().)
+    """
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT u.user_first_name, u.user_middle_name, u.user_last_name,
+                   u.university_no, k.username
+            FROM "user" u
+            LEFT JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
+            LEFT JOIN kappa k ON k.username_id = sl.username_id
+            WHERE u.user_id = %s
+            LIMIT 1
+        """, (user_id,))
+        return mithrix.fetchone()
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return None
+    finally:
+        mithrix.close()
+        conn.close()
 
 
 def get_users():
