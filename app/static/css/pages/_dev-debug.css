@@ -1,0 +1,109 @@
+/* ============================================================
+   PAGE: Developer Debug Tool (the real one)
+   Admin-only internal panel — session/config/routes/headers.
+   Reuses .detail-card (components/_detail-card.css) and
+   .data-table (components/_table.css) for consistent chrome.
+============================================================ */
+@import url('../base/root.css');
+@import url('../components/_detail-card.css');
+@import url('../components/_table.css');
+
+.dev-debug-section {
+    padding: var(--space-xl);
+}
+
+.dev-debug-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-lg);
+    background: #FBF3E2;
+    border: 1px solid #EEDCB0;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-accent-hover, #B27A1E);
+}
+
+.dev-debug-banner i {
+    font-size: 18px;
+}
+
+.dev-debug-page-header {
+    margin-bottom: var(--space-lg);
+}
+
+.dev-debug-page-header h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0 0 3px;
+}
+
+.dev-debug-page-header p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+.dev-debug-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+}
+
+.dev-debug-grid__full {
+    grid-column: 1 / -1;
+}
+
+.dev-debug-note {
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin: 2px 0 0;
+}
+
+.dev-debug-kv {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    font-family: 'Courier New', monospace;
+}
+
+.dev-debug-kv td {
+    padding: 6px 8px;
+    border-bottom: 1px dashed #ECE9DD;
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.dev-debug-kv tr:last-child td {
+    border-bottom: none;
+}
+
+.dev-debug-kv td:first-child {
+    font-weight: 700;
+    color: var(--color-primary);
+    white-space: nowrap;
+    width: 1%;
+    padding-right: var(--space-md);
+}
+
+.dev-debug-kv--2col {
+    column-count: 2;
+    column-gap: var(--space-xl);
+    display: block;
+}
+
+.dev-debug-kv--2col tr {
+    display: table;
+    width: 100%;
+    break-inside: avoid;
+}
+
+@media (max-width: 900px) {
+    .dev-debug-section { padding: var(--space-md); }
+    .dev-debug-grid { grid-template-columns: 1fr; }
+    .dev-debug-kv--2col { column-count: 1; }
+}

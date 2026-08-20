@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_dev-debug.css') }}">
+{% endblock %}
+
+{% block title %}Developer Debug Tool{% endblock %}
+
+{% block content %}
+<section class="dev-debug-section">
+
+    <div class="dev-debug-banner">
+        <i class="bx bx-terminal"></i>
+        You hit the real one. {{ troll_odds_pct }}% of visits get the troll instead — enjoy it while it lasts.
+    </div>
+
+    <div class="dev-debug-page-header">
+        <h2>Developer Debug Tool</h2>
+        <p>Live server-side state — session, config, routes, and the current request. Admin-only.</p>
+    </div>
+
+    <div class="dev-debug-grid">
+
+        <div class="detail-card">
+            <div class="detail-card__header">
+                <div><h3><i class="bx bx-user-circle"></i> Session</h3></div>
+            </div>
+            <div class="detail-card__body">
+                <table class="dev-debug-kv">
+                    {% for key, value in session_items %}
+                    <tr><td>{{ key }}</td><td>{{ value }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="2">Session is empty.</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <div class="detail-card__header">
+                <div><h3><i class="bx bx-code-alt"></i> Environment</h3></div>
+            </div>
+            <div class="detail-card__body">
+                <table class="dev-debug-kv">
+                    <tr><td>Python</td><td>{{ python_version }}</td></tr>
+                    <tr><td>Flask</td><td>{{ flask_version }}</td></tr>
+                    <tr><td>Debug mode</td><td>{{ debug_mode }}</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="detail-card dev-debug-grid__full">
+            <div class="detail-card__header">
+                <div><h3><i class="bx bx-cog"></i> App Config</h3></div>
+                <p class="dev-debug-note">Secrets (SECRET_KEY, PG_PASSWORD, MAIL_PASSWORD) are masked.</p>
+            </div>
+            <div class="detail-card__body">
+                <table class="dev-debug-kv dev-debug-kv--2col">
+                    {% for key, value in config_items %}
+                    <tr><td>{{ key }}</td><td>{{ value }}</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        <div class="detail-card dev-debug-grid__full">
+            <div class="detail-card__header">
+                <div><h3><i class="bx bx-network-chart"></i> Request Headers</h3></div>
+            </div>
+            <div class="detail-card__body">
+                <table class="dev-debug-kv dev-debug-kv--2col">
+                    {% for key, value in request_headers %}
+                    <tr><td>{{ key }}</td><td>{{ value }}</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        <div class="detail-card dev-debug-grid__full">
+            <div class="detail-card__header">
+                <div><h3><i class="bx bx-route"></i> Registered Routes ({{ routes|length }})</h3></div>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table data-table--striped">
+                    <thead>
+                        <tr><th>Endpoint</th><th>Methods</th><th>Rule</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for endpoint, methods, rule in routes %}
+                        <tr><td>{{ endpoint }}</td><td>{{ methods }}</td><td>{{ rule }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

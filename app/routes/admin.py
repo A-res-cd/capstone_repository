@@ -1,8 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify, current_app
 from werkzeug.utils import secure_filename
 import os
+import sys
 import uuid
+import random
 import logging
+import flask
 from app.db.database import (
     delete_user_account, get_all_capstones, get_archived_capstones, get_programs, get_specializations,
     get_used_keyword, insert_keywords, create_capstone_project,
@@ -119,6 +122,49 @@ def _save_file(file_obj):
 
 
 # ── Static pages ──────────────────────────────────────────────────────────────
+
+# Odds the "Developer Debug Tool" nav link actually shows the real
+# debug panel instead of the troll image — tune to taste.
+DEV_DEBUG_REAL_TOOL_CHANCE = 0.3
+
+
+@admin.route("/dev-debug")
+@role_required(3)
+def dev_debug():
+    if random.random() >= DEV_DEBUG_REAL_TOOL_CHANCE:
+        return render_template("admin/dev_debug_troll.html")
+
+    # ── The real tool — admin-only internal debug panel ──
+    sensitive_keys = {"SECRET_KEY", "PG_PASSWORD", "MAIL_PASSWORD"}
+    config_items = sorted(
+        (k, ("••••••••" if k in sensitive_keys else v))
+        for k, v in current_app.config.items()
+        if k.isupper() and not callable(v)
+    )
+
+    session_items = sorted(session.items())
+
+    routes = sorted(
+        (
+            r.endpoint,
+            ", ".join(sorted(m for m in r.methods if m not in ("HEAD", "OPTIONS"))),
+            str(r),
+        )
+        for r in current_app.url_map.iter_rules()
+    )
+
+    return render_template(
+        "admin/dev_debug_real.html",
+        session_items=session_items,
+        config_items=config_items,
+        routes=routes,
+        python_version=sys.version.split()[0],
+        flask_version=flask.__version__,
+        request_headers=sorted(request.headers.items()),
+        troll_odds_pct=round((1 - DEV_DEBUG_REAL_TOOL_CHANCE) * 100),
+        debug_mode=current_app.debug,
+    )
+
 
 @admin.route("/analytics")
 @role_required(3)
