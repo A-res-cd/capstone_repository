@@ -356,14 +356,24 @@ def set_capstone_people(capstone_id, authors, adviser, acting_user_id=None):
 
 def add_citations(capstone_id):
     conn = db_connect()
-    mithrix = conn.cursor()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
+        mithrix.execute("""
+            SELECT citation_count FROM capstone WHERE capstone_id = %s
+        """, (capstone_id,))
+        row = mithrix.fetchone()
+        old_count = row["citation_count"] if row else None
+
         mithrix.execute("""
             UPDATE capstone
             SET citation_count = citation_count + 1
             WHERE capstone_id = %s
         """, (capstone_id, ))
+
+        new_count = (old_count + 1) if old_count is not None else None
+
+        log_audit(mithrix, user_id, "citation_generated", "capstone", capstone_id, old_values=str(old_count), new_values=str(new_count))
 
         conn.commit()
         return True, None
