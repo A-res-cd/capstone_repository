@@ -31,14 +31,10 @@
 }
 
 /* Applied when the form panel isn't rendered (an active request already
-   exists for this capstone) — the history panel takes the full row
-   instead of sitting in a half-empty grid. */
+   exists for this capstone) — the history grid takes the full row
+   instead of sitting in a half-empty two-column layout. */
 .manuscript-request-layout--single {
     grid-template-columns: 1fr;
-}
-
-.manuscript-request-layout--single .detail-card {
-    max-width: 544px;
 }
 
 .manuscript-request-layout textarea {
@@ -61,48 +57,78 @@
     background-color: var(--color-white);
 }
 
-/* ── Request history list ── */
-.request-history-item {
-    padding: var(--space-md) 0;
-    border-bottom: var(--border-light);
+/* ── Request history — responsive card grid instead of a single
+   narrow stacked list, so it actually uses the page width instead of
+   capping at 544px with dead space beside it. ── */
+.request-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-md);
+    align-items: start;
+}
+
+.request-card {
+    padding: var(--space-md);
+    border: var(--border-light);
+    border-radius: 3px 10px 10px 10px;
+    background: var(--color-white);
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
+    box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
 }
 
-.request-history-item:last-child { border-bottom: none; }
-
-.request-history-item__top {
+.request-card__top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: var(--space-sm);
 }
 
-.request-history-item__meta {
+.request-card__top strong {
+    font-size: var(--text-sm);
+    line-height: 1.3;
+}
+
+.request-card__meta {
     font-size: var(--text-xs);
     color: var(--color-gray-dark);
     margin: 0;
 }
 
-.request-history-item__note {
+.request-card__note {
     font-size: var(--text-sm);
     color: var(--text-dark);
     margin: 0;
 }
 
-.request-history-item__hint {
-    font-size: var(--text-xs);
-    color: var(--color-gray-dark);
-    font-style: italic;
-    margin: 0;
-}
-
-.request-history-item form,
-.request-history-item a.btn-pill {
+.request-card form,
+.request-card a.btn-pill {
     align-self: flex-start;
     margin-top: var(--space-xs);
 }
+
+/* ── Request status badge — an outlined ink stamp, matching the
+   same badge used on the admin Requests page and Explore Archive. ── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-sm);
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1.5px solid currentColor;
+    transform: rotate(-2deg);
+}
+
+.status-badge--pending  { color: #9C7A17; }
+.status-badge--approved { color: #1E8449; }
+.status-badge--rejected { color: #C0392B; }
 
 /* ══════════════════════════════════════════════════════
    RESPONSIVE

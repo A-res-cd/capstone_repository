@@ -423,7 +423,19 @@ def view_requests():
 @admin.route("/repository")
 @role_required(3)
 def view_capstone_repository():
-    capstones = get_all_capstones()
+    search = request.args.get("search", "").strip()
+    program_id = request.args.get("program", "").strip()
+    page = request.args.get("page", 1, type=int)
+    page_size = 20
+
+    capstones, total = get_all_capstones(
+        search=search or None,
+        program_id=int(program_id) if program_id.isdigit() else None,
+        page=page,
+        page_size=page_size,
+    )
+    total_pages = max(1, (total + page_size - 1) // page_size)
+
     programs = get_programs()
     specializations = get_specializations()
     form = CreateCapstoneForm()
@@ -434,6 +446,11 @@ def view_capstone_repository():
         programs=programs,
         specializations=specializations,
         form=form,
+        search=search,
+        selected_program=program_id,
+        page=page,
+        total_pages=total_pages,
+        total_capstones=total,
     )
 
 
@@ -480,9 +497,10 @@ def admin_create_capstone():
     _populate_capstone_choices(form)
 
     def _rerender():
+        capstones, _ = get_all_capstones()
         return render_template(
             "admin/repository.html", hide_nav=False, form=form,
-            capstones=get_all_capstones(),
+            capstones=capstones,
             programs=get_programs(), specializations=get_specializations(),
         )
 
@@ -563,9 +581,10 @@ def update_capstone(capstone_id):
     _populate_capstone_choices(form)
 
     def _rerender():
+        capstones, _ = get_all_capstones()
         return render_template(
             "admin/repository.html", hide_nav=False, form=form,
-            capstones=get_all_capstones(),
+            capstones=capstones,
             programs=get_programs(), specializations=get_specializations(),
             used_keywords=used_keywords, capstone=capstone,
         )

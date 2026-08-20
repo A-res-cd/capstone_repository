@@ -33,6 +33,74 @@ main:has(.repo-section) {
     display: none;
 }
 
+/* ── Filter bar — same pattern as Manage Users'/Explore Archive's,
+   kept page-scoped rather than cross-importing another page's CSS. ── */
+.repo-filters {
+    flex-shrink: 0;
+}
+
+.filter-form {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+}
+
+.filter-input,
+.filter-select {
+    padding: 5px 8px;
+    border: var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+    background: var(--color-white);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    border-color: var(--color-primary-light);
+}
+
+.filter-input { width: 220px; }
+
+.repo-results-count {
+    flex-shrink: 0;
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+/* ── Pagination ── */
+.repo-pagination {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
+    padding-top: var(--space-md);
+}
+
+.repo-pagination__status {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-gray-dark);
+}
+
+.repo-pagination__link--disabled {
+    pointer-events: none;
+    opacity: 0.4;
+}
+
 .repo-page-header__text h2 {
     font-family: var(--font-display);
     font-size: var(--text-xl);
@@ -161,6 +229,10 @@ main:has(.repo-section) {
     .form-step-dot__line { min-width: 12px; }
 
     .btn-pill { justify-content: center; }
+
+    .filter-form { flex-direction: column; align-items: stretch; }
+    .filter-input { width: 100%; }
+    .filter-group { flex-direction: column; align-items: stretch; }
 }
 
 /* ── PDF extraction status banner ── */

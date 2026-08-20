@@ -65,45 +65,44 @@
 
             <div class="detail-card__body">
                 {% if user_requests %}
+                    <div class="request-grid">
                     {% for req in user_requests %}
-                    <div class="request-history-item">
-                        <div class="request-history-item__top">
+                    <div class="request-card">
+                        <div class="request-card__top">
                             <strong>{{ req.capstone_title }}</strong>
-                            <span class="pill
-                                {% if req.request_status == 'approved' %}pill--student
-                                {% elif req.request_status == 'rejected' %}pill--admin
-                                {% else %}pill--faculty{% endif %}">
+                            <span class="status-badge status-badge--{{ req.request_status }}">
                                 {{ req.request_status | capitalize }}
                             </span>
                         </div>
 
-                        <p class="request-history-item__meta">
+                        <p class="request-card__meta">
                             Year: {{ req.capstone_year }} ·
                             Specialization: {{ req.specialization_name }} ·
                             Submitted: {{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}
                         </p>
 
                         {% if req.request_status == 'pending' %}
-                            <p class="request-history-item__note">Reason: {{ req.request_reason }}</p>
+                            <p class="request-card__note">Reason: {{ req.request_reason }}</p>
                             <form method="POST" action="{{ url_for('pages.cancel_request', request_id=req.request_id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-pill btn-pill--danger">Cancel Request</button>
                             </form>
 
                         {% elif req.request_status == 'approved' %}
-                            <p class="request-history-item__note">Admin Feedback: {{ req.status_reason or '—' }}</p>
+                            <p class="request-card__note">Admin Feedback: {{ req.status_reason or '—' }}</p>
                             <a href="{{ url_for('pages.view_approved_manuscript', capstone_id=req.capstone_id) }}" target="_blank" class="btn-pill btn-pill--ghost">
                                 View Full Manuscript
                             </a>
 
                         {% elif req.request_status == 'rejected' %}
-                            <p class="request-history-item__note">Rejection Reason: {{ req.status_reason or '—' }}</p>
+                            <p class="request-card__note">Rejection Reason: {{ req.status_reason or '—' }}</p>
                             <a href="{{ url_for('pages.request_capstone', capstone_id=req.capstone_id) }}" class="btn-pill btn-pill--ghost">
                                 Resubmit Request
                             </a>
                         {% endif %}
                     </div>
                     {% endfor %}
+                    </div>
                 {% else %}
                     <div class="empty-state">
                         <p>You haven't requested any manuscripts yet.</p>

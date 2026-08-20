@@ -37,7 +37,32 @@
     ══════════════════════════════════════════════════════ #}
     <div class="repo-panel" id="panel-list">
 
+        {# ── Filter Bar ── #}
+        <div class="repo-filters">
+            <form method="GET" action="{{ url_for('admin.view_capstone_repository') }}" class="filter-form">
+                <div class="filter-group">
+                    <span>Search:</span>
+                    <input type="text" name="search" class="filter-input"
+                           placeholder="Title or keyword…" value="{{ search }}">
+                </div>
+                <div class="filter-group">
+                    <span>Program:</span>
+                    <select name="program" class="filter-select">
+                        <option value="">All</option>
+                        {% for prog in programs %}
+                        <option value="{{ prog[0] }}" {% if selected_program == prog[0]|string %}selected{% endif %}>{{ prog[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn-filter">Search</button>
+                {% if search or selected_program %}
+                <a href="{{ url_for('admin.view_capstone_repository') }}" class="btn-clear">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
         {% if capstones %}
+        <p class="repo-results-count">{{ total_capstones }} capstone{{ 's' if total_capstones != 1 else '' }} found</p>
         <div class="record-list">
             {% for c in capstones %}
             <div class="record-card">
@@ -83,13 +108,34 @@
             </div>
             {% endfor %}
         </div>
+
+        {# ── Pagination ── #}
+        {% if total_pages > 1 %}
+        <div class="repo-pagination">
+            {% set qs = {'search': search, 'program': selected_program} %}
+            <a href="{{ url_for('admin.view_capstone_repository', page=page-1, **qs) }}"
+               class="btn-pill btn-pill--ghost {% if page <= 1 %}repo-pagination__link--disabled{% endif %}">
+                <i class="bx bx-left-arrow-alt"></i> Prev
+            </a>
+            <span class="repo-pagination__status">Page {{ page }} of {{ total_pages }}</span>
+            <a href="{{ url_for('admin.view_capstone_repository', page=page+1, **qs) }}"
+               class="btn-pill btn-pill--ghost {% if page >= total_pages %}repo-pagination__link--disabled{% endif %}">
+                Next <i class="bx bx-right-arrow-alt"></i>
+            </a>
+        </div>
+        {% endif %}
+
         {% else %}
         <div class="empty-state">
             <i class="bx bx-folder-open"></i>
+            {% if search or selected_program %}
+            <p>No capstones match your filters. <a href="{{ url_for('admin.view_capstone_repository') }}">Clear filters</a></p>
+            {% else %}
             <p>No capstone records yet.</p>
             <button class="btn-pill btn-pill--primary" onclick="openCreate()">
                 <i class="bx bx-plus"></i> Add the First One
             </button>
+            {% endif %}
         </div>
         {% endif %}
 

@@ -55,4 +55,43 @@ document.addEventListener("DOMContentLoaded", function () {
     window.addEventListener("resize", () => {
         if (!isMobile()) closeMobileNav();
     });
+
+    // ── Auto-submitting filter bars ──────────────────────────────────
+    // Applies to every GET filter form on the site (Explore Archive,
+    // Manage Users, admin Requests, and any future one) generically —
+    // targets the shared .filter-input/.filter-select classes rather
+    // than a specific form/page, so a new filter form works without
+    // needing to touch this file. Debounced on text input so it isn't
+    // submitting on every single keystroke; selects submit immediately
+    // since picking one is already a deliberate, discrete action.
+    const FILTER_DEBOUNCE_MS = 500;
+    let filterDebounceTimer = null;
+
+    document.querySelectorAll(".filter-input").forEach((input) => {
+        input.addEventListener("input", () => {
+            clearTimeout(filterDebounceTimer);
+            filterDebounceTimer = setTimeout(() => {
+                const form = input.closest("form");
+                if (form) (form.requestSubmit ? form.requestSubmit() : form.submit());
+            }, FILTER_DEBOUNCE_MS);
+        });
+
+        // A GET-form submit is a full page reload, which drops focus —
+        // if this input already has a value (i.e. it's what triggered
+        // the reload), restore focus with the cursor at the end so
+        // continued typing feels uninterrupted instead of needing a
+        // re-click after every pause.
+        if (input.value) {
+            input.focus();
+            const end = input.value.length;
+            input.setSelectionRange(end, end);
+        }
+    });
+
+    document.querySelectorAll(".filter-select").forEach((select) => {
+        select.addEventListener("change", () => {
+            const form = select.closest("form");
+            if (form) (form.requestSubmit ? form.requestSubmit() : form.submit());
+        });
+    });
 });
