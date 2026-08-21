@@ -7,6 +7,7 @@ import psycopg2.extras
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+from datetime import datetime, timezone 
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +19,8 @@ def request_fullview(user_id, capstone_id, request_reason):
 
     try:
         mithrix.execute("""
-            INSERT INTO request(user_id, capstone_id, request_status, request_reason, request_date)
-            VALUES(%s, %s, 'pending', %s,  %s)
+            INSERT INTO request(user_id, capstone_id, request_status, request_reason, request_date, request_type)
+            VALUES(%s, %s, 'pending', %s, %s, 'manuscript')
             RETURNING request_id
         """, (user_id, capstone_id, request_reason, now))
 

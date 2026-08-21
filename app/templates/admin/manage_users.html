@@ -81,6 +81,62 @@
     </div>{# end panel-pending #}
     {% endif %}
 
+    {% if pending_promotions %}
+    <div class="mu-panel" id="panel-pending-promotions">
+        <div class="mu-panel-header">
+            <h3><i class="bx bx-up-arrow-circle"></i> Pending Promotion Requests</h3>
+            <p>Existing users requesting a different role.</p>
+        </div>
+
+        <div class="record-list">
+            {% for pr in pending_promotions %}
+            <div class="record-card">
+                <div class="record-card__avatar">{{ pr.full_name[:1] }}</div>
+                <div class="record-card__body">
+                    <p class="record-card__title">{{ pr.full_name }}</p>
+                    <div class="record-card__meta">
+                        <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ pr.university_no }}</span>
+                        <span class="record-card__meta-item"><i class="bx bx-message-square-detail"></i>{{ pr.request_reason }}</span>
+                    </div>
+                    <div class="record-card__meta">
+                        <span class="role-badge
+                            {% if pr.current_role == 'Admin' %}role-badge--admin
+                            {% elif pr.current_role == 'Faculty' %}role-badge--faculty
+                            {% else %}role-badge--student{% endif %}">
+                            {{ pr.current_role }}
+                        </span>
+                        <i class="bx bx-right-arrow-alt"></i>
+                        <span class="role-badge
+                            {% if pr.target_role == 'Admin' %}role-badge--admin
+                            {% elif pr.target_role == 'Faculty' %}role-badge--faculty
+                            {% else %}role-badge--student{% endif %}">
+                            {{ pr.target_role }}
+                        </span>
+                    </div>
+                </div>
+                <div class="record-card__actions">
+                    <form method="POST" action="{{ url_for('admin.decide_promotion', request_id=pr.request_id) }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="decision" value="approved">
+                        <button type="submit" class="btn-row btn-row--approve">
+                            <i class="bx bx-check"></i> Approve
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin.decide_promotion', request_id=pr.request_id) }}" style="display:inline;"
+                          onsubmit="return confirm('Reject this promotion request?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="decision" value="rejected">
+                        <button type="submit" class="btn-row btn-row--reject">
+                            <i class="bx bx-x"></i> Reject
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>{# end panel-pending-promotions #}
+    {% endif %}
+
     {# ══════════════════════════════════════════════════════
        PANEL A — USER LIST
     ══════════════════════════════════════════════════════ #}

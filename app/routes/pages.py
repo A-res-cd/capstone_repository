@@ -5,7 +5,8 @@ import logging
 from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact,
-get_capstones_corpus, get_own_profile, change_own_password
+get_capstones_corpus, get_own_profile, change_own_password, delete_own_account,
+get_all_roles, submit_promotion_request, get_own_promotion_requests, cancel_promotion_request
 )
 from app.routes.decorators import login_required, role_required
 from app.routes.forms import ChangePasswordForm
@@ -82,6 +83,10 @@ def user_info():
     ]
     contact_by_type = {c["contact_type"]: c for c in contacts}
 
+    roles = get_all_roles()
+    promotion_requests = get_own_promotion_requests(user_id)
+    has_pending_promotion = any(r["request_status"] == "pending" for r in promotion_requests)
+
     return render_template(
         "global/user_information.html",
         hide_nav=False,
@@ -90,7 +95,39 @@ def user_info():
         contact_labels=contact_labels,
         contact_by_type=contact_by_type,
         password_form=ChangePasswordForm(),
+        roles=roles,
+        promotion_requests=promotion_requests,
+        has_pending_promotion=has_pending_promotion,
     )
+
+
+@pages.route("/user-info/promotion", methods=["POST"])
+@login_required
+def submit_promotion_request_route():
+    user_id = session.get("user_id")
+    target_role_id = request.form.get("target_role_id")
+    reason = request.form.get("reason", "").strip()
+
+    if not target_role_id or not target_role_id.isdigit():
+        flash("Select a role to request.", "danger")
+        return redirect(url_for("pages.user_info"))
+
+    if not reason:
+        flash("Enter a reason for the request.", "danger")
+        return redirect(url_for("pages.user_info"))
+
+    ok, err = submit_promotion_request(user_id, int(target_role_id), reason)
+    flash("Promotion request submitted." if ok else err, "success" if ok else "danger")
+    return redirect(url_for("pages.user_info"))
+
+
+@pages.route("/user-info/promotion/cancel/<int:request_id>", methods=["POST"])
+@login_required
+def cancel_promotion_request_route(request_id):
+    user_id = session.get("user_id")
+    ok, err = cancel_promotion_request(request_id, user_id)
+    flash("Promotion request cancelled." if ok else err, "success" if ok else "danger")
+    return redirect(url_for("pages.user_info"))
 
 
 @pages.route("/user-info/contact", methods=["POST"])
@@ -150,6 +187,27 @@ def update_own_password():
         flash("Password changed successfully.", "success")
     else:
         flash(err, "danger")
+    return redirect(url_for("pages.user_info"))
+
+
+@pages.route("/user-info/delete", methods=["POST"])
+@login_required
+def delete_own_account_route():
+    password = request.form.get("password", "")
+    user_id = session.get("user_id")
+
+    if not password:
+        flash("Enter your password to confirm account deletion.", "danger")
+        return redirect(url_for("pages.user_info"))
+
+    ok, err = delete_own_account(user_id, password)
+
+    if ok:
+        session.clear()
+        flash("Your account has been deleted.", "success")
+        return redirect(url_for("auth.signin"))
+
+    flash(err, "danger")
     return redirect(url_for("pages.user_info"))
 
 

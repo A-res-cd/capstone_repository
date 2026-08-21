@@ -126,6 +126,68 @@
 
         </div>
 
+        {# ── Request Promotion — a user requesting a different role,
+           reviewed by Admin (DFD 2.4.1/2.4.2). Distinct from account
+           verification, which only applies to new sign-ups. ── #}
+        <div class="user-information-update-group">
+            <div class="ui-card-header">
+                <h3><i class="bx bx-up-arrow-circle"></i> Request Role Promotion</h3>
+                <p>Request a different role — an Admin will review and decide.</p>
+            </div>
+
+            {% if has_pending_promotion %}
+                {% for pr in promotion_requests if pr.request_status == 'pending' %}
+                <div class="promotion-pending-notice">
+                    <i class="bx bx-time-five"></i>
+                    <span>Your request to become <strong>{{ pr.target_role }}</strong> is pending review.</span>
+                    <form method="post" action="{{ url_for('pages.cancel_promotion_request_route', request_id=pr.request_id) }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn-pill btn-pill--ghost">Cancel Request</button>
+                    </form>
+                </div>
+                {% endfor %}
+            {% else %}
+                <form method="post" action="{{ url_for('pages.submit_promotion_request_route') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="target_role_id">Requested role</label>
+                            <select id="target_role_id" name="target_role_id" required>
+                                <option value="" disabled selected>Select a role</option>
+                                {% for r in roles %}
+                                {% if r[1] != profile.role_name %}
+                                <option value="{{ r[0] }}">{{ r[1] }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="reason">Reason</label>
+                            <input type="text" id="reason" name="reason" placeholder="Why are you requesting this role?" required>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-pill btn-pill--primary">
+                            <i class="bx bx-send"></i> Submit Request
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+
+            {% set past_requests = promotion_requests | rejectattr('request_status', 'equalto', 'pending') | list %}
+            {% if past_requests %}
+            <div class="promotion-history">
+                <p class="promotion-history__label">Past requests</p>
+                {% for pr in past_requests %}
+                <div class="promotion-history__item">
+                    <span>Requested <strong>{{ pr.target_role }}</strong></span>
+                    <span class="status-badge status-badge--{{ pr.request_status }}">{{ pr.request_status | capitalize }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
         {# ── Change Password — full-width, kept visually separate from
            the two info cards since it's a sensitive/security action,
            not a display-info-about-yourself action. ── #}
@@ -153,6 +215,30 @@
                 <div class="form-actions">
                     <button type="submit" class="btn-pill btn-pill--primary">
                         <i class="bx bx-lock-alt"></i> Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
+        {# ── Danger Zone — self-service account deletion, requires the
+           current password since this is irreversible. ── #}
+        <div class="danger-zone ui-danger-zone">
+            <div class="danger-zone__header">
+                <i class="bx bx-error-circle"></i>
+                <span>Danger Zone</span>
+            </div>
+            <p>Permanently deletes your account and all associated data. This action <strong>cannot be undone</strong>.</p>
+
+            <form method="post" action="{{ url_for('pages.delete_own_account_route') }}" id="delete-account-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-row form-row--single">
+                    <div class="form-group">
+                        <label for="delete_password">Confirm your password to continue</label>
+                        <input type="password" id="delete_password" name="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-pill btn-pill--danger">
+                        <i class="bx bx-trash"></i> Delete My Account
                     </button>
                 </div>
             </form>
@@ -206,6 +292,18 @@
         });
         document.getElementById('confirm_password').addEventListener('input', function () {
             this.setCustomValidity('');
+        });
+    }
+
+    // Delete-account confirmation — this is irreversible, so a plain
+    // confirm() on top of the password requirement, not just the browser's
+    // default form submission.
+    const deleteAccountForm = document.getElementById('delete-account-form');
+    if (deleteAccountForm) {
+        deleteAccountForm.addEventListener('submit', (e) => {
+            if (!confirm('Delete your account permanently?\n\nThis cannot be undone — all your data will be removed and you will be signed out immediately.')) {
+                e.preventDefault();
+            }
         });
     }
 </script>

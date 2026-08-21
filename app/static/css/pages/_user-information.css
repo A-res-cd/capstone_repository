@@ -12,6 +12,7 @@
 @import url('../base/root.css');
 @import url('../components/_forms.css');
 @import url('../components/_record-card.css');
+@import url('../components/_detail-card.css');
 
 .user-information-section {
     padding: var(--space-xl);
@@ -96,6 +97,92 @@
     height: auto;
     border-left: 3px solid var(--color-accent);
 }
+
+.ui-danger-zone {
+    background: var(--color-white);
+    border: 1px solid #F0D5CE;
+    border-radius: 3px 12px 12px 12px;
+    box-shadow: var(--shadow-md);
+}
+
+.ui-danger-zone .form-row--single .form-group {
+    max-width: 320px;
+}
+
+/* ── Request Role Promotion ── */
+.promotion-pending-notice {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: #FBF3E2;
+    border: 1px solid #EEDCB0;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+}
+
+.promotion-pending-notice i {
+    font-size: 18px;
+    color: var(--color-accent);
+    flex-shrink: 0;
+}
+
+.promotion-pending-notice form {
+    margin-left: auto;
+}
+
+.promotion-history {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 2px dashed #ECE9DD;
+}
+
+.promotion-history__label {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-gray-dark);
+    margin: 0 0 var(--space-sm);
+}
+
+.promotion-history__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: var(--text-sm);
+    border-bottom: 1px dashed #ECE9DD;
+}
+
+.promotion-history__item:last-child {
+    border-bottom: none;
+}
+
+/* ── Request status badge — an outlined ink stamp, matching the
+   same badge used across Explore Archive, admin Requests, and
+   My Requests. ── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-sm);
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1.5px solid currentColor;
+    transform: rotate(-2deg);
+}
+
+.status-badge--pending   { color: #9C7A17; }
+.status-badge--approved  { color: #1E8449; }
+.status-badge--rejected  { color: #C0392B; }
+.status-badge--cancelled { color: #7A7A72; }
 
 .ui-card-header {
     margin-bottom: var(--space-lg);

@@ -15,6 +15,7 @@ from app.db.database import (
     get_capstones_by_specialization, get_requests_by_status, get_top_cited_capstones, add_to_bin,
     restore_capstone, ARCHIVE_RETENTION_DAYS,
     get_pending_verifications, review_verification_request,
+    get_pending_promotion_requests, review_promotion_request,
     get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags,
     get_capstone_program_summary
 )
@@ -305,11 +306,13 @@ def manage_users():
 
     roles = get_all_roles()
     pending_verifications = get_pending_verifications()
+    pending_promotions = get_pending_promotion_requests()
     return render_template(
         "admin/manage_users.html",
         users=users,
         roles=roles,
         pending_verifications=pending_verifications,
+        pending_promotions=pending_promotions,
         search=search,
         selected_role=role_id,
         selected_status=status,
@@ -317,6 +320,27 @@ def manage_users():
         total_pages=total_pages,
         total_users=total,
     )
+
+
+@admin.route("/manage_users/promotion/<int:request_id>", methods=["POST"])
+@role_required(3)
+def decide_promotion(request_id):
+    decision = request.form.get("decision")  # 'approved' or 'rejected'
+    status_reason = request.form.get("status_reason", "")
+    reviewed_by = session.get("user_id")
+
+    if decision not in ("approved", "rejected"):
+        flash("Invalid decision.", "danger")
+        return redirect(url_for("admin.manage_users"))
+
+    ok, err = review_promotion_request(request_id, decision, status_reason, reviewed_by)
+    flash(
+        "Promotion approved." if (ok and decision == "approved")
+        else "Promotion request rejected." if ok
+        else f"Error: {err}",
+        "success" if ok else "danger",
+    )
+    return redirect(url_for("admin.manage_users"))
 
 
 @admin.route("/manage_users/verify/<int:request_id>", methods=["POST"])
@@ -479,11 +503,29 @@ def get_capstone_people_json(capstone_id):
 @admin.route("/recyclebin")
 @role_required(3)
 def view_archived_capstones():
-    archived_capstones = get_archived_capstones()
+    search = request.args.get("search", "").strip()
+    program_id = request.args.get("program", "").strip()
+    page = request.args.get("page", 1, type=int)
+    page_size = 20
+
+    archived_capstones, total = get_archived_capstones(
+        search=search or None,
+        program_id=int(program_id) if program_id.isdigit() else None,
+        page=page,
+        page_size=page_size,
+    )
+    total_pages = max(1, (total + page_size - 1) // page_size)
+
     return render_template(
         "admin/archives.html",
         archived_capstones=archived_capstones,
         archive_retention_days=ARCHIVE_RETENTION_DAYS,
+        programs=get_programs(),
+        search=search,
+        selected_program=program_id,
+        page=page,
+        total_pages=total_pages,
+        total_archived=total,
     )
 
 
