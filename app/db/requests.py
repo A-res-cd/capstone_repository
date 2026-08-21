@@ -4,6 +4,7 @@ Manuscript/full-view access requests: create, list, review
 """
 import logging
 import psycopg2.extras
+from datetime import datetime, timezone
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
@@ -177,6 +178,10 @@ def cancel_manuscript_request(request_id, user_id):
             WHERE request_id = %s AND user_id = %s
             AND request_status = 'pending'
         """, (request_id, user_id))
+
+        if mithrix.rowcount == 0:
+            conn.rollback()
+            return False, "This request can no longer be cancelled — it may have already been decided or cancelled."
 
         log_audit(mithrix, user_id, "cancel_request", "request", request_id)
 

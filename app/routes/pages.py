@@ -374,7 +374,7 @@ def cancel_request(request_id):
     return redirect(url_for("pages.all_requests"))
 
 @pages.route("/cite/<int:capstone_id>", methods=["POST"])
-def cite_capstone(capstone_id):
+def cite_capstone(capstone_id, user_id):
     user_id =session.get("user_id")
     if not user_id:
         return jsonify({"error": "You must be logged in to cite this capstone"}), 401
@@ -409,7 +409,7 @@ def cite_capstone(capstone_id):
         f"[Unpublished capstone project]. "
         f"{capstone['program_name']}."
     )
-    ok, err = add_citations(capstone_id)
+    ok, err = add_citations(capstone_id, user_id)
     if not ok:
         return jsonify({"error": err}), 500
     
