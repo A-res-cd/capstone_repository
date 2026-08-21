@@ -21,12 +21,25 @@
     {% endwith %}
 
     {# Reached two ways:
-       1. Sidebar "My Requests" -> capstone is None -> form never shows,
-          this is purely the all-requests list.
+       1. Sidebar "My Requests" -> capstone is None -> this is the list
+          view, with the "Create New Request" button + modal picker.
        2. "Request Full Manuscript" on a capstone -> capstone is set ->
-          form shows by itself; the all-requests list only appears once
-          the form's job is done (an active request now exists, or
-          there's no capstone in context at all). #}
+          the single-capstone form shows by itself; the list only
+          appears once the form's job is done (an active request now
+          exists for that capstone). #}
+
+    {% if not capstone %}
+    <div class="mr-page-header">
+        <div>
+            <h2>My Requests</h2>
+            <p>Track your manuscript access requests, or start a new one.</p>
+        </div>
+        <button type="button" class="btn-pill btn-pill--primary" id="btn-open-new-request">
+            <i class="bx bx-plus"></i> Create New Request
+        </button>
+    </div>
+    {% endif %}
+
     <div class="manuscript-request-layout manuscript-request-layout--single">
 
         {% if capstone and not has_active_request %}
@@ -54,66 +67,354 @@
 
         {% else %}
 
-        {# ── All Requests section — shown once the form's job is done ── #}
-        <div class="detail-card">
-            <div class="detail-card__header">
-                <div>
-                    <h3>My Manuscript Access Requests</h3>
-                    <p>{{ user_requests | length }} total</p>
-                </div>
+        {# ── All Requests — flat layout matching Manage Users: tabs
+           sit directly on the page, no card box wrapping them. ── #}
+        {% if user_requests %}
+            {% set pending_reqs = user_requests | selectattr('request_status', 'equalto', 'pending') | list %}
+            {% set approved_reqs = user_requests | selectattr('request_status', 'equalto', 'approved') | list %}
+            {% set rejected_reqs = user_requests | selectattr('request_status', 'equalto', 'rejected') | list %}
+
+            {# ── Status tabs ── #}
+            <div class="mr-tabs" role="tablist">
+                <button type="button" class="mr-tab mr-tab--active" data-target="mr-table-pending" role="tab" aria-selected="true">
+                    <i class="bx bx-time-five"></i> Pending <span class="mr-tab__count">{{ pending_reqs | length }}</span>
+                </button>
+                <button type="button" class="mr-tab" data-target="mr-table-approved" role="tab" aria-selected="false">
+                    <i class="bx bx-check-circle"></i> Approved <span class="mr-tab__count">{{ approved_reqs | length }}</span>
+                </button>
+                <button type="button" class="mr-tab" data-target="mr-table-rejected" role="tab" aria-selected="false">
+                    <i class="bx bx-x-circle"></i> Rejected <span class="mr-tab__count">{{ rejected_reqs | length }}</span>
+                </button>
             </div>
 
-            <div class="detail-card__body">
-                {% if user_requests %}
-                    <div class="request-grid">
-                    {% for req in user_requests %}
-                    <div class="request-card">
-                        <div class="request-card__top">
-                            <strong>{{ req.capstone_title }}</strong>
-                            <span class="status-badge status-badge--{{ req.request_status }}">
-                                {{ req.request_status | capitalize }}
-                            </span>
-                        </div>
-
-                        <p class="request-card__meta">
-                            Year: {{ req.capstone_year }} ·
-                            Specialization: {{ req.specialization_name }} ·
-                            Submitted: {{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}
-                        </p>
-
-                        {% if req.request_status == 'pending' %}
-                            <p class="request-card__note">Reason: {{ req.request_reason }}</p>
-                            <form method="POST" action="{{ url_for('pages.cancel_request', request_id=req.request_id) }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn-pill btn-pill--danger">Cancel Request</button>
-                            </form>
-
-                        {% elif req.request_status == 'approved' %}
-                            <p class="request-card__note">Admin Feedback: {{ req.status_reason or '—' }}</p>
-                            <a href="{{ url_for('pages.view_approved_manuscript', capstone_id=req.capstone_id) }}" target="_blank" class="btn-pill btn-pill--ghost">
-                                View Full Manuscript
-                            </a>
-
-                        {% elif req.request_status == 'rejected' %}
-                            <p class="request-card__note">Rejection Reason: {{ req.status_reason or '—' }}</p>
-                            <a href="{{ url_for('pages.request_capstone', capstone_id=req.capstone_id) }}" class="btn-pill btn-pill--ghost">
-                                Resubmit Request
-                            </a>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                    </div>
+            {# ── Pending table ── #}
+            <div class="mr-table-panel" id="mr-table-pending" data-status-panel>
+                {% if pending_reqs %}
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Capstone</th>
+                                <th>Year</th>
+                                <th>Specialization</th>
+                                <th>Requested On</th>
+                                <th>Reason</th>
+                                <th class="col-actions">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in pending_reqs %}
+                            <tr>
+                                <td><strong>{{ req.capstone_title }}</strong></td>
+                                <td>{{ req.capstone_year }}</td>
+                                <td>{{ req.specialization_name }}</td>
+                                <td>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</td>
+                                <td>{{ req.request_reason }}</td>
+                                <td class="col-actions">
+                                    <form method="POST" action="{{ url_for('pages.cancel_request', request_id=req.request_id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn-pill btn-pill--danger">
+                                            <i class="bx bx-x"></i> Cancel
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                    <div class="empty-state">
-                        <p>You haven't requested any manuscripts yet.</p>
-                        <a href="{{ url_for('pages.browse') }}" class="btn-pill btn-pill--ghost">Browse the Archive</a>
-                    </div>
+                <div class="empty-state">
+                    <i class="bx bx-time-five"></i>
+                    <p>No pending requests.</p>
+                </div>
                 {% endif %}
             </div>
-        </div>
+
+            {# ── Approved table ── #}
+            <div class="mr-table-panel mr-table-panel--hidden" id="mr-table-approved" data-status-panel>
+                {% if approved_reqs %}
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Capstone</th>
+                                <th>Year</th>
+                                <th>Specialization</th>
+                                <th>Requested On</th>
+                                <th>Approved On</th>
+                                <th>Admin Feedback</th>
+                                <th class="col-actions">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in approved_reqs %}
+                            <tr>
+                                <td><strong>{{ req.capstone_title }}</strong></td>
+                                <td>{{ req.capstone_year }}</td>
+                                <td>{{ req.specialization_name }}</td>
+                                <td>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</td>
+                                <td>{{ req.decision_date.strftime('%b %d, %Y · %I:%M %p') if req.decision_date else '—' }}</td>
+                                <td>{{ req.status_reason or '—' }}</td>
+                                <td class="col-actions">
+                                    <a href="{{ url_for('pages.view_approved_manuscript', capstone_id=req.capstone_id) }}" target="_blank" class="btn-pill btn-pill--ghost">
+                                        <i class="bx bx-file-find"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bx bx-check-circle"></i>
+                    <p>No approved requests yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            {# ── Rejected table ── #}
+            <div class="mr-table-panel mr-table-panel--hidden" id="mr-table-rejected" data-status-panel>
+                {% if rejected_reqs %}
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Capstone</th>
+                                <th>Year</th>
+                                <th>Specialization</th>
+                                <th>Requested On</th>
+                                <th>Rejected On</th>
+                                <th>Rejection Reason</th>
+                                <th class="col-actions">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in rejected_reqs %}
+                            <tr>
+                                <td><strong>{{ req.capstone_title }}</strong></td>
+                                <td>{{ req.capstone_year }}</td>
+                                <td>{{ req.specialization_name }}</td>
+                                <td>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</td>
+                                <td>{{ req.decision_date.strftime('%b %d, %Y · %I:%M %p') if req.decision_date else '—' }}</td>
+                                <td>{{ req.status_reason or '—' }}</td>
+                                <td class="col-actions">
+                                    <a href="{{ url_for('pages.request_capstone', capstone_id=req.capstone_id) }}" class="btn-pill btn-pill--ghost">
+                                        <i class="bx bx-refresh"></i> Resubmit
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bx bx-x-circle"></i>
+                    <p>No rejected requests.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        {% else %}
+            <div class="empty-state">
+                <i class="bx bx-folder-open"></i>
+                <p>You haven't requested any manuscripts yet.</p>
+                <button type="button" class="btn-pill btn-pill--primary" id="btn-open-new-request-empty">
+                    <i class="bx bx-plus"></i> Create New Request
+                </button>
+            </div>
+        {% endif %}
 
         {% endif %}
 
     </div>
+
+    {# ══════════════════════════════════════════════════════
+       CREATE NEW REQUEST — modal picker. Lets a user start a
+       manuscript request right from this page instead of having to
+       browse to a specific capstone first. Selecting a capstone
+       reveals the reason field, then submits to the existing
+       request_manuscript route.
+    ══════════════════════════════════════════════════════ #}
+    {% if not capstone %}
+    <div class="mr-modal-overlay hidden" id="mr-modal-overlay">
+        <div class="mr-modal" role="dialog" aria-modal="true" aria-labelledby="mr-modal-title">
+            <div class="mr-modal__header">
+                <div>
+                    <h3 id="mr-modal-title">New Manuscript Request</h3>
+                    <p>Pick a capstone, then tell us why you need full access.</p>
+                </div>
+                <button type="button" class="btn-icon" id="mr-modal-close" title="Close">
+                    <i class="bx bx-x"></i>
+                </button>
+            </div>
+
+            {% if requestable_capstones %}
+            <div class="mr-modal__body">
+
+                {# ── Step 1: pick a capstone ── #}
+                <div class="mr-modal__step" id="mr-step-pick">
+                    <div class="form-group">
+                        <label for="mr-search">Search capstones</label>
+                        <input type="text" id="mr-search"
+                               placeholder="Search by title, year, or specialization…" autocomplete="off">
+                    </div>
+
+                    <div class="mr-pick-list" id="mr-pick-list">
+                        {% for c in requestable_capstones %}
+                        <button type="button" class="mr-pick-item"
+                                data-id="{{ c.capstone_id }}"
+                                data-title="{{ c.capstone_title }}"
+                                data-search="{{ (c.capstone_title ~ ' ' ~ c.capstone_year|string ~ ' ' ~ (c.specialization_name or '')) | lower }}">
+                            <span class="mr-pick-item__title">{{ c.capstone_title }}</span>
+                            <span class="mr-pick-item__meta">
+                                <i class="bx bx-calendar"></i> {{ c.capstone_year }}
+                                &nbsp;·&nbsp;
+                                <i class="bx bx-shapes"></i> {{ c.specialization_name or '—' }}
+                            </span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                    <p class="mr-pick-list__empty hidden" id="mr-pick-list-empty">No capstones match your search.</p>
+                </div>
+
+                {# ── Step 2: reason + submit, shown once a capstone is picked ── #}
+                <form class="mr-modal__step hidden" id="mr-step-reason" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <button type="button" class="mr-selected-capstone" id="mr-back-to-pick">
+                        <i class="bx bx-left-arrow-alt"></i>
+                        <span id="mr-selected-title">—</span>
+                    </button>
+
+                    <div class="form-group">
+                        <label for="mr-reason">Request Reason</label>
+                        <textarea id="mr-reason" name="request_reason" rows="5"
+                                  placeholder="Why do you need full access to this manuscript?" required></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-pill btn-pill--primary">
+                            <i class="bx bx-send"></i> Submit Request
+                        </button>
+                        <button type="button" class="btn-pill btn-pill--secondary" id="mr-cancel-reason">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            {% else %}
+            <div class="mr-modal__body">
+                <div class="empty-state">
+                    <i class="bx bx-check-double"></i>
+                    <p>You already have an active request on every available capstone.</p>
+                    <a href="{{ url_for('pages.browse') }}" class="btn-pill btn-pill--ghost">Browse the Archive</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
 </section>
+
+{% if not capstone %}
+<script>
+(function () {
+    // ── Status tabs (Pending / Approved / Rejected) ──
+    const statusTabs = document.querySelectorAll('.mr-tab');
+    const statusPanels = document.querySelectorAll('[data-status-panel]');
+    statusTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetId = tab.dataset.target;
+            statusPanels.forEach(p => p.classList.toggle('mr-table-panel--hidden', p.id !== targetId));
+            statusTabs.forEach(t => {
+                const isActive = t === tab;
+                t.classList.toggle('mr-tab--active', isActive);
+                t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+        });
+    });
+})();
+
+(function () {
+    const overlay      = document.getElementById('mr-modal-overlay');
+    if (!overlay) return;
+
+    const openBtns      = [
+        document.getElementById('btn-open-new-request'),
+        document.getElementById('btn-open-new-request-empty'),
+    ].filter(Boolean);
+    const closeBtn       = document.getElementById('mr-modal-close');
+    const stepPick        = document.getElementById('mr-step-pick');
+    const stepReason      = document.getElementById('mr-step-reason');
+    const searchInput     = document.getElementById('mr-search');
+    const pickList        = document.getElementById('mr-pick-list');
+    const pickListEmpty   = document.getElementById('mr-pick-list-empty');
+    const selectedTitleEl = document.getElementById('mr-selected-title');
+    const backToPickBtn   = document.getElementById('mr-back-to-pick');
+    const cancelReasonBtn = document.getElementById('mr-cancel-reason');
+
+    function openModal() {
+        overlay.classList.remove('hidden');
+        showPickStep();
+        if (searchInput) searchInput.focus();
+    }
+
+    function closeModal() {
+        overlay.classList.add('hidden');
+    }
+
+    function showPickStep() {
+        if (stepReason) stepReason.classList.add('hidden');
+        if (stepPick) stepPick.classList.remove('hidden');
+    }
+
+    function showReasonStep(id, title) {
+        if (stepReason) {
+            stepReason.action = `/request_manuscript/${id}`;
+            stepReason.classList.remove('hidden');
+        }
+        if (stepPick) stepPick.classList.add('hidden');
+        if (selectedTitleEl) selectedTitleEl.textContent = title;
+        const reasonField = document.getElementById('mr-reason');
+        if (reasonField) reasonField.focus();
+    }
+
+    openBtns.forEach(btn => btn.addEventListener('click', openModal));
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (backToPickBtn) backToPickBtn.addEventListener('click', showPickStep);
+    if (cancelReasonBtn) cancelReasonBtn.addEventListener('click', showPickStep);
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal();
+    });
+
+    if (pickList) {
+        pickList.querySelectorAll('.mr-pick-item').forEach(item => {
+            item.addEventListener('click', () => {
+                showReasonStep(item.dataset.id, item.dataset.title);
+            });
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const q = searchInput.value.trim().toLowerCase();
+            let visibleCount = 0;
+            pickList.querySelectorAll('.mr-pick-item').forEach(item => {
+                const match = item.dataset.search.includes(q);
+                item.classList.toggle('hidden', !match);
+                if (match) visibleCount++;
+            });
+            if (pickListEmpty) pickListEmpty.classList.toggle('hidden', visibleCount !== 0);
+        });
+    }
+})();
+</script>
+{% endif %}
 {% endblock %}

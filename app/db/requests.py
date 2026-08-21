@@ -130,6 +130,40 @@ def get_user_requests(user_id):
         conn.close()
 
 
+def get_requestable_capstones(user_id):
+    """Non-archived capstones the given user can open a *new* manuscript
+    request for — i.e. everything except capstones they already have a
+    pending or approved request on. Feeds the "Create New Request"
+    picker on the My Requests page instead of sending the user back to
+    the archive just to start a request."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        mithrix.execute("""
+            SELECT c.capstone_id, c.capstone_title, c.capstone_year, s.specialization_name
+            FROM capstone c
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            WHERE c.is_archived IS NOT TRUE
+              AND c.capstone_id NOT IN (
+                  SELECT r.capstone_id FROM request r
+                  WHERE r.user_id = %s
+                    AND r.request_status IN ('pending', 'approved')
+                    AND r.capstone_id IS NOT NULL
+              )
+            ORDER BY c.capstone_title
+        """, (user_id,))
+
+        return mithrix.fetchall()
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return []
+
+    finally:
+        mithrix.close()
+        conn.close()
+
+
 # ______________________________Admin Analytics___________________________
 
 def cancel_manuscript_request(request_id, user_id):

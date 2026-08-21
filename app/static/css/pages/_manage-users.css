@@ -49,6 +49,65 @@ main:has(.mu-section) {
 .mu-panel { flex: 1; min-height: 0; }
 .mu-panel--hidden { display: none; }
 
+/* ── Tab switcher — flips between Manage Users, Verify Accounts,
+   and Approve Role Promotions. Only one [data-tab-panel] is shown
+   at a time (see inline script). ── */
+.mu-tabs {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    border-bottom: 2px solid #ECE9DD;
+}
+
+.mu-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + 2px);
+    margin-bottom: -2px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-gray-dark);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.mu-tab i { font-size: 15px; }
+
+.mu-tab:hover {
+    color: var(--color-primary);
+}
+
+.mu-tab--active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-accent);
+}
+
+/* ── Notification badge — red circle with pending count, sits on
+   the tab button so an admin sees new requests without opening
+   the panel. ── */
+.mu-tab__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--color-red);
+    color: var(--color-white);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 0 0 2px var(--color-white);
+}
+
 /* ── Pending-verifications panel header — sits above its own
    record-list, distinct from the page-level header above it ── */
 .mu-panel-header {
@@ -72,11 +131,6 @@ main:has(.mu-section) {
     font-size: var(--text-xs);
     color: var(--color-gray-dark);
     margin: 0;
-}
-
-#panel-pending {
-    flex: 0 0 auto;
-    margin-bottom: var(--space-md);
 }
 
 .hidden { display: none !important; }
@@ -280,6 +334,13 @@ main:has(.mu-section) {
 
 @media (max-width: 768px) {
     .mu-section { padding: var(--space-md); }
+
+    .mu-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mu-tab { white-space: nowrap; }
 
     .info-strip,
     .info-strip--wide { grid-template-columns: 1fr; }

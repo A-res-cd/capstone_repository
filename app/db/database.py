@@ -62,6 +62,7 @@ from app.db.users import (
 from app.db.requests import (
     request_fullview, get_all_requests, review_request,
     get_user_requests, cancel_manuscript_request, get_requests_by_status,
+    get_requestable_capstones,
 )
 
 from app.db.analytics import (

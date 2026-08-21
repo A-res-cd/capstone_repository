@@ -135,7 +135,12 @@
                 <p>Request a different role — an Admin will review and decide.</p>
             </div>
 
-            {% if has_pending_promotion %}
+            {% if profile.role_name == 'Admin' %}
+                <div class="promotion-pending-notice promotion-pending-notice--disabled">
+                    <i class="bx bx-shield-quarter"></i>
+                    <span>Admins already hold the highest role and can't request a promotion.</span>
+                </div>
+            {% elif has_pending_promotion %}
                 {% for pr in promotion_requests if pr.request_status == 'pending' %}
                 <div class="promotion-pending-notice">
                     <i class="bx bx-time-five"></i>
@@ -155,7 +160,7 @@
                             <select id="target_role_id" name="target_role_id" required>
                                 <option value="" disabled selected>Select a role</option>
                                 {% for r in roles %}
-                                {% if r[1] != profile.role_name %}
+                                {% if r[1] != profile.role_name and r[1] != 'Admin' %}
                                 <option value="{{ r[0] }}">{{ r[1] }}</option>
                                 {% endif %}
                                 {% endfor %}

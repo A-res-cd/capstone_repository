@@ -95,7 +95,6 @@
 
 .ui-password-card {
     height: auto;
-    border-left: 3px solid var(--color-accent);
 }
 
 .ui-danger-zone {
@@ -130,6 +129,18 @@
 
 .promotion-pending-notice form {
     margin-left: auto;
+}
+
+/* ── Disabled state — Admins already hold the top role, so this
+   reads as a neutral/informational notice rather than the amber
+   "pending review" styling used above. ── */
+.promotion-pending-notice--disabled {
+    background: #F0F0EC;
+    border-color: #E1E1D8;
+}
+
+.promotion-pending-notice--disabled i {
+    color: var(--color-gray-dark);
 }
 
 .promotion-history {

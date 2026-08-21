@@ -6,7 +6,8 @@ from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
 cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact,
 get_capstones_corpus, get_own_profile, change_own_password, delete_own_account,
-get_all_roles, submit_promotion_request, get_own_promotion_requests, cancel_promotion_request
+get_all_roles, submit_promotion_request, get_own_promotion_requests, cancel_promotion_request,
+get_requestable_capstones,
 )
 from app.routes.decorators import login_required, role_required
 from app.routes.forms import ChangePasswordForm
@@ -108,15 +109,30 @@ def submit_promotion_request_route():
     target_role_id = request.form.get("target_role_id")
     reason = request.form.get("reason", "").strip()
 
+    # Admins already hold the top role — block here too, not just by
+    # hiding the form, since a direct POST would otherwise still work.
+    if session.get("role_name") == "Admin":
+        flash("Admins can't request a role promotion.", "danger")
+        return redirect(url_for("pages.user_info"))
+
     if not target_role_id or not target_role_id.isdigit():
         flash("Select a role to request.", "danger")
+        return redirect(url_for("pages.user_info"))
+
+    # Admin can't be requested as a target role either — it's granted
+    # by another admin via Manage Users, not self-service.
+    target_role_id = int(target_role_id)
+    roles = get_all_roles()
+    target_role_name = next((r[1] for r in roles if r[0] == target_role_id), None)
+    if target_role_name == "Admin":
+        flash("The Admin role can't be requested — it must be assigned by an existing admin.", "danger")
         return redirect(url_for("pages.user_info"))
 
     if not reason:
         flash("Enter a reason for the request.", "danger")
         return redirect(url_for("pages.user_info"))
 
-    ok, err = submit_promotion_request(user_id, int(target_role_id), reason)
+    ok, err = submit_promotion_request(user_id, target_role_id, reason)
     flash("Promotion request submitted." if ok else err, "success" if ok else "danger")
     return redirect(url_for("pages.user_info"))
 
@@ -220,9 +236,11 @@ def all_requests():
         return redirect(url_for("auth.signin"))
 
     user_requests = get_user_requests(user_id)
+    requestable_capstones = get_requestable_capstones(user_id)
     return render_template(
         "global/all_requests.html",
         user_requests=user_requests,
+        requestable_capstones=requestable_capstones,
         capstone=None,
         has_active_request=False,
         hide_nav=False,

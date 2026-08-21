@@ -214,7 +214,10 @@ CREATE TABLE IF NOT EXISTS capstone (
     semester VARCHAR(20),
     term INT,
     is_archived BOOLEAN DEFAULT FALSE,
-    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_utilized BOOLEAN DEFAULT FALSE,
+    is_presented BOOLEAN DEFAULT FALSE,
+    is_copyright_registered BOOLEAN DEFAULT FALSE,
 
     CONSTRAINT fk_capstone_keyword
         FOREIGN KEY (keyword_id)
@@ -273,6 +276,8 @@ CREATE TABLE IF NOT EXISTS request (
     reviewed_by INT,
     status_reason TEXT,
 
+    target_role_id INT,
+
     CONSTRAINT fk_request_user
         FOREIGN KEY (user_id)
         REFERENCES "user"(user_id),
@@ -283,5 +288,9 @@ CREATE TABLE IF NOT EXISTS request (
 
     CONSTRAINT fk_request_reviewer
         FOREIGN KEY (reviewed_by)
-        REFERENCES "user"(user_id)
+        REFERENCES "user"(user_id),
+
+    CONSTRAINT fk_request_target_role,
+        FOREIGN KEY (target_role_id)
+        REFERENCES role(role_id)
 );

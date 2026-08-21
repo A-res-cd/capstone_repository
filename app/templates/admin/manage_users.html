@@ -13,7 +13,7 @@
     <div class="mu-page-header">
         <div>
             <h2>Manage Users</h2>
-            <p>View all registered users. Select a user to edit their role or delete their account.</p>
+            <p>View all registered users, verify new sign-ups, and review role promotion requests.</p>
         </div>
     </div>
 
@@ -29,18 +29,39 @@
     {% endwith %}
 
     {# ══════════════════════════════════════════════════════
-       PANEL — PENDING ACCOUNT VERIFICATIONS
-       Only shown when there are requests waiting. Separate from
-       Panel A's role/delete list since this is an activation
-       decision, not a role edit.
+       TAB SWITCHER — Manage Users / Verify Accounts / Approve
+       Promotions. Only one panel is visible at a time; the two
+       request tabs carry a red notification badge with the
+       pending count.
     ══════════════════════════════════════════════════════ #}
-    {% if pending_verifications %}
-    <div class="mu-panel" id="panel-pending">
+    <div class="mu-tabs" role="tablist">
+        <button type="button" class="mu-tab mu-tab--active" id="tab-users" data-target="panel-list-wrap" role="tab" aria-selected="true">
+            <i class="bx bx-group"></i> Manage Users
+        </button>
+        <button type="button" class="mu-tab" id="tab-verify" data-target="panel-pending" role="tab" aria-selected="false">
+            <i class="bx bx-user-check"></i> Verify Accounts
+            {% if pending_verifications %}
+            <span class="mu-tab__badge">{{ pending_verifications|length }}</span>
+            {% endif %}
+        </button>
+        <button type="button" class="mu-tab" id="tab-promotions" data-target="panel-pending-promotions" role="tab" aria-selected="false">
+            <i class="bx bx-up-arrow-circle"></i> Approve Role Promotions
+            {% if pending_promotions %}
+            <span class="mu-tab__badge">{{ pending_promotions|length }}</span>
+            {% endif %}
+        </button>
+    </div>
+
+    {# ══════════════════════════════════════════════════════
+       PANEL — PENDING ACCOUNT VERIFICATIONS
+    ══════════════════════════════════════════════════════ #}
+    <div class="mu-panel mu-panel--hidden" id="panel-pending" data-tab-panel>
         <div class="mu-panel-header">
             <h3><i class="bx bx-user-check"></i> Pending Account Verifications</h3>
             <p>New sign-ups waiting for approval before they can sign in.</p>
         </div>
 
+        {% if pending_verifications %}
         <div class="record-list">
             {% for pv in pending_verifications %}
             <div class="record-card">
@@ -78,16 +99,24 @@
             </div>
             {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bx bx-check-shield"></i>
+            <p>No accounts are waiting for verification right now.</p>
+        </div>
+        {% endif %}
     </div>{# end panel-pending #}
-    {% endif %}
 
-    {% if pending_promotions %}
-    <div class="mu-panel" id="panel-pending-promotions">
+    {# ══════════════════════════════════════════════════════
+       PANEL — PENDING ROLE PROMOTION REQUESTS
+    ══════════════════════════════════════════════════════ #}
+    <div class="mu-panel mu-panel--hidden" id="panel-pending-promotions" data-tab-panel>
         <div class="mu-panel-header">
             <h3><i class="bx bx-up-arrow-circle"></i> Pending Promotion Requests</h3>
             <p>Existing users requesting a different role.</p>
         </div>
 
+        {% if pending_promotions %}
         <div class="record-list">
             {% for pr in pending_promotions %}
             <div class="record-card">
@@ -134,12 +163,21 @@
             </div>
             {% endfor %}
         </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bx bx-check-shield"></i>
+            <p>No promotion requests are waiting for review right now.</p>
+        </div>
+        {% endif %}
     </div>{# end panel-pending-promotions #}
-    {% endif %}
 
     {# ══════════════════════════════════════════════════════
-       PANEL A — USER LIST
+       PANEL A — USER LIST (+ EDIT), wrapped so it toggles with
+       the tab switcher as a single unit — the edit form stays a
+       sub-view inside this tab rather than a fourth tab.
     ══════════════════════════════════════════════════════ #}
+    <div class="mu-panel" id="panel-list-wrap" data-tab-panel>
+
     <div class="mu-panel" id="panel-list">
 
         {# ── Filter Bar ── #}
@@ -373,9 +411,30 @@
         </div>
     </div>{# end panel-edit #}
 
+    </div>{# end panel-list-wrap #}
+
 </section>
 
 <script>
+// ── Tab switcher — Manage Users / Verify Accounts / Approve
+// Promotions. Exactly one [data-tab-panel] is visible at a time;
+// the tab buttons themselves carry the notification badges.
+const tabButtons = document.querySelectorAll('.mu-tab');
+const tabPanels = document.querySelectorAll('[data-tab-panel]');
+
+function activateTab(targetId) {
+    tabPanels.forEach(p => p.classList.toggle('mu-panel--hidden', p.id !== targetId));
+    tabButtons.forEach(b => {
+        const isActive = b.dataset.target === targetId;
+        b.classList.toggle('mu-tab--active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+}
+
+tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => activateTab(btn.dataset.target));
+});
+
 const panelList = document.getElementById('panel-list');
 const panelEdit = document.getElementById('panel-edit');
 
