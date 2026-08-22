@@ -14,22 +14,38 @@
         <p>Type a working title and keywords — we'll check it against the existing archive as you go.</p>
     </div>
 
-    <div class="propose-topic-layout">
+    <div class="propose-topic-layout" id="pt-layout" data-abstract-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}">
 
         <form class="propose-topic-form" id="propose-topic-form" autocomplete="off">
             <label for="pt-title">Proposed Title</label>
             <input type="text" id="pt-title" name="title" placeholder="e.g. AI-Powered Attendance Tracking System" maxlength="255">
 
             <label for="pt-keywords">Keywords <span>(comma-separated)</span></label>
-            <textarea id="pt-keywords" name="keywords" rows="3" placeholder="e.g. facial recognition, attendance, machine learning"></textarea>
+            <textarea id="pt-keywords" name="keywords" rows="3" maxlength="500" placeholder="e.g. facial recognition, attendance, machine learning"></textarea>
 
-            <p class="propose-topic-hint" id="pt-status">Start typing to check for similar existing capstones.</p>
+            <p class="propose-topic-hint" id="pt-status" role="status" aria-live="polite">Start typing to check for similar existing capstones.</p>
         </form>
 
         <div class="propose-topic-results" id="pt-results">
+            <div class="propose-topic-results__head">
+                <span>Similar Capstones</span>
+                <span class="pt-legend" tabindex="0">
+                    <i class="bx bx-info-circle"></i>
+                    <span class="pt-legend__tooltip">
+                        <strong>Overlap score</strong> is a text-similarity match against existing titles/keywords, not a guarantee of duplication.<br><br>
+                        <span class="pt-badge pt-badge--low">Slight</span> 12–24% ·
+                        <span class="pt-badge pt-badge--medium">Some</span> 25–44% ·
+                        <span class="pt-badge pt-badge--high">High</span> 45%+
+                    </span>
+                </span>
+            </div>
             <div class="propose-topic-results__empty" id="pt-empty">
                 <i class="bx bx-search-alt"></i>
                 <span>No matches checked yet</span>
+            </div>
+            <div class="propose-topic-results__loading hidden" id="pt-loading">
+                <span class="pt-spinner"></span>
+                <span>Checking against the archive…</span>
             </div>
             <ul class="propose-topic-list" id="pt-list" hidden></ul>
         </div>

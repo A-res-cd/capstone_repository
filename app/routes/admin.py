@@ -126,7 +126,7 @@ def _save_file(file_obj):
 
 # Odds the "Developer Debug Tool" nav link actually shows the real
 # debug panel instead of the troll image — tune to taste.
-DEV_DEBUG_REAL_TOOL_CHANCE = 0.7
+DEV_DEBUG_REAL_TOOL_CHANCE = 0.3
 
 
 @admin.route("/dev-debug")
