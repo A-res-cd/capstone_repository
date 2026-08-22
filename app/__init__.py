@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template
+from flask import Flask, abort, render_template, request
 from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect, CSRFError
@@ -24,6 +24,12 @@ def create_app():
     app.secret_key = app.config["SECRET_KEY"]
 
     app.before_request(load_current_user)
+
+    @app.before_request
+    def block_public_uploads():
+        static_upload_path = f"{app.static_url_path}/uploads/"
+        if request.path.startswith(static_upload_path):
+            abort(404)
 
     from .routes import blueprints
     for bp in blueprints:

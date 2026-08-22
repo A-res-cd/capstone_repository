@@ -9,11 +9,7 @@
     const STORAGE_KEY = 'capre-theme';
 
     function applyTheme(theme) {
-        if (theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.removeAttribute('data-theme');
-        }
+        document.documentElement.setAttribute('data-theme', theme);
     }
 
     function currentTheme() {
@@ -24,9 +20,19 @@
         const toggle = document.getElementById('theme-toggle');
         if (!toggle) return;
 
+        toggle.setAttribute('aria-pressed', currentTheme() === 'dark');
+
         toggle.addEventListener('click', () => {
             const next = currentTheme() === 'dark' ? 'light' : 'dark';
+            document.documentElement.classList.add('theme-transitioning');
             applyTheme(next);
+            document.dispatchEvent(new CustomEvent('themechange', {
+                detail: { theme: next }
+            }));
+            toggle.setAttribute('aria-pressed', next === 'dark');
+            window.setTimeout(() => {
+                document.documentElement.classList.remove('theme-transitioning');
+            }, 650);
             try {
                 localStorage.setItem(STORAGE_KEY, next);
             } catch (e) {

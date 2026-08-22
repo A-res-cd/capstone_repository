@@ -81,6 +81,7 @@
     --bg-card-neutral: var(--color-white);   /* card surfaces */
     --bg-card-header:  #FBF8EF;              /* card header areas — warm paper tint */
     --bg-button-light: #E8F3EC;
+    --surface-selected: #FBF3E2;
 
 }
 
@@ -94,33 +95,70 @@
 [data-theme="dark"] {
     color-scheme: dark;
 
-    --color-primary: #8B96EE;
-    --color-primary-dark: #6670C7;
-    --color-primary-light: #ACB4F5;
-    --color-primary-soft: #363C64;
+    /* ========== PRIMARY COLORS ========== */
+    --color-primary: #3F51B5;
+    --color-primary-dark: #151A5C;
+    --color-primary-light: #6676E8;
+    --color-primary-soft: #626BA5;
 
-    --color-gray-light: #2E313D;
-    --color-gray: #6E7180;
-    --color-gray-dark: #B9BBC6;
-    --color-red: #FF6B5B;
+    /* ========== ACCENT COLORS ========== */
+    --color-accent: #F5A623;
+    --color-accent-hover: #FFB74D;
 
-    --text-secondary: #B9BBC6;
-    --text-dark: #E7E7ED;
+    /* ========== NEUTRAL COLORS ========== */
+    --color-white: #FFFFFF;
+    --color-black: #000000;
+    --color-gray-light: #3A3D46;
+    --color-gray: #777B86;
+    --color-gray-dark: #C5C7CE;
+    --color-red: #FF6B5F;
 
-    --surface-page:   #14151B;
-    --surface-paper:  #191A22;
-    --surface-input:  #1B1C24;
-    --surface-muted:  #20222E;
-    --border-color:   #2E303D;
-    --border-input:   #3A3C4B;
-    --border-tag:     #3A3C4B;
-    --hover-tint:     #262A45;
+    /* ========== TEXT COLORS ========== */
+    --text-primary: #FFFFFF;
+    --text-secondary: #BFC3CF;
+    --text-dark: #E8E9ED;
 
-    --bg-card-neutral: #1E1F29;
-    --bg-card-header:  #23242E;
-    --bg-button-light: #1D2B24;
+    /* ========== BACKGROUNDS ========== */
+    --bg-header: var(--color-primary);
+    --bg-navbar: var(--color-primary-dark);
+    --bg-active: var(--color-accent);
 
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.35);
-    --shadow-md: 0 4px 10px rgba(0,0,0,0.4);
-    --shadow-lg: 0 8px 20px rgba(0,0,0,0.5);
+    /* ========== BORDERS ========== */
+    --border-light: 1px solid var(--border-color);
+    --border-dark: 1px solid #101449;
+
+    /* ========== SURFACE COLORS ========== */
+
+    /* Main page background */
+    --surface-page: #111318;
+
+    /* Header / sidebar / major panels */
+    --surface-paper: #191C24;
+
+    /* Form inputs */
+    --surface-input: #20232C;
+
+    /* Muted areas / upload zones */
+    --surface-muted: #1C1F27;
+
+    /* Borders */
+    --border-color: #30343F;
+    --border-input: #454A57;
+    --border-tag: #454A57;
+
+    /* Hover states */
+    --hover-tint: #292E52;
+
+    /* ========== CARD COLORS ========== */
+    --bg-card-neutral: #1C1F27;
+    --bg-card-header: #22252E;
+    --surface-selected: #2A251D;
+
+    /* ========== LIGHT BUTTON ========== */
+    --bg-button-light: #21382B;
+
+    /* ========== SHADOWS ========== */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 6px 12px rgba(0, 0, 0, 0.45);
 }

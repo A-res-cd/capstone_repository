@@ -1,5 +1,4 @@
-from flask import Blueprint, render_template, request, flash, session, redirect, url_for, jsonify, current_app
-import os
+from flask import Blueprint, abort, render_template, request, flash, session, redirect, url_for, jsonify, send_file
 import re
 import logging
 from app.db.database import (
@@ -11,7 +10,7 @@ get_requestable_capstones,
 )
 from app.routes.decorators import login_required, role_required
 from app.routes.forms import ChangePasswordForm
-from app.utils.pdf_extractor import extract_capstone_data
+from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 from app.services.recommender import TopicRecommender
 
 pages = Blueprint("pages", __name__)
@@ -338,15 +337,9 @@ def view_approved_manuscript(capstone_id):
     # out renders as the literal text "Undefined" in the script, which is
     # not valid JS/JSON and breaks the PDF.js loader.
     pdf_url = None
-    try:
-        file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
-        if file_rel:
-            if file_rel.startswith('static' + os.sep) or file_rel.startswith('static/'):
-                file_rel = file_rel.split('static' + os.sep, 1)[-1] if os.sep in file_rel else file_rel.split('static/', 1)[-1]
-            file_rel = file_rel.replace('\\', '/').lstrip('/')
-            pdf_url = url_for('static', filename=file_rel)
-    except Exception as e:
-        logger.error("Error computing pdf_url: %s", e)
+    file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
+    if file_rel:
+        pdf_url = url_for('pages.manuscript_file', capstone_id=capstone_id)
 
     # This route only runs after an approved-access check above, so the
     # requester gets the full document, not the abstract-only restriction.
@@ -373,9 +366,35 @@ def cancel_request(request_id):
           if ok else f"Error: {err}","success" if ok else "danger") 
     return redirect(url_for("pages.all_requests"))
 
+
+@pages.route("/manuscript/file/<int:capstone_id>")
+def manuscript_file(capstone_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        abort(401)
+
+    user_requests = get_user_requests(user_id)
+    has_access = any(
+        r["capstone_id"] == capstone_id and r["request_status"] == "approved"
+        for r in user_requests
+    )
+    if not has_access:
+        abort(403)
+
+    capstone = get_capstone_details(capstone_id)
+    if not capstone:
+        abort(404)
+
+    file_path = resolve_manuscript_file(capstone.get("capstone_file"))
+    if not file_path:
+        abort(404)
+
+    return send_file(file_path, mimetype=manuscript_mimetype(file_path))
+
+
 @pages.route("/cite/<int:capstone_id>", methods=["POST"])
-def cite_capstone(capstone_id, user_id):
-    user_id =session.get("user_id")
+def cite_capstone(capstone_id):
+    user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "You must be logged in to cite this capstone"}), 401
 

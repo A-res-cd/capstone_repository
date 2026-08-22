@@ -38,3 +38,6 @@ def load_current_user():
 
     if g.user is None:
         session.clear()
+    else:
+        session["role_id"] = g.user["role_id"]
+        session["role_name"] = g.user["role_name"]

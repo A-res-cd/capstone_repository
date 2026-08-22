@@ -164,7 +164,7 @@ main:has(.explore-archive-section) {
 }
 
 .archive-card.active {
-    background: #FBF3E2;
+    background: var(--surface-selected);
     border-color: var(--color-accent);
     box-shadow: var(--shadow-md);
 }

@@ -13,9 +13,7 @@
             try {
                 var saved = localStorage.getItem('capre-theme');
                 var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                if (theme === 'dark') {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                }
+                document.documentElement.setAttribute('data-theme', theme);
             } catch (e) { /* localStorage unavailable — default to light */ }
         })();
     </script>

@@ -1,16 +1,6 @@
-/* ============================================================
-   PAGE: Analytics & Reports
-   Styled after the RET Chair reference dashboard: stat-card row,
-   a trend chart + Published/Utilized/Presented/Copyright donut
-   grid, then a program donut + summary table along the bottom.
-   The whole page is sized to fit one viewport — no page scroll,
-   for admin convenience (see main:has() override below).
-============================================================ */
 @import url('../base/root.css');
 
 :root {
-    /* Shared with analytics.js's PALETTE array — keep in sync so a given
-       program's color matches between the charts and the table dots. */
     --chart-color-0: var(--color-primary);
     --chart-color-1: #27AE60;
     --chart-color-2: var(--color-accent);
@@ -19,9 +9,10 @@
     --chart-color-5: #B23A28;
 }
 
-/* ── Page shell — main becomes the flex column that pins this
-   section to exactly the viewport's remaining height, so nothing
-   here ever needs its own scrollbar. ── */
+/* ============================================================
+   PAGE SHELL
+============================================================ */
+
 main:has(.analytics-section) {
     padding: 0;
     display: flex;
@@ -39,6 +30,9 @@ main:has(.analytics-section) {
     overflow: hidden;
 }
 
+/* ============================================================
+   PAGE HEADER
+============================================================ */
 .analytics-page-header h2 {
     font-family: var(--font-display);
     font-size: var(--text-xl);
@@ -53,12 +47,13 @@ main:has(.analytics-section) {
     margin: 0;
 }
 
-/* ── Summary stat cards — like punch-cards clipped to a ledger.
-   Total Capstones + one card per program, so the row grows or
-   shrinks with however many programs actually exist. ── */
+/* ============================================================
+   SUMMARY STAT CARDS
+============================================================ */
 .analytics-stats-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--space-md);
     flex: 0 0 auto;
 }
@@ -68,14 +63,24 @@ main:has(.analytics-section) {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    padding:
+        var(--space-sm)
+        var(--space-md);
     background: var(--surface-paper);
     border: 1px solid var(--border-color);
-    border-left: 3px solid var(--color-primary);
-    border-radius: 2px 8px 8px 2px;
-    box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
+    border-left:
+        3px solid var(--color-primary);
+    border-radius:
+        2px
+        8px
+        8px
+        2px;
+    box-shadow:
+        2px 2px 0
+        rgba(30, 40, 90, 0.04);
 }
 
+/* Small decorative corner dot */
 .analytics-stat-card::after {
     content: '';
     position: absolute;
@@ -84,13 +89,18 @@ main:has(.analytics-section) {
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: var(--color-bg, #FBF3E2);
+    background: var(--surface-muted);
     border: 1px solid var(--border-color);
 }
 
+/* Accent card */
 .analytics-stat-card--accent {
     border-left-color: var(--color-accent);
 }
+
+/* ============================================================
+   STAT CARD ICON
+============================================================ */
 
 .analytics-stat-card__icon {
     display: flex;
@@ -100,7 +110,7 @@ main:has(.analytics-section) {
     height: 30px;
     flex-shrink: 0;
     border-radius: 7px;
-    background: #FBF3E2;
+    background: var(--surface-selected);
 }
 
 .analytics-stat-card__icon i {
@@ -108,6 +118,9 @@ main:has(.analytics-section) {
     color: var(--color-accent);
 }
 
+/* ============================================================
+   STAT CARD CONTENT
+============================================================ */
 .analytics-stat-card__body {
     display: flex;
     flex-direction: column;
@@ -139,30 +152,44 @@ main:has(.analytics-section) {
     color: #27AE60;
 }
 
-/* ── Row 2 — trend chart (main) + 2x2 status-donut grid ── */
 .analytics-main-grid {
     display: grid;
-    grid-template-columns: 1.7fr 1fr;
+    grid-template-columns:
+        1.7fr
+        1fr;
     gap: var(--space-lg);
     flex: 1.15;
     min-height: 0;
 }
 
+/* ============================================================
+   GENERIC ANALYTICS PANEL
+============================================================ */
 .analytics-panel {
     display: flex;
     flex-direction: column;
     background: var(--surface-paper);
     border: 1px solid var(--border-color);
-    border-radius: 3px 12px 12px 12px;
-    box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
+    border-radius:
+        3px
+        12px
+        12px
+        12px;
+    box-shadow:
+        2px 2px 0
+        rgba(30, 40, 90, 0.04);
     padding: var(--space-md);
     min-height: 0;
 }
 
+/* Main trend panel */
 .analytics-panel--main {
     overflow: hidden;
 }
 
+/* ============================================================
+   PANEL HEADER
+============================================================ */
 .analytics-panel__header {
     display: flex;
     align-items: flex-start;
@@ -194,85 +221,57 @@ main:has(.analytics-section) {
 }
 
 .analytics-panel__chart-wrap {
+    position: relative;
     flex: 1;
     min-height: 0;
-    position: relative;
 }
 
+/* ============================================================
+   EMPTY CHART MESSAGE
+============================================================ */
 .analytics-widget__empty-msg {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     height: 100%;
     color: var(--color-gray-dark);
     font-size: var(--text-sm);
+    text-align: center;
 }
 
-/* ── 2x2 grid: Published / Utilized / Presented / Copyright.
-   Fixed (not flex:1) height on the chart-wrap — Chart.js's
-   maintainAspectRatio:false needs a definite container height up
-   front, otherwise the canvas and its flex parent fight over size
-   and the donut balloons past the panel (and the page). ── */
-.analytics-status-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: var(--space-sm);
-    min-height: 0;
-}
-
-.analytics-panel--status {
-    padding: var(--space-sm) var(--space-sm);
-}
-
-.analytics-panel--status .analytics-panel__header {
-    margin-bottom: 0;
-}
-
-.analytics-panel--status .analytics-panel__chart-wrap {
-    flex: none;
-    height: 92px;
-    max-width: 220px;
-    margin: 0 auto;
-}
-
-/* ── Row 3 — program donut + summary table ── */
 .analytics-bottom-grid {
     display: grid;
-    grid-template-columns: 1fr 1.7fr;
+    grid-template-columns:
+        1fr
+        1.7fr;
     gap: var(--space-lg);
     flex: 1;
     min-height: 0;
 }
 
-.analytics-panel--donut .analytics-panel__chart-wrap {
-    flex: none;
-    height: 170px;
-    max-width: 240px;
-    margin: 0 auto;
-}
-
-.analytics-panel--donut,
-.analytics-panel--status {
-    justify-content: center;
-}
-
+/* ============================================================
+   SUMMARY TABLE PANEL
+============================================================ */
 .analytics-panel--table {
     overflow: hidden;
 }
-
 .analytics-table-wrap {
     flex: 1;
     min-height: 0;
     overflow: auto;
 }
 
+/* ============================================================
+   SUMMARY TABLE
+============================================================ */
 .analytics-table {
     width: 100%;
     border-collapse: collapse;
     font-size: var(--text-sm);
 }
 
+/* Table header */
 .analytics-table th {
     text-align: left;
     padding: 6px 8px;
@@ -281,31 +280,42 @@ main:has(.analytics-section) {
     letter-spacing: 0.3px;
     text-transform: uppercase;
     color: var(--color-gray-dark);
-    border-bottom: 2px solid var(--border-color);
+    border-bottom:
+        2px solid
+        var(--border-color);
     white-space: nowrap;
     position: sticky;
     top: 0;
     background: var(--surface-paper);
 }
 
+/* Table cells */
 .analytics-table td {
     padding: 7px 8px;
     color: var(--color-primary);
-    border-bottom: 1px dashed var(--border-color);
+    border-bottom:
+        1px dashed
+        var(--border-color);
     white-space: nowrap;
 }
 
+/* Last body row */
 .analytics-table tbody tr:last-child td {
     border-bottom: none;
 }
 
+/* Footer */
 .analytics-table tfoot td {
     padding: 7px 8px;
     font-weight: 700;
-    border-top: 2px solid var(--border-color);
+    border-top:
+        2px solid
+        var(--border-color);
     border-bottom: none;
 }
-
+/* ============================================================
+   PROGRAM COLOR DOT
+============================================================ */
 .analytics-table__dot {
     display: inline-block;
     width: 8px;
@@ -314,67 +324,63 @@ main:has(.analytics-section) {
     margin-right: 7px;
 }
 
+/* Percentage beside table values */
 .analytics-table__pct {
     font-size: 9px;
     color: var(--color-gray-dark);
     font-weight: 500;
 }
 
-/* ══════════════════════════════════════════════════════
+/* ============================================================
    RESPONSIVE
-   Below 900px, the no-scroll page constraint is dropped —
-   a phone-sized screen genuinely can't fit this much data
-   in one view, so it reverts to normal scroll.
-══════════════════════════════════════════════════════ */
+============================================================ */
 @media (max-width: 900px) {
+    /*
+     * At smaller resolutions the dashboard is allowed
+     * to grow vertically.
+     */
     main:has(.analytics-section) {
         overflow: visible;
     }
-
     .analytics-section {
         overflow: visible;
         flex: none;
         padding: var(--space-md);
     }
-
+    /* Stat cards */
     .analytics-stats-row {
         grid-template-columns: 1fr 1fr;
     }
-
+    /* Main chart + status charts */
     .analytics-main-grid {
         grid-template-columns: 1fr;
         flex: none;
     }
-
+    /*
+     * Generic chart wrapper.
+     *
+     * Doughnut charts override this in their component CSS.
+     */
+    .analytics-panel--main
     .analytics-panel__chart-wrap {
         min-height: 204px;
     }
-
-    .analytics-status-grid {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: none;
-    }
-
-    .analytics-panel--status .analytics-panel__chart-wrap {
-        min-height: 150px;
-    }
-
+    /* Bottom */
     .analytics-bottom-grid {
         grid-template-columns: 1fr;
         flex: none;
     }
-
+    /* Table */
     .analytics-table-wrap {
         overflow-x: auto;
     }
 }
 
+/* ============================================================
+   VERY SMALL SCREENS
+============================================================ */
 @media (max-width: 480px) {
     .analytics-stats-row {
-        grid-template-columns: 1fr;
-    }
-
-    .analytics-status-grid {
         grid-template-columns: 1fr;
     }
 }

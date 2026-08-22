@@ -1,8 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify, current_app
+from flask import Blueprint, abort, render_template, request, redirect, session, url_for, flash, jsonify, current_app, send_file
 from werkzeug.utils import secure_filename
 import os
 import sys
-import uuid
 import random
 import logging
 import flask
@@ -21,17 +20,22 @@ from app.db.database import (
 )
 from app.routes.decorators import role_required
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
-from app.utils.pdf_extractor import extract_capstone_data, _parse_abstract_page
+from app.utils.pdf_extractor import extract_capstone_data
+from app.utils.uploads import (
+    allowed_manuscript,
+    manuscript_mimetype,
+    manuscript_upload_folder,
+    resolve_manuscript_file,
+    save_manuscript_upload,
+    stored_manuscript_path,
+    unique_manuscript_filename,
+)
 
 admin = Blueprint("admin", __name__)
 logger = logging.getLogger(__name__)
 
-UPLOAD_FOLDER = os.path.join("app", "static", "uploads")
-ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
-
-
 def _allowed(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    return allowed_manuscript(filename)
 
 
 def _populate_capstone_choices(form):
@@ -89,9 +93,9 @@ def extract_capstone_pdf():
     if not _allowed(file.filename):
         return jsonify({'success': False, 'error': 'Only PDF, DOC, and DOCX files are accepted.'}), 400
 
-    filename = secure_filename(file.filename)
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    temp_path = os.path.join(UPLOAD_FOLDER, filename)
+    filename = unique_manuscript_filename(file.filename)
+    os.makedirs(manuscript_upload_folder(), exist_ok=True)
+    temp_path = os.path.join(manuscript_upload_folder(), filename)
     file.save(temp_path)
 
     # Only PDF files can be parsed for metadata — DOC/DOCX silently skip
@@ -112,14 +116,7 @@ def _save_file(file_obj):
     exactly one of the two will be set."""
     if not file_obj or not file_obj.filename:
         return None, None
-    if not _allowed(file_obj.filename):
-        return None, "Invalid file type. Only PDF, DOC, and DOCX are allowed."
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    filename = secure_filename(file_obj.filename)
-    name, ext = os.path.splitext(filename)
-    filename = f"{name}_{uuid.uuid4().hex[:8]}{ext}"
-    file_obj.save(os.path.join(UPLOAD_FOLDER, filename))
-    return filename, None
+    return save_manuscript_upload(file_obj)
 
 
 # ── Static pages ──────────────────────────────────────────────────────────────
@@ -569,7 +566,7 @@ def admin_create_capstone():
             flash("Upload a capstone file first.", "danger")
             return _rerender()
 
-        file_path = f"uploads/{filename}"
+        file_path = stored_manuscript_path(filename)
 
         success, result = insert_keywords(form.capstone_keywords.data)
         if not success:
@@ -646,7 +643,7 @@ def update_capstone(capstone_id):
             if err:
                 flash(err, "danger")
                 return _rerender()
-            file_path = f"uploads/{filename}"
+            file_path = stored_manuscript_path(filename)
 
         # Update keyword if changed
         keyword_id = capstone['keyword_id']
@@ -712,15 +709,9 @@ def view_capstone(capstone_id):
     # START_PAGE regardless of max_pages — leaving them unset renders as
     # the literal text "Undefined" in the script and breaks PDF.js.
     pdf_url = None
-    try:
-        file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
-        if file_rel:
-            if file_rel.startswith('static' + os.sep) or file_rel.startswith('static/'):
-                file_rel = file_rel.split('static' + os.sep, 1)[-1] if os.sep in file_rel else file_rel.split('static/', 1)[-1]
-            file_rel = file_rel.replace('\\', '/').lstrip('/')
-            pdf_url = url_for('static', filename=file_rel)
-    except Exception as e:
-        logger.error("Error computing pdf_url: %s", e)
+    file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
+    if file_rel:
+        pdf_url = url_for('admin.manuscript_file', capstone_id=capstone_id)
 
     return render_template(
         "admin/view_capstone.html",
@@ -763,9 +754,9 @@ def view_capstone_pdf(capstone_id):
         if not abstract_page:
             file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
             if file_rel:
-                pdf_path = os.path.join(current_app.root_path, 'static', file_rel)
+                pdf_path = resolve_manuscript_file(file_rel)
                 try:
-                    if os.path.exists(pdf_path) and pdf_path.lower().endswith('.pdf'):
+                    if pdf_path and pdf_path.lower().endswith('.pdf'):
                         data = extract_capstone_data(pdf_path)
                         abstract_page = data.get('abstract_page')
                 except Exception as e:
@@ -776,19 +767,25 @@ def view_capstone_pdf(capstone_id):
 
     # Normalize capstone file path for use with url_for('static')
     pdf_url = None
-    try:
-        file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
-        if file_rel:
-            # Remove any leading 'static/' segment if present
-            if file_rel.startswith('static' + os.sep) or file_rel.startswith('static/'):
-                file_rel = file_rel.split('static' + os.sep, 1)[-1] if os.sep in file_rel else file_rel.split('static/', 1)[-1]
-            # Also normalize backslashes to forward slashes for URL
-            file_rel = file_rel.replace('\\', '/').lstrip('/')
-            pdf_url = url_for('static', filename=file_rel)
-    except Exception as e:
-        logger.error("Error computing pdf_url: %s", e)
+    file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
+    if file_rel:
+        pdf_url = url_for('admin.manuscript_file', capstone_id=capstone_id)
 
     return render_template("admin/view_capstone.html", capstone=capstone, max_pages=max_pages, start_page=start_page, pdf_url=pdf_url, hide_header=True)
+
+
+@admin.route("/repository/file/<int:capstone_id>")
+@role_required(1, 2, 3)
+def manuscript_file(capstone_id):
+    capstone = get_capstone_details(capstone_id)
+    if not capstone:
+        abort(404)
+
+    file_path = resolve_manuscript_file(capstone.get("capstone_file"))
+    if not file_path:
+        abort(404)
+
+    return send_file(file_path, mimetype=manuscript_mimetype(file_path))
 
 
 @admin.route("/repository/decide/<int:request_id>", methods=["POST"])
