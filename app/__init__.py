@@ -1,16 +1,17 @@
 import os
-from flask import Flask
+import logging
+from flask import Flask, render_template
 from flask_mail import Mail
 from config import Config
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask_debugtoolbar import DebugToolbarExtension
 
 from .auth_utils import load_current_user
 
 mail = Mail()
 
 csrf = CSRFProtect()
+logger = logging.getLogger(__name__)
 
 
 def create_app():
@@ -20,15 +21,35 @@ def create_app():
     mail.init_app(app)
     csrf.init_app(app)
 
-    app.debug = True
     app.secret_key = app.config["SECRET_KEY"]
-    toolbar = DebugToolbarExtension(app)
 
     app.before_request(load_current_user)
 
     from .routes import blueprints
     for bp in blueprints:
         app.register_blueprint(bp)
+
+    # ── Error pages ──────────────────────────────────────────────
+    @app.errorhandler(400)
+    def bad_request(e):
+        return render_template("errors/400.html", hide_nav=True, hide_header=True), 400
+
+    @app.errorhandler(CSRFError)
+    def csrf_error(e):
+        # A stale/missing CSRF token is by far the most common cause of
+        # a 400 here (form left open too long, or opened in two tabs) —
+        # same page as the generic 400 handler, just a clearer log line.
+        logger.info("CSRF validation failed: %s", e.description)
+        return render_template("errors/400.html", hide_nav=True, hide_header=True), 400
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template("errors/404.html", hide_nav=True, hide_header=True), 404
+
+    @app.errorhandler(500)
+    def internal_error(e):
+        logger.error("Unhandled server error: %s", e)
+        return render_template("errors/500.html", hide_nav=True, hide_header=True), 500
 
     # Run once on startup, then every 24h. WERKZEUG_RUN_MAIN check avoids
     # starting the job twice under the Flask dev server's reloader.
@@ -43,8 +64,5 @@ def create_app():
             next_run_time=datetime.now(),
         )
         scheduler.start()
-
-    
-
 
     return app

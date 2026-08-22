@@ -129,21 +129,66 @@
   let currentPage = 1;
   let minPage = 1;
   let maxAllowed = null;
-  const scale = 1.5;
 
   const prevBtn = document.getElementById('prev-page');
   const nextBtn = document.getElementById('next-page');
 
+  // Fit the whole page inside #pdf-container — both width and height —
+  // instead of a fixed scale, so it never needs to scroll to be read.
+  // Capped so a small/portrait page in a big panel doesn't blow up to an
+  // unreasonable size.
+  const MIN_FIT_SCALE = 0.35;
+  const MAX_FIT_SCALE = 2.2;
+
+  function computeFitScale(nativeViewport) {
+    const container = document.getElementById('pdf-container');
+    const styles = getComputedStyle(container);
+    const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+    const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+
+    const availWidth = container.clientWidth - padX;
+    const availHeight = container.clientHeight - padY;
+
+    const fitScale = Math.min(
+      availWidth / nativeViewport.width,
+      availHeight / nativeViewport.height
+    );
+
+    return Math.max(MIN_FIT_SCALE, Math.min(MAX_FIT_SCALE, fitScale));
+  }
+
   async function renderPage(num) {
     const page = await pdfDoc.getPage(num);
+    const nativeViewport = page.getViewport({ scale: .90 });
+    const scale = computeFitScale(nativeViewport);
     const viewport = page.getViewport({ scale });
+
     const canvas = document.getElementById('pdf-canvas');
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const ctx = canvas.getContext('2d');
+
+    // Render at devicePixelRatio for crisp text on retina/high-DPI
+    // screens, then size the element itself down to the fitted CSS size —
+    // the backing bitmap stays sharp even though it's displayed smaller.
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = viewport.width * dpr;
+    canvas.height = viewport.height * dpr;
+    canvas.style.width = viewport.width + 'px';
+    canvas.style.height = viewport.height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
     document.getElementById('current-page').textContent = num;
     updateNavButtons();
   }
+
+  // Re-fit on resize (debounced) — panel size can change from sidebar
+  // collapse, window resize, or rotation.
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (!pdfDoc) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => renderPage(currentPage), 150);
+  });
 
   function updateNavButtons() {
     if (prevBtn) prevBtn.disabled = currentPage <= minPage;

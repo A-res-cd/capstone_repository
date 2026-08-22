@@ -82,6 +82,26 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('capstone-form').action =
             "/repository/update/" + id;
 
+        // Authors/adviser aren't in the record-card's data-* attributes
+        // (would bloat every row's HTML) — fetched separately and filled
+        // in once they arrive, without blocking the panel from opening.
+        fetch(`/repository/${id}/people`)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                data.authors.forEach((author, i) => {
+                    setField(`authors-${i}-first_name`, author.first || '');
+                    setField(`authors-${i}-middle_name`, author.middle || '');
+                    setField(`authors-${i}-last_name`, author.last || '');
+                });
+                if (data.adviser) {
+                    setField('adviser-first_name', data.adviser.first || '');
+                    setField('adviser-middle_name', data.adviser.middle || '');
+                    setField('adviser-last_name', data.adviser.last || '');
+                }
+            })
+            .catch(err => console.error('Failed to load capstone authors/adviser:', err));
+
         showForm();
     }
 
@@ -97,7 +117,41 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('field-capstone-id').value = '';
         setField('extracted-filename', '');
         setDisplay('keyword-chips', 'none');
+        goToStep(1);
     }
+
+    // ── Two-step wizard: Capstone Details → Authors ─────────
+    const formSteps = document.querySelectorAll('.form-step');
+    const stepDots = document.querySelectorAll('[data-step-dot]');
+
+    function goToStep(stepNum) {
+        formSteps.forEach(step => {
+            step.classList.toggle('form-step--hidden', step.dataset.step != stepNum);
+        });
+        stepDots.forEach(dot => {
+            const n = Number(dot.dataset.stepDot);
+            dot.classList.toggle('form-step-dot--active', n === stepNum);
+            dot.classList.toggle('form-step-dot--done', n < stepNum);
+        });
+        panelForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Validates only the fields inside step 1 before advancing — step 2's
+    // required adviser fields stay untouched/hidden at this point, so they
+    // can't block this check.
+    function validateStep1() {
+        const step1 = document.querySelector('.form-step[data-step="1"]');
+        const fields = step1.querySelectorAll('input[required], select[required]');
+        for (const field of fields) {
+            if (!field.reportValidity()) return false;
+        }
+        return true;
+    }
+
+    document.getElementById('btn-step-next').addEventListener('click', () => {
+        if (validateStep1()) goToStep(2);
+    });
+    document.getElementById('btn-step-back').addEventListener('click', () => goToStep(1));
 
     function setText(id, value) {
         const el = document.getElementById(id);
@@ -112,17 +166,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function showForm() {
         panelList.classList.add('repo-panel--hidden');
         panelForm.classList.remove('repo-panel--hidden');
+        document.getElementById('repo-page-header').classList.add('repo-page-header--hidden');
         panelForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function showList() {
         panelForm.classList.add('repo-panel--hidden');
         panelList.classList.remove('repo-panel--hidden');
+        document.getElementById('repo-page-header').classList.remove('repo-page-header--hidden');
     }
 
     btnOpenCreate.addEventListener('click', openCreate);
     btnCloseForm.addEventListener('click', showList);
     btnCancel.addEventListener('click', showList);
+    document.getElementById('btn-cancel-2')?.addEventListener('click', showList);
 
     // Wire up all Edit buttons
     document.querySelectorAll('.btn-row--edit').forEach(btn => {
@@ -133,6 +190,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const extractStatus = document.getElementById('extract-status');
     const extractedFilenameInput = document.getElementById('extracted-filename');
 
+    // Builds the status line as real DOM nodes instead of a template
+    // literal + innerHTML — the icon class is always ours (safe), but the
+    // message text may contain a filename or server text we don't fully
+    // control, so it's inserted as a text node, never as raw HTML.
+    function setExtractStatus(iconClass, message) {
+        extractStatus.innerHTML = '';
+        const icon = document.createElement('i');
+        icon.className = iconClass;
+        extractStatus.appendChild(icon);
+        extractStatus.appendChild(document.createTextNode(' ' + message));
+    }
+
     if (extractInput) {
         extractInput.addEventListener('change', async () => {
             const file = extractInput.files[0];
@@ -140,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             extractStatus.style.display = 'block';
             extractStatus.className = 'extract-status extract-status--loading';
-            extractStatus.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Reading PDF...';
+            setExtractStatus('bx bx-loader-alt bx-spin', 'Reading PDF...');
 
             const formData = new FormData();
             formData.append('capstone_file', file);
@@ -155,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!json.success) {
                     extractStatus.className = 'extract-status extract-status--error';
-                    extractStatus.innerHTML = `<i class="bx bx-error-circle"></i> ${json.error}`;
+                    setExtractStatus('bx bx-error-circle', json.error);
                     return;
                 }
 
@@ -166,12 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 extractStatus.className = 'extract-status extract-status--success';
-                extractStatus.innerHTML = `<i class="bx bx-check-circle"></i>
-                    Fields pre-filled from <strong>${file.name}</strong>.
-                    Review everything below before submitting.`;
+                setExtractStatus('bx bx-check-circle',
+                    `Fields pre-filled from ${file.name}. Review everything below before submitting.`);
             } catch (err) {
                 extractStatus.className = 'extract-status extract-status--error';
-                extractStatus.innerHTML = `<i class="bx bx-error-circle"></i> Extraction failed: ${err.message}`;
+                setExtractStatus('bx bx-error-circle', 'Extraction failed: ' + err.message);
             }
         });
     }
@@ -197,17 +265,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (d.authors && d.authors.length) {
             d.authors.forEach((author, i) => {
-                const n = i + 1;
-                setField(`author_first_${n}`, author.first || '');
-                setField(`author_middle_${n}`, author.middle || '');
-                setField(`author_last_${n}`, author.last || '');
+                setField(`authors-${i}-first_name`, author.first || '');
+                setField(`authors-${i}-middle_name`, author.middle || '');
+                setField(`authors-${i}-last_name`, author.last || '');
             });
         }
 
         if (d.adviser) {
-            setField('adviser_first', d.adviser.first || '');
-            setField('adviser_middle', d.adviser.middle || '');
-            setField('adviser_last', d.adviser.last || '');
+            setField('adviser-first_name', d.adviser.first || '');
+            setField('adviser-middle_name', d.adviser.middle || '');
+            setField('adviser-last_name', d.adviser.last || '');
         }
     }
 

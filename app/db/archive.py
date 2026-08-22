@@ -14,32 +14,99 @@ logger = logging.getLogger(__name__)
 ARCHIVE_RETENTION_DAYS = 30
 
 
-def get_archived_capstones():
+def get_archived_capstones(search=None, program_id=None, page=1, page_size=20):
     """
     Retrieve archived capstone projects for the admin archive management page.
+
+    Supports:
+        - Search by capstone title or keywords
+        - Filter by program
+        - Pagination
+
+    Returns:
+        (rows, total)
     """
     purge_expired_archived_capstones()
 
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
     try:
-        mithrix.execute("""
-            SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
-                   c.citation_count, c.semester, c.term,
-                   k.keyword_id, k.capstone_keywords,
-                   s.specialization_id, s.specialization_name,
-                   p.program_id, p.program_name, c.archived_at
+        conditions = ["c.is_archived = TRUE"]
+        params = []
+
+        # Search
+        if search:
+            conditions.append(
+                "(c.capstone_title ILIKE %s OR k.capstone_keywords ILIKE %s)"
+            )
+            like = f"%{search}%"
+            params += [like, like]
+
+        # Program filter
+        if program_id is not None:
+            conditions.append("c.program_id = %s")
+            params.append(program_id)
+
+        where = "WHERE " + " AND ".join(conditions)
+
+        # Get total count
+        mithrix.execute(f"""
+            SELECT COUNT(*) AS total
             FROM capstone c
-            JOIN keyword k ON c.keyword_id = k.keyword_id
-            JOIN specialization s ON c.specialization_id = s.specialization_id
-            JOIN program p ON c.program_id = p.program_id
-            WHERE c.is_archived = TRUE
-            ORDER BY c.archived_at DESC NULLS LAST, c.capstone_year DESC, c.capstone_id DESC
-        """)
-        return mithrix.fetchall()
+            JOIN keyword k
+                ON k.keyword_id = c.keyword_id
+            JOIN specialization s
+                ON s.specialization_id = c.specialization_id
+            JOIN program p
+                ON p.program_id = c.program_id
+            {where}
+        """, params)
+
+        total = mithrix.fetchone()["total"]
+
+        # Pagination
+        offset = (page - 1) * page_size
+
+        mithrix.execute(f"""
+            SELECT
+                c.capstone_id,
+                c.capstone_title,
+                c.capstone_year,
+                c.capstone_file,
+                c.citation_count,
+                c.semester,
+                c.term,
+                k.keyword_id,
+                k.capstone_keywords,
+                s.specialization_id,
+                s.specialization_name,
+                p.program_id,
+                p.program_name,
+                c.archived_at
+            FROM capstone c
+            JOIN keyword k
+                ON k.keyword_id = c.keyword_id
+            JOIN specialization s
+                ON s.specialization_id = c.specialization_id
+            JOIN program p
+                ON p.program_id = c.program_id
+            {where}
+            ORDER BY
+                c.archived_at DESC NULLS LAST,
+                c.capstone_year DESC,
+                c.capstone_id DESC
+            LIMIT %s OFFSET %s
+        """, params + [page_size, offset])
+
+        rows = mithrix.fetchall()
+
+        return list(rows), total
+
     except Exception as exc:
-        logger.error("Error: %s", exc)
-        return []
+        logger.error("Database error: %s", exc)
+        return [], 0
+
     finally:
         mithrix.close()
         conn.close()

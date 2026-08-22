@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_error.css') }}">
+{% endblock %}
+
+{% block title %}Request Expired{% endblock %}
+
+{% block content %}
+<section class="error-section">
+    <div class="error-card">
+        <span class="error-code">400</span>
+        <h1>Request Expired</h1>
+        <p>This form took too long to submit, or the page was open in another tab. Please go back and try again.</p>
+        <a href="{{ url_for('main.home') }}" class="btn-pill btn-pill--primary">
+            <i class="bx bx-home-alt"></i> Back to Home
+        </a>
+    </div>
+</section>
+{% endblock %}

@@ -55,6 +55,88 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
+    border-bottom: 2px solid #ECE9DD;
+    margin-bottom: var(--space-md);
+}
+
+.mr-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + 2px);
+    margin-bottom: -2px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-gray-dark);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.mr-tab i { font-size: 15px; }
+.mr-tab:hover { color: var(--color-primary); }
+
+.mr-tab--active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-accent);
+}
+
+.mr-tab__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #ECE9DD;
+    color: var(--color-gray-dark);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.mr-tab--active .mr-tab__count {
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.mr-table-panel--hidden { display: none; }
+
+.hidden { display: none !important; }
+
+/* ── Page header — title + subtitle on the left, "Create New Request"
+   on the right. Only rendered on the list view (capstone is None). ── */
+.mr-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.mr-page-header h2 {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0 0 3px;
+}
+
+.mr-page-header p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+/* ── Status tabs — Pending / Approved / Rejected, each backed by
+   its own table below (see [data-status-panel] in the template). ── */
+.mr-tabs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
     border-bottom: 2px solid var(--border-color);
     margin-bottom: var(--space-md);
 }
@@ -161,7 +243,7 @@
 }
 
 .mr-modal {
-    background: var(--bg-card-neutral);
+    background: var(--color-white);
     width: 100%;
     max-width: 560px;
     max-height: min(640px, 90vh);
@@ -228,7 +310,7 @@
     padding: var(--space-sm) var(--space-md);
     border: var(--border-light);
     border-radius: var(--radius-md);
-    background: var(--bg-card-neutral);
+    background: var(--color-white);
     text-align: left;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s, transform 0.1s;
@@ -277,7 +359,7 @@
     text-align: left;
 }
 
-.mr-selected-capstone:hover { background: var(--hover-tint); }
+.mr-selected-capstone:hover { background: #eaedff; }
 
 .mr-selected-capstone i {
     flex-shrink: 0;

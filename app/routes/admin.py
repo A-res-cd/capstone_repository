@@ -1,21 +1,26 @@
 from flask import Blueprint, render_template, request, redirect, session, url_for, flash, jsonify, current_app
 from werkzeug.utils import secure_filename
 import os
+import sys
 import uuid
+import random
 import logging
+import flask
 from app.db.database import (
     delete_user_account, get_all_capstones, get_archived_capstones, get_programs, get_specializations,
     get_used_keyword, insert_keywords, create_capstone_project,
     get_capstone_details, update_capstone_record, update_keyword,
-    delete_capstone, get_users, update_user_role, get_all_roles,
+    delete_capstone, get_users, update_user_role, get_all_roles, set_account_status,
     get_all_requests, review_request, set_capstone_people, get_capstone_people,
     get_capstones_by_specialization, get_requests_by_status, get_top_cited_capstones, add_to_bin,
     restore_capstone, ARCHIVE_RETENTION_DAYS,
     get_pending_verifications, review_verification_request,
+    get_pending_promotion_requests, review_promotion_request,
     get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags,
     get_capstone_program_summary
 )
 from app.routes.decorators import role_required
+from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
 from app.utils.pdf_extractor import extract_capstone_data, _parse_abstract_page
 
 admin = Blueprint("admin", __name__)
@@ -27,6 +32,49 @@ ALLOWED_EXTENSIONS = {"pdf", "doc", "docx"}
 
 def _allowed(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _populate_capstone_choices(form):
+    """SelectField choices must be set before validate()/rendering —
+    pulled fresh from the DB each request rather than hardcoded."""
+    form.program_id.choices = [(p[0], p[1]) for p in get_programs()]
+    form.specialization_id.choices = [(s[0], s[1]) for s in get_specializations()]
+
+
+def _first_form_error(form):
+    """Flattens WTForms' nested error dict (FieldList/FormField errors
+    are dicts-of-lists, not flat lists) into one readable message for
+    the flash banner."""
+    def _flatten(errors):
+        for err in errors:
+            if isinstance(err, dict):
+                for sub in err.values():
+                    yield from _flatten(sub)
+            elif isinstance(err, list):
+                yield from _flatten(err)
+            else:
+                yield err
+
+    for field_errors in form.errors.values():
+        for msg in _flatten(field_errors if isinstance(field_errors, list) else [field_errors]):
+            return msg
+    return "Please check the form for errors."
+
+
+def _people_for_db(form):
+    """Adapts CreateCapstoneForm's authors/adviser field names
+    (first_name/middle_name/last_name) to the shape set_capstone_people()
+    already expects (first/middle/last)."""
+    authors = [
+        {"first": a.first_name.data, "middle": a.middle_name.data, "last": a.last_name.data}
+        for a in form.authors
+    ]
+    adviser = {
+        "first": form.adviser.first_name.data,
+        "middle": form.adviser.middle_name.data,
+        "last": form.adviser.last_name.data,
+    }
+    return authors, adviser
 
 
 # ── PDF auto-extract ───────────────────────────────────────────────────────
@@ -74,23 +122,50 @@ def _save_file(file_obj):
     return filename, None
 
 
-def _parse_capstone_people(form):
-    authors = []
-    for i in range(1, 5):
-        authors.append({
-            "first":  form.get(f"author_first_{i}"),
-            "middle": form.get(f"author_middle_{i}"),
-            "last":   form.get(f"author_last_{i}"),
-        })
-    adviser = {
-        "first":  form.get("adviser_first"),
-        "middle": form.get("adviser_middle"),
-        "last":   form.get("adviser_last"),
-    }
-    return authors, adviser
-
-
 # ── Static pages ──────────────────────────────────────────────────────────────
+
+# Odds the "Developer Debug Tool" nav link actually shows the real
+# debug panel instead of the troll image — tune to taste.
+DEV_DEBUG_REAL_TOOL_CHANCE = 0.3
+
+
+@admin.route("/dev-debug")
+@role_required(3)
+def dev_debug():
+    if random.random() >= DEV_DEBUG_REAL_TOOL_CHANCE:
+        return render_template("admin/dev_debug_troll.html")
+
+    # ── The real tool — admin-only internal debug panel ──
+    sensitive_keys = {"SECRET_KEY", "PG_PASSWORD", "MAIL_PASSWORD"}
+    config_items = sorted(
+        (k, ("••••••••" if k in sensitive_keys else v))
+        for k, v in current_app.config.items()
+        if k.isupper() and not callable(v)
+    )
+
+    session_items = sorted(session.items())
+
+    routes = sorted(
+        (
+            r.endpoint,
+            ", ".join(sorted(m for m in r.methods if m not in ("HEAD", "OPTIONS"))),
+            str(r),
+        )
+        for r in current_app.url_map.iter_rules()
+    )
+
+    return render_template(
+        "admin/dev_debug_real.html",
+        session_items=session_items,
+        config_items=config_items,
+        routes=routes,
+        python_version=sys.version.split()[0],
+        flask_version=flask.__version__,
+        request_headers=sorted(request.headers.items()),
+        troll_odds_pct=round((1 - DEV_DEBUG_REAL_TOOL_CHANCE) * 100),
+        debug_mode=current_app.debug,
+    )
+
 
 @admin.route("/analytics")
 @role_required(3)
@@ -214,15 +289,58 @@ def analytics():
 @admin.route("/manage_users")
 @role_required(3)
 def manage_users():
-    users = get_users()
+    search = request.args.get("search", "").strip()
+    role_id = request.args.get("role", "").strip()
+    status = request.args.get("status", "").strip()
+    page = request.args.get("page", 1, type=int)
+    page_size = 20
+
+    users, total = get_users(
+        search=search or None,
+        role_id=int(role_id) if role_id.isdigit() else None,
+        status=status or None,
+        page=page,
+        page_size=page_size,
+    )
+    total_pages = max(1, (total + page_size - 1) // page_size)
+
     roles = get_all_roles()
     pending_verifications = get_pending_verifications()
+    pending_promotions = get_pending_promotion_requests()
     return render_template(
         "admin/manage_users.html",
         users=users,
         roles=roles,
         pending_verifications=pending_verifications,
+        pending_promotions=pending_promotions,
+        search=search,
+        selected_role=role_id,
+        selected_status=status,
+        page=page,
+        total_pages=total_pages,
+        total_users=total,
     )
+
+
+@admin.route("/manage_users/promotion/<int:request_id>", methods=["POST"])
+@role_required(3)
+def decide_promotion(request_id):
+    decision = request.form.get("decision")  # 'approved' or 'rejected'
+    status_reason = request.form.get("status_reason", "")
+    reviewed_by = session.get("user_id")
+
+    if decision not in ("approved", "rejected"):
+        flash("Invalid decision.", "danger")
+        return redirect(url_for("admin.manage_users"))
+
+    ok, err = review_promotion_request(request_id, decision, status_reason, reviewed_by)
+    flash(
+        "Promotion approved." if (ok and decision == "approved")
+        else "Promotion request rejected." if ok
+        else f"Error: {err}",
+        "success" if ok else "danger",
+    )
+    return redirect(url_for("admin.manage_users"))
 
 
 @admin.route("/manage_users/verify/<int:request_id>", methods=["POST"])
@@ -250,7 +368,11 @@ def decide_verification(request_id):
 @role_required(3)
 def update_role(user_id):
     new_role_id = request.form.get("role_id")
-    acting_admin_id = request.form.get("acting_admin_id")
+    # Derived from the session, not a client-supplied form field — a
+    # hidden acting_admin_id input could otherwise be edited in devtools
+    # to spoof a different admin, defeating both the audit trail and the
+    # self-protection check below.
+    acting_admin_id = session.get("user_id")
 
     if not new_role_id:
         flash("No role selected.", "error")
@@ -267,13 +389,30 @@ def update_role(user_id):
 @admin.route("/manage_users/delete/<int:user_id>", methods=["POST"])
 @role_required(3)
 def delete_user(user_id):
-    acting_admin_id = request.form.get("acting_admin_id")
+    acting_admin_id = session.get("user_id")
     ok, err = delete_user_account(user_id, acting_admin_id)
     flash(
         "User account deleted." if ok else f"Error: {err}",
         "success" if ok else "error",
     )
     return redirect(url_for("admin.manage_users"))
+
+
+@admin.route("/manage_users/status/<int:user_id>", methods=["POST"])
+@role_required(3)
+def change_account_status(user_id):
+    new_status = request.form.get("status")
+    acting_admin_id = session.get("user_id")
+
+    ok, err = set_account_status(user_id, new_status, acting_admin_id)
+    flash(
+        ("Account deactivated." if new_status == "deactivated" else "Account reactivated.")
+        if ok else f"Error: {err}",
+        "success" if ok else "error",
+    )
+    return redirect(url_for("admin.manage_users"))
+
+
 
 
 # ── Requests ──────────────────────────────────────────────────────────────────
@@ -308,25 +447,85 @@ def view_requests():
 @admin.route("/repository")
 @role_required(3)
 def view_capstone_repository():
-    capstones = get_all_capstones()
+    search = request.args.get("search", "").strip()
+    program_id = request.args.get("program", "").strip()
+    page = request.args.get("page", 1, type=int)
+    page_size = 20
+
+    capstones, total = get_all_capstones(
+        search=search or None,
+        program_id=int(program_id) if program_id.isdigit() else None,
+        page=page,
+        page_size=page_size,
+    )
+    total_pages = max(1, (total + page_size - 1) // page_size)
+
     programs = get_programs()
     specializations = get_specializations()
+    form = CreateCapstoneForm()
+    _populate_capstone_choices(form)
     return render_template(
         "admin/repository.html",
         capstones=capstones,
         programs=programs,
         specializations=specializations,
+        form=form,
+        search=search,
+        selected_program=program_id,
+        page=page,
+        total_pages=total_pages,
+        total_capstones=total,
     )
+
+
+@admin.route("/repository/<int:capstone_id>/people")
+@role_required(3)
+def get_capstone_people_json(capstone_id):
+    """Feeds the Edit-panel wizard's Authors/Adviser step — capstone
+    people were previously only fetchable server-side, so editing an
+    existing capstone silently dropped its authors/adviser."""
+    rows = get_capstone_people(capstone_id)
+
+    authors = [
+        {"first": r["aut_first_name"], "middle": r["aut_middle_name"] or "", "last": r["aut_last_name"]}
+        for r in rows if r["role"] == "Author"
+    ][:4]
+
+    adviser_row = next((r for r in rows if r["role"] == "Adviser"), None)
+    adviser = (
+        {"first": adviser_row["aut_first_name"], "middle": adviser_row["aut_middle_name"] or "", "last": adviser_row["aut_last_name"]}
+        if adviser_row else {"first": "", "middle": "", "last": ""}
+    )
+
+    return jsonify({"success": True, "authors": authors, "adviser": adviser})
 
 
 @admin.route("/recyclebin")
 @role_required(3)
 def view_archived_capstones():
-    archived_capstones = get_archived_capstones()
+    search = request.args.get("search", "").strip()
+    program_id = request.args.get("program", "").strip()
+    page = request.args.get("page", 1, type=int)
+    page_size = 20
+
+    archived_capstones, total = get_archived_capstones(
+        search=search or None,
+        program_id=int(program_id) if program_id.isdigit() else None,
+        page=page,
+        page_size=page_size,
+    )
+    total_pages = max(1, (total + page_size - 1) // page_size)
+
     return render_template(
         "admin/archives.html",
         archived_capstones=archived_capstones,
         archive_retention_days=ARCHIVE_RETENTION_DAYS,
+        programs=get_programs(),
+        search=search,
+        selected_program=program_id,
+        page=page,
+        total_pages=total_pages,
+        total_archived=total,
     )
 
 
@@ -336,93 +535,83 @@ def admin_create_capstone():
     if request.method == "GET":
         return redirect(url_for("admin.view_capstone_repository"))
 
-    programs = get_programs()
-    specializations = get_specializations()
+    form = CreateCapstoneForm()
+    _populate_capstone_choices(form)
+
+    def _rerender():
+        capstones, _ = get_all_capstones()
+        return render_template(
+            "admin/repository.html", hide_nav=False, form=form,
+            capstones=capstones,
+            programs=get_programs(), specializations=get_specializations(),
+        )
+
+    if not form.validate_on_submit():
+        flash(_first_form_error(form), "danger")
+        return _rerender()
+
     try:
-        if request.method == 'POST':
-            specialization = request.form.get('specialization_id')
-            program = request.form.get('program_id')
-            capstone_title = request.form.get('capstone_title')
-            capstone_year = request.form.get('capstone_year')
-            citation = request.form.get('citation_count')
-            sem = request.form.get('semester')
-            is_utilized = request.form.get('is_utilized') == 'on'
-            is_presented = request.form.get('is_presented') == 'on'
-            is_copyright_registered = request.form.get('is_copyright_registered') == 'on'
+        file = form.capstone_file.data
+        extracted_filename = form.extracted_filename.data
 
-            file = request.files.get('capstone_file')
-            extracted_filename = request.form.get("extracted_filename")
+        if file and getattr(file, "filename", ""):
+            filename, err = _save_file(file)
+            if err:
+                flash(err, "danger")
+                return _rerender()
+        elif extracted_filename:
+            filename = secure_filename(extracted_filename)
+            if not _allowed(filename):
+                flash(
+                    "Invalid file type. Only PDF, DOC, and DOCX are allowed.", "danger")
+                return _rerender()
+        else:
+            flash("Upload a capstone file first.", "danger")
+            return _rerender()
 
-            if file and file.filename:
-                filename, err = _save_file(file)
-                if err:
-                    flash(err, "danger")
-                    return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
-            elif extracted_filename:
-                filename = secure_filename(extracted_filename)
-                if not _allowed(filename):
+        file_path = f"uploads/{filename}"
+
+        success, result = insert_keywords(form.capstone_keywords.data)
+        if not success:
+            flash(result, "danger")
+        else:
+            keyword_id = result
+            success, message = create_capstone_project(
+                keyword_id, form.specialization_id.data, form.program_id.data,
+                form.capstone_title.data, form.capstone_year.data,
+                file_path, form.citation_count.data or 0, form.semester.data,
+                acting_user_id=session.get("user_id"),
+                is_utilized=form.is_utilized.data,
+                is_presented=form.is_presented.data,
+                is_copyright_registered=form.is_copyright_registered.data
+            )
+            if success:
+                new_capstone_id = message
+                authors, adviser = _people_for_db(form)
+
+                ok, err = set_capstone_people(
+                    new_capstone_id, authors, adviser,
+                    acting_user_id=session.get("user_id"))
+                if not ok:
                     flash(
-                        "Invalid file type. Only PDF, DOC, and DOCX are allowed.", "danger")
-                    return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
-            else:
-                flash("Upload a capstone file first.", "danger")
-                return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
-
-            file_path = f"uploads/{filename}"
-
-            success, result = insert_keywords(
-                request.form.get('capstone_keywords'))
-            if not success:
-                flash(result, "danger")
-            else:
-                keyword_id = result
-                success, message = create_capstone_project(
-                    keyword_id, specialization, program,
-                    capstone_title, capstone_year,
-                    file_path, citation, sem,
-                    acting_user_id=session.get("user_id"),
-                    is_utilized=is_utilized,
-                    is_presented=is_presented,
-                    is_copyright_registered=is_copyright_registered
-                )
-                if success:
-                    new_capstone_id = message
-
-                    authors, adviser = _parse_capstone_people(request.form)
-
-                    if not (adviser["first"] and adviser["last"]):
-                        flash("Adviser information is required.", "danger")
-                        return render_template("admin/repository.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations)
-
-                    ok, err = set_capstone_people(
-                        new_capstone_id, authors, adviser,
-                        acting_user_id=session.get("user_id"))
-                    if not ok:
-                        flash(
-                            f"Capstone created, but author/adviser save failed: {err}", "warning")
-                    else:
-                        flash("Capstone created successfully!", "success")
-
-                    return redirect(url_for("admin.view_capstone_repository"))
+                        f"Capstone created, but author/adviser save failed: {err}", "warning")
                 else:
-                    flash(message, "danger")
+                    flash("Capstone created successfully!", "success")
 
-    except Exception:
+                return redirect(url_for("admin.view_capstone_repository"))
+            else:
+                flash(message, "danger")
+
+    except Exception as exc:
+        logger.error("admin_create_capstone error: %s", exc)
         flash("An error occurred while processing your request.", "danger")
 
-    return render_template(
-        "admin/repository.html",
-        form_data=request.form,
-        programs=programs,
-        specializations=specializations,
-    )
+    return _rerender()
 
 
 @admin.route("/repository/update/<int:capstone_id>", methods=["POST"])
 @role_required(3)
 def update_capstone(capstone_id):
-    programs = get_programs()
-    specializations = get_specializations()
     used_keywords = get_used_keyword()
     capstone = get_capstone_details(capstone_id)
 
@@ -430,26 +619,33 @@ def update_capstone(capstone_id):
         flash("Capstone not found.", "danger")
         return redirect(url_for("admin.view_capstone_repository"))
 
+    form = UpdateCapstoneForm()
+    _populate_capstone_choices(form)
+
+    def _rerender():
+        capstones, _ = get_all_capstones()
+        return render_template(
+            "admin/repository.html", hide_nav=False, form=form,
+            capstones=capstones,
+            programs=get_programs(), specializations=get_specializations(),
+            used_keywords=used_keywords, capstone=capstone,
+        )
+
+    if not form.validate_on_submit():
+        flash(_first_form_error(form), "danger")
+        return _rerender()
+
     try:
-        new_specialization = request.form.get('specialization_id')
-        new_program = request.form.get('program_id')
-        new_capstone_title = request.form.get('capstone_title')
-        new_capstone_year = request.form.get('capstone_year')
-        new_citation = request.form.get('citation_count') or 0
-        new_sem = request.form.get('semester') or None
-        new_keywords = request.form.get('capstone_keywords', '').strip()
-        new_is_utilized = request.form.get('is_utilized') == 'on'
-        new_is_presented = request.form.get('is_presented') == 'on'
-        new_is_copyright_registered = request.form.get('is_copyright_registered') == 'on'
+        new_keywords = (form.capstone_keywords.data or "").strip()
 
         file_path = capstone['capstone_file']
-        file = request.files.get('capstone_file')
+        file = form.capstone_file.data
 
-        if file and file.filename != '':
+        if file and getattr(file, "filename", ""):
             filename, err = _save_file(file)
             if err:
                 flash(err, "danger")
-                return render_template("admin/update_capstone.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations, used_keywords=used_keywords, capstone=capstone)
+                return _rerender()
             file_path = f"uploads/{filename}"
 
         # Update keyword if changed
@@ -458,26 +654,23 @@ def update_capstone(capstone_id):
             success, error = update_keyword(keyword_id, new_keywords)
             if not success:
                 flash(f"Error updating keyword: {error}", "danger")
-                return render_template("admin/update_capstone.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations, used_keywords=used_keywords, capstone=capstone)
+                return _rerender()
 
         # Update capstone record
         success, message = update_capstone_record(
-            capstone_id, keyword_id, new_specialization, new_program,
-            new_capstone_title, new_capstone_year, file_path, new_citation,
-            new_sem, acting_user_id=session.get("user_id"),
-            is_utilized=new_is_utilized,
-            is_presented=new_is_presented,
-            is_copyright_registered=new_is_copyright_registered)
+            capstone_id, keyword_id, form.specialization_id.data, form.program_id.data,
+            form.capstone_title.data, form.capstone_year.data, file_path,
+            form.citation_count.data or 0, form.semester.data,
+            acting_user_id=session.get("user_id"),
+            is_utilized=form.is_utilized.data,
+            is_presented=form.is_presented.data,
+            is_copyright_registered=form.is_copyright_registered.data)
 
         if not success:
             flash(f"Error updating capstone: {message}", "danger")
-            return render_template("admin/update_capstone.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations, used_keywords=used_keywords, capstone=capstone)
+            return _rerender()
 
-        authors, adviser = _parse_capstone_people(request.form)
-
-        if not (adviser["first"] and adviser["last"]):
-            flash("Adviser information is required.", "danger")
-            return render_template("admin/update_capstone.html", hide_nav=False, form_data=request.form, programs=programs, specializations=specializations, used_keywords=used_keywords, capstone=capstone)
+        authors, adviser = _people_for_db(form)
 
         ok, err = set_capstone_people(capstone_id, authors, adviser,
                                        acting_user_id=session.get("user_id"))
@@ -489,17 +682,10 @@ def update_capstone(capstone_id):
         return redirect(url_for("admin.view_capstone_repository"))
 
     except Exception as e:
-        current_app.logger.error("update_capstone_route error: %s", e)
+        logger.error("update_capstone_route error: %s", e)
         flash("Something went wrong updating this capstone. Please try again.", "danger")
 
-    return render_template(
-        "admin/update_capstone.html",
-        form_data=capstone,
-        programs=programs,
-        specializations=specializations,
-        used_keywords=used_keywords,
-        capstone=capstone,
-    )
+    return _rerender()
 
 
 @admin.route("/delete_capstone/<int:capstone_id>", methods=["POST"])

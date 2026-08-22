@@ -33,6 +33,7 @@ from app.db.auth import (
     create_verification_request, reapply_for_verification,
     get_device_ip, get_role_id, create_user, sign_in,
     lookup_user_for_reset, create_otp, verify_otp, change_password,
+    change_own_password,
     sign_out, get_pending_verifications, review_verification_request,
 )
 
@@ -52,13 +53,16 @@ from app.db.archive import (
 )
 
 from app.db.users import (
-    get_users, get_user_contacts, upsert_user_contact, get_all_roles,
-    update_user_role, delete_user_account,
+    get_users, get_own_profile, get_user_contacts, upsert_user_contact, get_all_roles,
+    update_user_role, delete_user_account, set_account_status, delete_own_account,
+    submit_promotion_request, get_pending_promotion_requests, get_own_promotion_requests,
+    review_promotion_request, cancel_promotion_request,
 )
 
 from app.db.requests import (
     request_fullview, get_all_requests, review_request,
     get_user_requests, cancel_manuscript_request, get_requests_by_status,
+    get_requestable_capstones,
 )
 
 from app.db.analytics import (

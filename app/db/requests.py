@@ -4,9 +4,11 @@ Manuscript/full-view access requests: create, list, review
 """
 import logging
 import psycopg2.extras
+from datetime import datetime, timezone
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+from datetime import datetime, timezone 
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +20,8 @@ def request_fullview(user_id, capstone_id, request_reason):
 
     try:
         mithrix.execute("""
-            INSERT INTO request(user_id, capstone_id, request_status, request_reason, request_date)
-            VALUES(%s, %s, 'pending', %s,  %s)
+            INSERT INTO request(user_id, capstone_id, request_status, request_reason, request_date, request_type)
+            VALUES(%s, %s, 'pending', %s, %s, 'manuscript')
             RETURNING request_id
         """, (user_id, capstone_id, request_reason, now))
 
@@ -129,6 +131,40 @@ def get_user_requests(user_id):
         conn.close()
 
 
+def get_requestable_capstones(user_id):
+    """Non-archived capstones the given user can open a *new* manuscript
+    request for — i.e. everything except capstones they already have a
+    pending or approved request on. Feeds the "Create New Request"
+    picker on the My Requests page instead of sending the user back to
+    the archive just to start a request."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        mithrix.execute("""
+            SELECT c.capstone_id, c.capstone_title, c.capstone_year, s.specialization_name
+            FROM capstone c
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            WHERE c.is_archived IS NOT TRUE
+              AND c.capstone_id NOT IN (
+                  SELECT r.capstone_id FROM request r
+                  WHERE r.user_id = %s
+                    AND r.request_status IN ('pending', 'approved')
+                    AND r.capstone_id IS NOT NULL
+              )
+            ORDER BY c.capstone_title
+        """, (user_id,))
+
+        return mithrix.fetchall()
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return []
+
+    finally:
+        mithrix.close()
+        conn.close()
+
+
 # ______________________________Admin Analytics___________________________
 
 def cancel_manuscript_request(request_id, user_id):
@@ -142,6 +178,10 @@ def cancel_manuscript_request(request_id, user_id):
             WHERE request_id = %s AND user_id = %s
             AND request_status = 'pending'
         """, (request_id, user_id))
+
+        if mithrix.rowcount == 0:
+            conn.rollback()
+            return False, "This request can no longer be cancelled — it may have already been decided or cancelled."
 
         log_audit(mithrix, user_id, "cancel_request", "request", request_id)
 

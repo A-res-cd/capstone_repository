@@ -190,14 +190,39 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
         mithrix.close()
         conn.close()
 
-def get_all_capstones():
+def get_all_capstones(search=None, program_id=None, page=1, page_size=20):
     """
-    Retrieve all capstone projects with their details
+    Retrieve capstone projects — search by title/keywords, filter by
+    program, paginated. Returns (rows: list[RealDictRow], total: int).
     """
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        mithrix.execute("""
+        conditions = ["c.is_archived = FALSE"]
+        params = []
+
+        if search:
+            conditions.append("(c.capstone_title ILIKE %s OR k.capstone_keywords ILIKE %s)")
+            like = f"%{search}%"
+            params += [like, like]
+
+        if program_id:
+            conditions.append("c.program_id = %s")
+            params.append(program_id)
+
+        where = "WHERE " + " AND ".join(conditions)
+
+        mithrix.execute(f"""
+            SELECT COUNT(*) AS total
+            FROM capstone c
+            JOIN keyword k ON c.keyword_id = k.keyword_id
+            {where}
+        """, params)
+        total = mithrix.fetchone()["total"]
+
+        offset = (page - 1) * page_size
+
+        mithrix.execute(f"""
             SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
                    c.citation_count, c.semester, c.term,
                    c.is_utilized, c.is_presented, c.is_copyright_registered,
@@ -208,13 +233,15 @@ def get_all_capstones():
             JOIN keyword k ON c.keyword_id = k.keyword_id
             JOIN specialization s ON c.specialization_id = s.specialization_id
             JOIN program p ON c.program_id = p.program_id
-            WHERE c.is_archived = FALSE
+            {where}
             ORDER BY c.capstone_year DESC, c.capstone_id DESC
-        """)
-        return mithrix.fetchall()
+            LIMIT %s OFFSET %s
+        """, params + [page_size, offset])
+
+        return mithrix.fetchall(), total
     except Exception as exc:
         logger.error("Error: %s", exc)
-        return []
+        return [], 0
     finally:
         mithrix.close()
         conn.close()
@@ -329,14 +356,24 @@ def set_capstone_people(capstone_id, authors, adviser, acting_user_id=None):
 
 def add_citations(capstone_id):
     conn = db_connect()
-    mithrix = conn.cursor()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
+        mithrix.execute("""
+            SELECT citation_count FROM capstone WHERE capstone_id = %s
+        """, (capstone_id,))
+        row = mithrix.fetchone()
+        old_count = row["citation_count"] if row else None
+
         mithrix.execute("""
             UPDATE capstone
             SET citation_count = citation_count + 1
             WHERE capstone_id = %s
         """, (capstone_id, ))
+
+        new_count = (old_count + 1) if old_count is not None else None
+
+        log_audit(mithrix, user_id, "citation_generated", "capstone", capstone_id, old_values=str(old_count), new_values=str(new_count))
 
         conn.commit()
         return True, None
