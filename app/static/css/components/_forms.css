@@ -39,12 +39,12 @@
 .form-group textarea {
     width: 100%;
     padding: 0.8rem;
-    border: 1px solid #D1D1D1;
+    border: 1px solid var(--border-input);
     border-radius: var(--radius-md);
     box-sizing: border-box;
     font-size: var(--text-md);
     font-family: var(--font-primary);
-    background: #FAFAFA;
+    background: var(--surface-input);
     color: var(--text-dark);
     outline: none;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -60,7 +60,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
     border-color: var(--color-primary);
-    background-color: var(--color-white);
+    background-color: var(--bg-card-neutral);
     box-shadow: 0 0 0 3px rgba(74, 94, 209, 0.12);
 }
 
@@ -97,8 +97,8 @@
 /* File upload field — used by the repository create/edit form */
 .file-upload-wrapper input[type="file"] {
     padding: var(--space-md);
-    background: #F8F9FA;
-    border: 2px dashed #D1D1D1;
+    background: var(--surface-muted);
+    border: 2px dashed var(--border-input);
     border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--text-sm);

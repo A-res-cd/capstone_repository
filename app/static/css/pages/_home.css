@@ -103,7 +103,7 @@ main:has(.landing-page) {
 .home-btn--outline {
     background: transparent;
     color: var(--text-dark);
-    border: 1.5px solid #D8D3C4;
+    border: 1.5px solid var(--border-tag);
 }
 .home-btn--outline:hover {
     background: #fff;
@@ -127,7 +127,7 @@ main:has(.landing-page) {
     display: flex;
     align-items: center;
     overflow: hidden;
-    background: #FAF9F4;
+    background: var(--surface-page);
 }
 
 .hero-bg {
@@ -252,7 +252,7 @@ main:has(.landing-page) {
 .doc-card--1 {
     position: relative;
     background: #fff;
-    border: 1px solid #ECE9DD;
+    border: 1px solid var(--border-color);
     box-shadow: 0 20px 44px rgba(30,40,90,0.14);
     padding: 22px 20px 22px 31px;
     border-radius: 3px 12px 12px 12px;
@@ -368,7 +368,7 @@ main:has(.landing-page) {
 ══════════════════════════════════════════════════════ */
 
 .features-section {
-    background: #FDFCF7;
+    background: var(--surface-paper);
 }
 
 .bento-grid {
@@ -424,7 +424,7 @@ main:has(.landing-page) {
 
 .roles-section {
     position: relative;
-    background: #FAF9F4;
+    background: var(--surface-page);
     overflow: hidden;
 }
 
@@ -468,7 +468,7 @@ main:has(.landing-page) {
 .role-card {
     position: relative;
     background: #fff;
-    border: 1px solid #ECE9DD;
+    border: 1px solid var(--border-color);
     border-radius: 3px 12px 12px 12px;
     box-shadow: 0 12px 28px rgba(30,40,90,0.08);
     padding: var(--space-xl) var(--space-lg) var(--space-lg) 34px;
@@ -552,7 +552,7 @@ main:has(.landing-page) {
 
 .cta-section {
     position: relative;
-    background: #FDFCF7;
+    background: var(--surface-paper);
     text-align: center;
     padding: 82px 41px;
     overflow: hidden;
@@ -576,7 +576,7 @@ main:has(.landing-page) {
     max-width: 408px;
     margin: 0 auto;
     background: #fff;
-    border: 1px solid #ECE9DD;
+    border: 1px solid var(--border-color);
     border-radius: 3px 12px 12px 12px;
     box-shadow: 0 18px 40px rgba(30,40,90,0.10);
     padding: 41px 34px 34px 44px;

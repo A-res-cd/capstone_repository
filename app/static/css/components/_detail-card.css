@@ -16,7 +16,7 @@
 @import url('../base/root.css');
 
 .detail-card {
-    background: var(--color-white);
+    background: var(--bg-card-neutral);
     border: var(--border-light);
     border-radius: 3px 12px 12px 12px;
     box-shadow: var(--shadow-md);

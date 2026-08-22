@@ -15,12 +15,12 @@
 @import url('../base/root.css');
 
 .table-wrap {
-    border: 1px solid #ECE9DD;
+    border: 1px solid var(--border-color);
     border-radius: 3px 10px 10px 10px;
     box-shadow: 0 8px 20px rgba(30,40,90,0.05);
     overflow: hidden;
     overflow-x: auto;
-    background: #fff;
+    background: var(--bg-card-neutral);
     -webkit-overflow-scrolling: touch;
 }
 
@@ -53,7 +53,7 @@
 
 .data-table td {
     padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid #ECE9DD;
+    border-bottom: 1px solid var(--border-color);
     color: var(--text-dark);
     vertical-align: middle;
 }
@@ -64,8 +64,8 @@
 /* zebra striping — only the manage-users table originally had this,
    it's offered here as an opt-in modifier so repository's table can
    skip it if that's the intended look */
-.data-table--striped tbody tr:nth-child(even) { background: #FAF9F4; }
-.data-table--striped tbody tr:nth-child(odd)  { background: var(--color-white); }
+.data-table--striped tbody tr:nth-child(even) { background: var(--surface-page); }
+.data-table--striped tbody tr:nth-child(odd)  { background: var(--bg-card-neutral); }
 
 .cell-id      { color: var(--color-gray-dark); font-size: var(--text-xs); }
 .cell-mono    { font-family: monospace; font-size: var(--text-xs); letter-spacing: 0.05em; }
@@ -103,9 +103,9 @@
     justify-content: center;
     gap: var(--space-md);
     padding: var(--space-xl) var(--space-lg);
-    border: 2px dashed #D8D3C4;
+    border: 2px dashed var(--border-tag);
     border-radius: var(--radius-lg);
-    background: #FDFCF7;
+    background: var(--surface-paper);
     color: var(--color-gray-dark);
     text-align: center;
 }

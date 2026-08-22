@@ -49,12 +49,71 @@ main:has(.mu-section) {
 .mu-panel { flex: 1; min-height: 0; }
 .mu-panel--hidden { display: none; }
 
+/* ── Tab switcher — flips between Manage Users, Verify Accounts,
+   and Approve Role Promotions. Only one [data-tab-panel] is shown
+   at a time (see inline script). ── */
+.mu-tabs {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.mu-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + 2px);
+    margin-bottom: -2px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-gray-dark);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.mu-tab i { font-size: 15px; }
+
+.mu-tab:hover {
+    color: var(--color-primary);
+}
+
+.mu-tab--active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-accent);
+}
+
+/* ── Notification badge — red circle with pending count, sits on
+   the tab button so an admin sees new requests without opening
+   the panel. ── */
+.mu-tab__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--color-red);
+    color: var(--color-white);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 0 0 2px var(--color-white);
+}
+
 /* ── Pending-verifications panel header — sits above its own
    record-list, distinct from the page-level header above it ── */
 .mu-panel-header {
     margin-bottom: var(--space-sm);
     padding-bottom: var(--space-sm);
-    border-bottom: 2px dashed #ECE9DD;
+    border-bottom: 2px dashed var(--border-color);
 }
 
 .mu-panel-header h3 {
@@ -74,18 +133,217 @@ main:has(.mu-section) {
     margin: 0;
 }
 
-#panel-pending {
-    flex: 0 0 auto;
-    margin-bottom: var(--space-md);
+.hidden { display: none !important; }
+
+/* ── Filter bar — same visual language as Explore Archive's, kept
+   page-scoped here rather than cross-importing that page's CSS. ── */
+.mu-filters {
+    flex-shrink: 0;
+    margin-bottom: var(--space-sm);
+}
+
+.mu-filter-form {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+}
+
+.filter-input,
+.filter-select {
+    padding: 5px 8px;
+    border: var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+    background: var(--bg-card-neutral);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    border-color: var(--color-primary-light);
+}
+
+.filter-input { width: 220px; }
+
+.mu-results-count {
+    flex-shrink: 0;
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin: 0 0 var(--space-sm);
+}
+
+/* ── Pagination ── */
+.mu-pagination {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
+    padding-top: var(--space-md);
+}
+
+.mu-pagination__status {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-gray-dark);
+}
+
+.mu-pagination__link--disabled {
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+/* ── "You" tag — marks the currently signed-in admin's own row ── */
+.mu-you-tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 7px;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+}
+
+/* ── Account status badge — filled pill (deliberately different from
+   .role-badge's outlined ink-stamp) so status and role stay visually
+   distinct at a glance. ── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.status-badge--active {
+    background: #D5F5E3;
+    color: #1E8449;
+}
+
+.status-badge--inactive {
+    background: #F0F0EC;
+    color: #7A7A72;
+}
+
+/* ── Edit User panel — now full-width instead of a narrow centered
+   card, so it uses the page instead of leaving dead space beside it ── */
+.info-strip--wide {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.mu-edit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
+}
+
+.mu-edit-grid__col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    min-width: 0;
+}
+
+.mu-edit-grid__col .form-actions {
+    border-top: none;
+    padding-top: 0;
+    margin-top: auto;
+}
+
+.mu-edit-grid__col.danger-zone {
+    gap: var(--space-sm);
+    padding: 0;
+}
+
+.mu-edit-grid__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.mu-edit-grid__divider {
+    background: var(--border-color);
+}
+
+/* ── Self-account notice — shown instead of the role/status/delete
+   actions when an admin opens their own account. ── */
+.mu-self-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    margin: 0 var(--space-xl) var(--space-md);
+    padding: var(--space-md);
+    background: #FBF3E2;
+    border: 1px solid #EEDCB0;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+}
+
+.mu-self-notice i {
+    font-size: 18px;
+    color: var(--color-accent);
+    flex-shrink: 0;
+}
+
+.mu-status-note {
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    margin: 0 0 var(--space-sm);
 }
 
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .info-strip--wide { grid-template-columns: 1fr 1fr; }
+
+    .mu-edit-grid {
+        grid-template-columns: 1fr;
+        padding: var(--space-lg);
+    }
+
+    .mu-edit-grid__divider {
+        height: 1px;
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     .mu-section { padding: var(--space-md); }
 
-    .info-strip { grid-template-columns: 1fr; }
+    .mu-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mu-tab { white-space: nowrap; }
+
+    .info-strip,
+    .info-strip--wide { grid-template-columns: 1fr; }
 
     .detail-card__header,
     .detail-card__body,
@@ -93,4 +351,10 @@ main:has(.mu-section) {
 
     .edit-form__actions { flex-direction: column; align-items: stretch; }
     .btn-pill { justify-content: center; }
+
+    .mu-filter-form { flex-direction: column; align-items: stretch; }
+    .filter-input { width: 100%; }
+    .filter-group { flex-direction: column; align-items: stretch; }
+
+    .mu-self-notice { margin: 0 var(--space-lg) var(--space-md); }
 }

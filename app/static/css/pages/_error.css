@@ -1,0 +1,61 @@
+/* ============================================================
+   PAGES: 400 / 404 / 500 error pages
+   Standalone (hide_nav/hide_header), matching the paper/index-card
+   aesthetic used elsewhere — asymmetric radius, Fraunces display font.
+============================================================ */
+@import url('../base/root.css');
+
+.error-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-xl);
+    background: var(--surface-page);
+}
+
+.error-card {
+    max-width: 460px;
+    width: 100%;
+    text-align: center;
+    background: var(--bg-card-neutral);
+    border: var(--border-light);
+    border-radius: 3px 16px 16px 16px;
+    box-shadow: var(--shadow-md);
+    padding: var(--space-xl) var(--space-xl) calc(var(--space-xl) + var(--space-sm));
+}
+
+.error-code {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 64px;
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: var(--space-sm);
+    opacity: 0.85;
+}
+
+.error-card h1 {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0 0 var(--space-sm);
+}
+
+.error-card p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    line-height: 1.6;
+    margin: 0 0 var(--space-lg);
+}
+
+.error-card .btn-pill {
+    justify-content: center;
+}
+
+@media (max-width: 480px) {
+    .error-section { padding: var(--space-md); }
+    .error-code { font-size: 48px; }
+}

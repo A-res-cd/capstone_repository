@@ -9,8 +9,8 @@
 .nav-container {
     width: 212px;
     min-height: calc(100vh - 51px);
-    background: #FDFCF7;
-    border-right: 1px solid #ECE9DD;
+    background: var(--surface-paper);
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -160,7 +160,7 @@
 /* ── Footer: logout ── */
 .nav-container-footer {
     padding: 10px 14px 17px;
-    border-top: 1px solid #ECE9DD;
+    border-top: 1px solid var(--border-color);
     position: relative;
     z-index: 1;
 }

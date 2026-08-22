@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    {# Applied before any CSS paints so there's no flash of the wrong
+       theme on load. Falls back to the OS-level preference the very
+       first time, before the person has ever toggled anything. #}
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem('capre-theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                if (theme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) { /* localStorage unavailable — default to light */ }
+        })();
+    </script>
+
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base/global.css') }}">
@@ -32,6 +48,7 @@
 
     </div>
 
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>

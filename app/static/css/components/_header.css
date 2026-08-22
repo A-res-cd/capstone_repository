@@ -12,8 +12,8 @@
     top: 0;
     z-index: 20;
     height: 51px;
-    background: #FDFCF7;
-    border-bottom: 1px solid #ECE9DD;
+    background: var(--surface-paper);
+    border-bottom: 1px solid var(--border-color);
     overflow: hidden;
 }
 
@@ -135,7 +135,7 @@
     gap: 8px;
     flex-shrink: 0;
     padding-left: 14px;
-    border-left: 1px solid #ECE9DD;
+    border-left: 1px solid var(--border-color);
 }
 
 .header-user__avatar {
@@ -193,6 +193,41 @@
 .header-user__role i {
     font-size: 8px;
 }
+
+/* ── Theme toggle — sun/moon icon button, sits just left of the
+   avatar. Icon swap is driven purely by [data-theme] on <html> (see
+   theme.js) so it works instantly, no JS re-render needed. ── */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 31px;
+    height: 31px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    background: var(--surface-paper);
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.theme-toggle:hover {
+    background: var(--hover-tint);
+    border-color: var(--color-primary-soft);
+}
+
+.theme-toggle__icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+/* Light mode: show the moon (click to go dark). */
+.theme-toggle__icon--light { display: none; }
+
+/* Dark mode: show the sun (click to go light). */
+[data-theme="dark"] .theme-toggle__icon--dark  { display: none; }
+[data-theme="dark"] .theme-toggle__icon--light { display: block; }
 
 @media (max-width: 900px) {
     .header-logo { display: none; }

@@ -69,8 +69,8 @@ main:has(.analytics-section) {
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-    background: #FDFCF7;
-    border: 1px solid #ECE9DD;
+    background: var(--surface-paper);
+    border: 1px solid var(--border-color);
     border-left: 3px solid var(--color-primary);
     border-radius: 2px 8px 8px 2px;
     box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
@@ -85,7 +85,7 @@ main:has(.analytics-section) {
     height: 5px;
     border-radius: 50%;
     background: var(--color-bg, #FBF3E2);
-    border: 1px solid #ECE9DD;
+    border: 1px solid var(--border-color);
 }
 
 .analytics-stat-card--accent {
@@ -151,8 +151,8 @@ main:has(.analytics-section) {
 .analytics-panel {
     display: flex;
     flex-direction: column;
-    background: #FDFCF7;
-    border: 1px solid #ECE9DD;
+    background: var(--surface-paper);
+    border: 1px solid var(--border-color);
     border-radius: 3px 12px 12px 12px;
     box-shadow: 2px 2px 0 rgba(30, 40, 90, 0.04);
     padding: var(--space-md);
@@ -281,17 +281,17 @@ main:has(.analytics-section) {
     letter-spacing: 0.3px;
     text-transform: uppercase;
     color: var(--color-gray-dark);
-    border-bottom: 2px solid #ECE9DD;
+    border-bottom: 2px solid var(--border-color);
     white-space: nowrap;
     position: sticky;
     top: 0;
-    background: #FDFCF7;
+    background: var(--surface-paper);
 }
 
 .analytics-table td {
     padding: 7px 8px;
     color: var(--color-primary);
-    border-bottom: 1px dashed #ECE9DD;
+    border-bottom: 1px dashed var(--border-color);
     white-space: nowrap;
 }
 
@@ -302,7 +302,7 @@ main:has(.analytics-section) {
 .analytics-table tfoot td {
     padding: 7px 8px;
     font-weight: 700;
-    border-top: 2px solid #ECE9DD;
+    border-top: 2px solid var(--border-color);
     border-bottom: none;
 }
 

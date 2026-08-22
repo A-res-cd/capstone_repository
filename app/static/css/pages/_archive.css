@@ -73,7 +73,7 @@ main:has(.explore-archive-section) {
     border-radius: var(--radius-sm);
     font-size: var(--text-sm);
     color: var(--text-dark);
-    background: var(--color-white);
+    background: var(--bg-card-neutral);
     outline: none;
     transition: border-color 0.2s;
 }
@@ -128,7 +128,7 @@ main:has(.explore-archive-section) {
     font-size: var(--text-sm);
     color: var(--text-dark);
     background: var(--bg-card-neutral);
-    border: 1px solid #ECE9DD;
+    border: 1px solid var(--border-color);
     border-radius: 3px 10px 10px 3px;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
@@ -152,7 +152,7 @@ main:has(.explore-archive-section) {
     font-weight: 600;
     font-size: 11px;
     color: var(--color-accent-hover);
-    background: #FBF8EF;
+    background: var(--bg-card-header);
     border-right: 1px dashed #E2DCC8;
     border-radius: 3px 0 0 3px;
 }
@@ -200,7 +200,7 @@ main:has(.explore-archive-section) {
 .archive-card .col-year::after {
     content: '·';
     margin-left: var(--space-sm);
-    color: #D8D3C4;
+    color: var(--border-tag);
     font-weight: 700;
 }
 

@@ -11,7 +11,7 @@ main:has(.auth-shell) {
 .auth-shell {
     position: relative;
     min-height: 100vh;
-    background: #FAF9F4;
+    background: var(--surface-page);
     overflow: hidden;
 }
 
@@ -163,7 +163,7 @@ main:has(.auth-shell) {
 .auth-form-card {
     position: relative;
     background: #fff;
-    border: 1px solid #ECE9DD;
+    border: 1px solid var(--border-color);
     border-radius: 3px 12px 12px 12px;
     box-shadow: 0 18px 38px rgba(30,40,90,0.10), 0 2px 6px rgba(0,0,0,0.04);
     padding: 37px 34px 34px 44px;

@@ -29,7 +29,7 @@
     --bg-active: var(--color-accent);
 
     /* ========== BORDERS ========== */
-    --border-light: 1px solid #ECE9DD;
+    --border-light: 1px solid var(--border-color);
     --border-dark: 1px solid #1B1C8F;
 
     /* ========== FONT SETTINGS ========== */
@@ -63,8 +63,64 @@
     --shadow-md: 0 4px 8px rgba(30,40,90,0.12);
     --shadow-lg: 0 6px 12px rgba(30,40,90,0.16);
 
-    --bg-card-neutral: #ffffff;      /* card surfaces — white on paper body */
-    --bg-card-header:  #FBF8EF;      /* card header areas — warm paper tint */
+    /* ========== SURFACE TOKENS (theme-aware) ==========
+       These carry the "paper" palette that used to be hardcoded hex
+       values scattered across every component/page CSS file. Giving
+       them names here means a dark theme only has to override this
+       one block — see [data-theme="dark"] below — instead of hunting
+       down every literal #FDFCF7 / #ECE9DD across ~20 files. */
+    --surface-page:   #FAF9F4;  /* body background */
+    --surface-paper:  #FDFCF7;  /* header / sidebar / stat-strip panels */
+    --surface-input:  #FAFAFA;  /* form input backgrounds */
+    --surface-muted:  #F8F9FA;  /* file-upload dropzone etc */
+    --border-color:   #ECE9DD;  /* hairline borders, ruled-paper edges */
+    --border-input:   #D1D1D1;  /* form field borders */
+    --border-tag:     #D8D3C4;  /* chip/tag outlines */
+    --hover-tint:     #eaedff;  /* light hover fill on ghost/icon buttons */
+
+    --bg-card-neutral: var(--color-white);   /* card surfaces */
+    --bg-card-header:  #FBF8EF;              /* card header areas — warm paper tint */
     --bg-button-light: #E8F3EC;
 
+}
+
+/* ══════════════════════════════════════════════════════
+   DARK THEME
+   Toggled by setting data-theme="dark" on <html> (see
+   app/static/js/theme.js). Overrides only the tokens above —
+   every component/page already reads through these variables,
+   so this one block re-themes the whole app.
+══════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+    color-scheme: dark;
+
+    --color-primary: #8B96EE;
+    --color-primary-dark: #6670C7;
+    --color-primary-light: #ACB4F5;
+    --color-primary-soft: #363C64;
+
+    --color-gray-light: #2E313D;
+    --color-gray: #6E7180;
+    --color-gray-dark: #B9BBC6;
+    --color-red: #FF6B5B;
+
+    --text-secondary: #B9BBC6;
+    --text-dark: #E7E7ED;
+
+    --surface-page:   #14151B;
+    --surface-paper:  #191A22;
+    --surface-input:  #1B1C24;
+    --surface-muted:  #20222E;
+    --border-color:   #2E303D;
+    --border-input:   #3A3C4B;
+    --border-tag:     #3A3C4B;
+    --hover-tint:     #262A45;
+
+    --bg-card-neutral: #1E1F29;
+    --bg-card-header:  #23242E;
+    --bg-button-light: #1D2B24;
+
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.35);
+    --shadow-md: 0 4px 10px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 20px rgba(0,0,0,0.5);
 }
