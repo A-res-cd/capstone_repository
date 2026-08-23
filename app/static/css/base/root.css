@@ -82,6 +82,37 @@
     --bg-card-header:  #FBF8EF;              /* card header areas — warm paper tint */
     --bg-button-light: #E8F3EC;
     --surface-selected: #FBF3E2;
+    --border-selected: #EEDCB0;  /* border for warm "selected/notice" boxes */
+
+    /* ========== SEMANTIC ROLE / STATUS / RANK COLORS (theme-aware) ==========
+       These are drawn directly on transparent/card backgrounds (badges use
+       `border: 1.5px solid currentColor`), so unlike the surface tokens
+       above they need real contrast against --surface-page / --bg-card-neutral
+       in *both* themes, not just a matching mood. Dark-mode values below
+       are deliberately lighter/brighter than their light-mode counterparts
+       for that reason, not just palette-swapped. */
+
+    /* Header/nav role pill (badge-admin/professor/faculty/student) */
+    --badge-admin:     #B9700D;
+    --badge-professor: #157D8A;
+    --badge-faculty:   #1F8A4C;
+    --badge-student:   #6B45C4;
+
+    /* Record-card "owned by" role badge */
+    --role-admin:   #C0392B;
+    --role-faculty: #1A5276;
+    --role-student: #1E8449;
+
+    /* Request/approval status badge */
+    --status-pending:   #9C7A17;
+    --status-approved:  #1E8449;
+    --status-rejected:  #C0392B;
+    --status-cancelled: #7A7A72;
+
+    /* Analytics leaderboard rank badge */
+    --rank-gold:   #8a6d00;
+    --rank-silver: #5a6169;
+    --rank-bronze: #7a4a1e;
 
 }
 
@@ -153,9 +184,33 @@
     --bg-card-neutral: #1C1F27;
     --bg-card-header: #22252E;
     --surface-selected: #2A251D;
+    --border-selected: #4A3C1E;
 
     /* ========== LIGHT BUTTON ========== */
     --bg-button-light: #21382B;
+
+    /* ========== SEMANTIC ROLE / STATUS / RANK COLORS ==========
+       Brightened for contrast against dark surfaces — these sit
+       directly on card/page backgrounds via `border: currentColor`
+       or plain text color, so they can't just inherit the light
+       palette's darker hex values without becoming unreadable. */
+    --badge-admin:     #E0A855;
+    --badge-professor: #4FD1C5;
+    --badge-faculty:   #5FCB8D;
+    --badge-student:   #A78BFA;
+
+    --role-admin:   #FF6B5F;
+    --role-faculty: #6EC6E8;
+    --role-student: #5FCB8D;
+
+    --status-pending:   #E0C555;
+    --status-approved:  #5FCB8D;
+    --status-rejected:  #FF6B5F;
+    --status-cancelled: #A9ACB6;
+
+    --rank-gold:   #E8C547;
+    --rank-silver: #B8BFC9;
+    --rank-bronze: #D08A4F;
 
     /* ========== SHADOWS ========== */
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);

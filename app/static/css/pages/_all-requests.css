@@ -55,7 +55,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    border-bottom: 2px solid #ECE9DD;
+    border-bottom: 2px solid var(--border-color);
     margin-bottom: var(--space-md);
 }
 
@@ -92,7 +92,7 @@
     height: 18px;
     padding: 0 5px;
     border-radius: 999px;
-    background: #ECE9DD;
+    background: var(--border-color);
     color: var(--color-gray-dark);
     font-size: 10px;
     font-weight: 700;

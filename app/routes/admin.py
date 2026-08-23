@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, render_template, request, redirect, session, url_for, flash, jsonify, current_app, send_file
+from flask import Blueprint, abort, render_template, request, redirect, session, url_for, flash, jsonify, current_app, send_file, g
 from werkzeug.utils import secure_filename
 import os
 import sys
@@ -18,6 +18,7 @@ from app.db.database import (
     get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags,
     get_capstone_program_summary
 )
+from app.db.requests import get_user_requests
 from app.routes.decorators import role_required
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
 from app.utils.pdf_extractor import extract_capstone_data
@@ -126,9 +127,20 @@ def _save_file(file_obj):
 DEV_DEBUG_REAL_TOOL_CHANCE = 0.3
 
 
+def _dev_debug_enabled():
+    """The real panel dumps session data, full config keys, and request
+    headers — that's too much to hand to every admin account in
+    production. Require an explicit opt-in env var (or actual Flask
+    debug mode) on top of the admin role check."""
+    return current_app.debug or os.environ.get("ENABLE_DEV_DEBUG", "").lower() in ("1", "true", "yes")
+
+
 @admin.route("/dev-debug")
 @role_required(3)
 def dev_debug():
+    if not _dev_debug_enabled():
+        abort(404)
+
     if random.random() >= DEV_DEBUG_REAL_TOOL_CHANCE:
         return render_template("admin/dev_debug_troll.html")
 
@@ -702,7 +714,9 @@ def delete_capstone_route(capstone_id):
 @role_required(3)
 def view_capstone(capstone_id):
     capstone = get_capstone_details(capstone_id)
-    is_admin = session.get("role_id") == 3
+    # g.user is reloaded from the DB on every request (see load_current_user),
+    # so this reflects the caller's current role even if it changed mid-session.
+    is_admin = bool(g.user) and g.user.get("role_id") == 3
     max_pages = None if is_admin else 1  # Non-admin sees only page 1
 
     # The template's inline script always references PDF_URL and
@@ -731,7 +745,10 @@ def view_capstone_pdf(capstone_id):
         flash("Capstone not found.", "danger")
         return redirect(url_for("admin.view_capstone_repository"))
 
-    role_name = session.get("role_name")
+    # Use g.user (reloaded from the DB every request) instead of the
+    # session copy, so a role change is respected immediately rather
+    # than on next login.
+    role_name = g.user.get("role_name") if g.user else None
 
     # Default values
     max_pages = None
@@ -780,6 +797,25 @@ def manuscript_file(capstone_id):
     capstone = get_capstone_details(capstone_id)
     if not capstone:
         abort(404)
+
+    # role_required(1, 2, 3) only confirms the caller is logged in as
+    # *some* role — with just three roles in the system, that's every
+    # authenticated user, not a real permission check. Admin/Faculty get
+    # full access by design (matches the role check in view_capstone_pdf
+    # above), but a Student must have an approved request for this exact
+    # capstone — the same rule pages.manuscript_file already enforces for
+    # the "View Full Manuscript" flow. Without this, any logged-in
+    # student could fetch any capstone's complete PDF straight from this
+    # URL, whether they'd ever requested it or not.
+    role_name = g.user.get("role_name") if g.user else None
+    if role_name not in ("Admin", "Faculty"):
+        user_requests = get_user_requests(session.get("user_id"))
+        has_access = any(
+            r["capstone_id"] == capstone_id and r["request_status"] == "approved"
+            for r in user_requests
+        )
+        if not has_access:
+            abort(403)
 
     file_path = resolve_manuscript_file(capstone.get("capstone_file"))
     if not file_path:

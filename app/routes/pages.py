@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, render_template, request, flash, session, redirect, url_for, jsonify, send_file
+from flask import Blueprint, abort, render_template, request, flash, session, redirect, url_for, jsonify, send_file, g
 import re
 import logging
 from app.db.database import (
@@ -45,7 +45,8 @@ def browse():
     # see "View Full Manuscript" instead of "View Abstract" / "Request
     # Full Manuscript" — keeps this page in sync with My Requests.
     approved_capstone_ids = []
-    if session.get("role_name") == "Student":
+    current_role = g.user.get("role_name") if g.user else None
+    if current_role == "Student":
         user_id = session.get("user_id")
         if user_id:
             approved_capstone_ids = [
@@ -110,7 +111,10 @@ def submit_promotion_request_route():
 
     # Admins already hold the top role — block here too, not just by
     # hiding the form, since a direct POST would otherwise still work.
-    if session.get("role_name") == "Admin":
+    # Use g.user (loaded fresh from the DB this request) rather than the
+    # session copy, so a role change takes effect immediately.
+    current_role = g.user.get("role_name") if g.user else None
+    if current_role == "Admin":
         flash("Admins can't request a role promotion.", "danger")
         return redirect(url_for("pages.user_info"))
 

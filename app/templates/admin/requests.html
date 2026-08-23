@@ -68,7 +68,7 @@
             </div>
 
             <!-- Right: Sidebar -->
-            <aside class="archive-sidebar">
+            <aside class="archive-sidebar archive-sidebar--collapsible">
                 <div class="sidebar-card sidebar-empty" id="sidebar-empty">
                     <i class="bx bx-file-blank"></i>
                     <p>Select a request to see details.</p>
@@ -76,6 +76,9 @@
 
                 <div class="sidebar-card" id="sidebar-detail" style="display: none;">
                     <span class="sidebar-card__tab">Request</span>
+                    <button type="button" id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Back to list">
+                        <i class="bx bx-arrow-back"></i> Back to list
+                    </button>
                     <div class="sidebar-card__top">
                         <span class="sidebar-card__eyebrow"><i class="bx bx-envelope"></i> Manuscript Request</span>
                         <h3 id="sd-capstone"></h3>

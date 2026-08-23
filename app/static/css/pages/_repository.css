@@ -216,7 +216,7 @@ main:has(.repo-section) {
     gap: var(--space-sm);
     padding-bottom: var(--space-md);
     margin-bottom: var(--space-xs);
-    border-bottom: 2px dashed #ECE9DD;
+    border-bottom: 2px dashed var(--border-color);
 }
 
 .form-step-dot {
@@ -270,7 +270,7 @@ main:has(.repo-section) {
 .form-step-dot__line {
     flex: 1;
     height: 2px;
-    background: #ECE9DD;
+    background: var(--border-color);
     min-width: 24px;
 }
 

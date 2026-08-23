@@ -131,9 +131,9 @@
     transform: rotate(-2deg);
 }
 
-.role-badge--admin   { color: #C0392B; }
-.role-badge--faculty { color: #1A5276; }
-.role-badge--student { color: #1E8449; }
+.role-badge--admin   { color: var(--role-admin); }
+.role-badge--faculty { color: var(--role-faculty); }
+.role-badge--student { color: var(--role-student); }
 
 .record-card__tags {
     display: flex;
@@ -211,9 +211,9 @@
     flex-shrink: 0;
 }
 
-.rank-badge--gold   { border-color: #D4B106; color: #8a6d00; }
-.rank-badge--silver { border-color: #A9AFB8; color: #5a6169; }
-.rank-badge--bronze { border-color: #C17A3C; color: #7a4a1e; }
+.rank-badge--gold   { border-color: var(--rank-gold); color: var(--rank-gold); }
+.rank-badge--silver { border-color: var(--rank-silver); color: var(--rank-silver); }
+.rank-badge--bronze { border-color: var(--rank-bronze); color: var(--rank-bronze); }
 
 /* ══════════════════════════════════════════════════════
    RESPONSIVE

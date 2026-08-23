@@ -247,9 +247,9 @@ main:has(.explore-archive-section) {
     transform: rotate(-2deg);
 }
 
-.status-badge--pending  { color: #9C7A17; }
-.status-badge--approved { color: #1E8449; }
-.status-badge--rejected { color: #C0392B; }
+.status-badge--pending  { color: var(--status-pending); }
+.status-badge--approved { color: var(--status-approved); }
+.status-badge--rejected { color: var(--status-rejected); }
 
 /* Empty state — this page's variant needs flex: 1 to fill the
    remaining column height, so it's kept local rather than reusing

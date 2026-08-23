@@ -83,10 +83,13 @@
             </div>{# end archive-main-content #}
 
             {# ── Sidebar ── #}
-            <aside class="archive-sidebar">
+            <aside class="archive-sidebar archive-sidebar--collapsible">
                 {% if sidebar_project %}
                 <div class="sidebar-card" id="sidebar-card" data-capstone-id="{{ sidebar_project.capstone_id }}">
                     <span class="sidebar-card__tab">Record</span>
+                    <button type="button" id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Back to list">
+                        <i class="bx bx-arrow-back"></i> Back to list
+                    </button>
                     <div class="sidebar-card__top">
                         <span class="sidebar-card__eyebrow"><i class="bx bx-file"></i> Capstone Details</span>
                         <h3 id="sb-title">{{ sidebar_project.capstone_title }}</h3>

@@ -1,11 +1,22 @@
 
 @import url('root.css');
 
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    overflow-x: hidden;
+}
+
 body {
     margin: 0;
     font-family: var(--font-primary);
     background-color: var(--surface-page);
     color: var(--text-dark);
+    overflow-x: hidden;
 }
 
 /* LAYOUT */

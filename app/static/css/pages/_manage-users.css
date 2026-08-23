@@ -57,7 +57,7 @@ main:has(.mu-section) {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    border-bottom: 2px solid #ECE9DD;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .mu-tab {
@@ -344,7 +344,7 @@ main:has(.mu-section) {
 }
 
 .mu-edit-grid__divider {
-    background: #ECE9DD;
+    background: var(--border-color);
 }
 
 /* ── Self-account notice — shown instead of the role/status/delete
@@ -355,8 +355,8 @@ main:has(.mu-section) {
     gap: var(--space-sm);
     margin: 0 var(--space-xl) var(--space-md);
     padding: var(--space-md);
-    background: #FBF3E2;
-    border: 1px solid #EEDCB0;
+    background: var(--surface-selected);
+    border: 1px solid var(--border-selected);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
     color: var(--text-dark);

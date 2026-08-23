@@ -181,6 +181,8 @@
 
 .btn-manuscript:hover { background: #d4e9db; }
 
+[data-theme="dark"] .btn-manuscript:hover { background: #2A4A38; }
+
 /* .btn-cite was previously unstyled — see BUGS.md #8 */
 .btn-cite {
     background: transparent;
@@ -206,6 +208,8 @@
 }
 
 .page-btn:hover:not([disabled]) { background: #e4e9ff; }
+
+[data-theme="dark"] .page-btn:hover:not([disabled]) { background: var(--hover-tint); }
 
 .page-btn[disabled] {
     color: var(--color-gray);

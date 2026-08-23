@@ -50,25 +50,25 @@
    user block itself lives in the header, not the sidebar ── */
 .badge-admin {
     background: rgba(243,156,18,0.14);
-    color: #B9700D;
+    color: var(--badge-admin);
     border: 1px solid rgba(243,156,18,0.3);
 }
 
 .badge-professor {
     background: rgba(30,150,163,0.12);
-    color: #157D8A;
+    color: var(--badge-professor);
     border: 1px solid rgba(30,150,163,0.28);
 }
 
 .badge-faculty {
     background: rgba(38,164,90,0.12);
-    color: #1F8A4C;
+    color: var(--badge-faculty);
     border: 1px solid rgba(38,164,90,0.28);
 }
 
 .badge-student {
     background: rgba(124,86,209,0.12);
-    color: #6B45C4;
+    color: var(--badge-student);
     border: 1px solid rgba(124,86,209,0.28);
 }
 
@@ -167,7 +167,7 @@
 
 .logout {
     background: rgba(211,60,45,0.08);
-    color: #B23A28;
+    color: var(--color-red);
     border-radius: var(--radius-md);
     justify-content: flex-start;
     border: 1px solid rgba(211,60,45,0.18);
@@ -179,7 +179,8 @@
 
 .logout:hover {
     background: rgba(211,60,45,0.15);
-    color: #8E2E1F;
+    color: var(--color-red);
+    filter: brightness(0.85);
 }
 
 /* ── Collapsed state ── */
@@ -226,9 +227,31 @@
         width: 221px;
         max-width: 82vw;
         height: calc(100vh - 51px);
+        height: calc(100dvh - 51px); /* accounts for mobile browser chrome
+            (address bar, home indicator) that 100vh doesn't */
+        overflow-y: auto;
+        /* Desktop uses flex column + justify-content:space-between to pin
+           the footer (Logout) to the bottom, which depends on the
+           container's height being computed precisely — .nav-container-body
+           also has flex:1 + its own overflow-y:auto with no min-height:0,
+           a classic flexbox gotcha where the item refuses to shrink below
+           its content's natural height instead of respecting flex:1. The
+           combination made the footer render below the actual visible
+           area in some mobile WebViews (Messenger's in-app browser
+           reproduced it; desktop devtools' viewport emulation did not,
+           since it runs the same engine as the full desktop browser).
+           Simplest fix that can't fail regardless of any given browser's
+           height quirks: drop back to normal block flow on mobile, so
+           Logout just sits after the nav links in document order and the
+           *whole* drawer is the one and only scroll container. */
+        display: block;
         transform: translateX(-100%);
         box-shadow: 4px 0 24px rgba(30, 40, 90, 0.18);
         z-index: 30;
+    }
+
+    .nav-container-body {
+        overflow-y: visible; /* .nav-container itself owns scrolling now */
     }
 
     /* Ignore desktop icon-only collapse on mobile — width always full */

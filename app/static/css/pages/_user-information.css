@@ -8,14 +8,6 @@
    visible — with a full-width Change Password card below, and an
    identity header (avatar + name + role) up top so the page
    confirms "this is you" instead of dropping straight into forms.
-   Restyled to match the rest of the admin/global pages: shared
-   .form-group inputs (components/_forms.css), .btn-pill buttons
-   (components/_buttons.css), .role-badge ink-stamp (components/
-   _record-card.css). Personal Info and Contact Info sit side by
-   side in one full-width grid — no tab-switching, both are always
-   visible — with a full-width Change Password card below, and an
-   identity header (avatar + name + role) up top so the page
-   confirms "this is you" instead of dropping straight into forms.
 ============================================================ */
 @import url('../base/root.css');
 @import url('../components/_forms.css');
@@ -33,32 +25,11 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
 }
 
 /* ── Identity header ── */
 .ui-identity-header {
-/* ── Identity header ── */
-.ui-identity-header {
     display: flex;
-    align-items: center;
-    gap: var(--space-md);
-}
-
-.ui-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: var(--color-primary);
-    color: #fff;
-    font-family: var(--font-display);
-    font-size: 22px;
     align-items: center;
     gap: var(--space-md);
 }
@@ -109,18 +80,6 @@
     grid-template-columns: 1fr 1fr;
     gap: var(--space-lg);
     align-items: start;
-.ui-identity-header .role-badge {
-    flex-shrink: 0;
-    font-size: 10px;
-    padding: 4px 11px;
-}
-
-/* ── Personal Info + Contact Info, side by side ── */
-.ui-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-lg);
-    align-items: start;
 }
 
 /* ── Card ── */
@@ -141,17 +100,6 @@
     box-sizing: border-box;
 }
 
-.ui-password-card {
-    height: auto;
-}
-
-.ui-danger-zone {
-    background: var(--color-white);
-    border: 1px solid #F0D5CE;
-    border-radius: 3px 12px 12px 12px;
-    box-shadow: var(--shadow-md);
-}
-
 .ui-danger-zone {
     background: var(--bg-card-neutral);
     border: 1px solid #F0D5CE;
@@ -169,8 +117,8 @@
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-md);
-    background: #FBF3E2;
-    border: 1px solid #EEDCB0;
+    background: var(--surface-selected);
+    border: 1px solid var(--border-selected);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
     color: var(--text-dark);
@@ -190,28 +138,8 @@
    reads as a neutral/informational notice rather than the amber
    "pending review" styling used above. ── */
 .promotion-pending-notice--disabled {
-    background: #F0F0EC;
-    border-color: #E1E1D8;
-}
-
-.promotion-pending-notice--disabled i {
-    color: var(--color-gray-dark);
-.promotion-pending-notice i {
-    font-size: 18px;
-    color: var(--color-accent);
-    flex-shrink: 0;
-}
-
-.promotion-pending-notice form {
-    margin-left: auto;
-}
-
-/* ── Disabled state — Admins already hold the top role, so this
-   reads as a neutral/informational notice rather than the amber
-   "pending review" styling used above. ── */
-.promotion-pending-notice--disabled {
-    background: #F0F0EC;
-    border-color: #E1E1D8;
+    background: var(--bg-card-header);
+    border-color: var(--border-color);
 }
 
 .promotion-pending-notice--disabled i {
@@ -265,10 +193,10 @@
     transform: rotate(-2deg);
 }
 
-.status-badge--pending   { color: #9C7A17; }
-.status-badge--approved  { color: #1E8449; }
-.status-badge--rejected  { color: #C0392B; }
-.status-badge--cancelled { color: #7A7A72; }
+.status-badge--pending   { color: var(--status-pending); }
+.status-badge--approved  { color: var(--status-approved); }
+.status-badge--rejected  { color: var(--status-rejected); }
+.status-badge--cancelled { color: var(--status-cancelled); }
 
 .ui-card-header {
     margin-bottom: var(--space-lg);
@@ -294,60 +222,6 @@
     letter-spacing: 0.04em;
     color: var(--color-gray-dark);
     margin: 0 0 var(--space-sm);
-}
-
-.promotion-history__item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 0;
-    font-size: var(--text-sm);
-    border-bottom: 1px dashed #ECE9DD;
-}
-
-.promotion-history__item:last-child {
-    border-bottom: none;
-}
-
-/* ── Request status badge — an outlined ink stamp, matching the
-   same badge used across Explore Archive, admin Requests, and
-   My Requests. ── */
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 9px;
-    border-radius: var(--radius-sm);
-    font-size: 9px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    flex-shrink: 0;
-    background: transparent;
-    border: 1.5px solid currentColor;
-    transform: rotate(-2deg);
-}
-
-.status-badge--pending   { color: #9C7A17; }
-.status-badge--approved  { color: #1E8449; }
-.status-badge--rejected  { color: #C0392B; }
-.status-badge--cancelled { color: #7A7A72; }
-
-.ui-card-header {
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 2px dashed #ECE9DD;
-}
-
-.ui-card-header h3 {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--font-display);
-    font-size: var(--text-lg);
-    font-weight: 600;
-    color: var(--color-primary);
-    margin: 0 0 2px;
 }
 
 .ui-card-header p {

@@ -5,6 +5,7 @@ from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_debugtoolbar import DebugToolbarExtension
 
 from .auth_utils import load_current_user
 
@@ -22,6 +23,13 @@ def create_app():
     csrf.init_app(app)
 
     app.secret_key = app.config["SECRET_KEY"]
+
+    debug_enabled = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
+    app.debug = debug_enabled
+
+    if debug_enabled:
+        app.config.setdefault("DEBUG_TB_INTERCEPT_REDIRECTS", False)
+        DebugToolbarExtension(app)
 
     app.before_request(load_current_user)
 

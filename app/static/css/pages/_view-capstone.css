@@ -45,21 +45,6 @@
 }
 
 /* Binder punch-holes along the left edge */
-.meta-panel::before,
-.meta-panel::after {
-    content: '';
-    position: absolute;
-    left: 10px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #F1F2F8;
-    box-shadow: inset 0 1px 3px rgba(30,40,90,0.18);
-    z-index: 1;
-}
-.meta-panel::before { top: 28px; }
-.meta-panel::after  { bottom: 28px; }
-
 /* Scrollable inner body — kept separate from .meta-panel so its own
    overflow-y:auto doesn't clip the tab poking above the panel's edge. */
 .meta-panel__body {

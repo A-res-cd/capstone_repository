@@ -99,7 +99,7 @@
     gap: var(--space-sm);
     margin-bottom: var(--space-sm);
     padding-bottom: var(--space-sm);
-    border-bottom: 1px dashed #ECE9DD;
+    border-bottom: 1px dashed var(--border-color);
     font-size: var(--text-sm);
     font-weight: 600;
     color: var(--color-primary);
@@ -171,7 +171,7 @@
 .pt-spinner {
     width: 22px;
     height: 22px;
-    border: 2.5px solid #ECE9DD;
+    border: 2.5px solid var(--border-color);
     border-top-color: var(--color-accent);
     border-radius: 50%;
     animation: pt-spin 0.7s linear infinite;
