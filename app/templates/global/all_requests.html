@@ -87,41 +87,33 @@
                 </button>
             </div>
 
-            {# ── Pending table ── #}
+            {# ── Pending list ── #}
             <div class="mr-table-panel" id="mr-table-pending" data-status-panel>
                 {% if pending_reqs %}
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Capstone</th>
-                                <th>Year</th>
-                                <th>Specialization</th>
-                                <th>Requested On</th>
-                                <th>Reason</th>
-                                <th class="col-actions">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for req in pending_reqs %}
-                            <tr>
-                                <td><strong>{{ req.capstone_title }}</strong></td>
-                                <td>{{ req.capstone_year }}</td>
-                                <td>{{ req.specialization_name }}</td>
-                                <td>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</td>
-                                <td>{{ req.request_reason }}</td>
-                                <td class="col-actions">
-                                    <form method="POST" action="{{ url_for('pages.cancel_request', request_id=req.request_id) }}">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn-pill btn-pill--danger">
-                                            <i class="bx bx-x"></i> Cancel
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="record-list">
+                    {% for req in pending_reqs %}
+                    <div class="record-card">
+                        <div class="record-card__icon"><i class="bx bxs-file-pdf"></i></div>
+                        <div class="record-card__body">
+                            <p class="record-card__title">{{ req.capstone_title }}</p>
+                            <div class="record-card__meta">
+                                <span class="record-card__meta-item"><i class="bx bx-calendar"></i>{{ req.capstone_year }}</span>
+                                <span class="record-card__meta-item"><i class="bx bx-bookmark"></i>{{ req.specialization_name }}</span>
+                                <span class="record-card__meta-item"><i class="bx bx-time-five"></i>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</span>
+                            </div>
+                            <p class="record-card__note"><strong>Reason:</strong> {{ req.request_reason }}</p>
+                        </div>
+                        <span class="status-badge status-badge--pending">Pending</span>
+                        <div class="record-card__actions">
+                            <form method="POST" action="{{ url_for('pages.cancel_request', request_id=req.request_id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn-row btn-row--delete">
+                                    <i class="bx bx-x"></i> Cancel
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 {% else %}
                 <div class="empty-state">
@@ -131,40 +123,33 @@
                 {% endif %}
             </div>
 
-            {# ── Approved table ── #}
+            {# ── Approved list ── #}
             <div class="mr-table-panel mr-table-panel--hidden" id="mr-table-approved" data-status-panel>
                 {% if approved_reqs %}
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Capstone</th>
-                                <th>Year</th>
-                                <th>Specialization</th>
-                                <th>Requested On</th>
-                                <th>Approved On</th>
-                                <th>Admin Feedback</th>
-                                <th class="col-actions">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for req in approved_reqs %}
-                            <tr>
-                                <td><strong>{{ req.capstone_title }}</strong></td>
-                                <td>{{ req.capstone_year }}</td>
-                                <td>{{ req.specialization_name }}</td>
-                                <td>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</td>
-                                <td>{{ req.decision_date.strftime('%b %d, %Y · %I:%M %p') if req.decision_date else '—' }}</td>
-                                <td>{{ req.status_reason or '—' }}</td>
-                                <td class="col-actions">
-                                    <a href="{{ url_for('pages.view_approved_manuscript', capstone_id=req.capstone_id) }}" target="_blank" class="btn-pill btn-pill--ghost">
-                                        <i class="bx bx-file-find"></i> View
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="record-list">
+                    {% for req in approved_reqs %}
+                    <div class="record-card">
+                        <div class="record-card__icon"><i class="bx bxs-file-pdf"></i></div>
+                        <div class="record-card__body">
+                            <p class="record-card__title">{{ req.capstone_title }}</p>
+                            <div class="record-card__meta">
+                                <span class="record-card__meta-item"><i class="bx bx-calendar"></i>{{ req.capstone_year }}</span>
+                                <span class="record-card__meta-item"><i class="bx bx-bookmark"></i>{{ req.specialization_name }}</span>
+                                <span class="record-card__meta-item"><i class="bx bx-time-five"></i>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</span>
+                                <span class="record-card__meta-item"><i class="bx bx-check-circle"></i>{{ req.decision_date.strftime('%b %d, %Y · %I:%M %p') if req.decision_date else '—' }}</span>
+                            </div>
+                            {% if req.status_reason %}
+                            <p class="record-card__note"><strong>Admin Feedback:</strong> {{ req.status_reason }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="status-badge status-badge--approved">Approved</span>
+                        <div class="record-card__actions">
+                            <a href="{{ url_for('pages.view_approved_manuscript', capstone_id=req.capstone_id) }}" target="_blank" class="btn-row btn-row--edit">
+                                <i class="bx bx-file-find"></i> View
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 {% else %}
                 <div class="empty-state">
@@ -174,40 +159,33 @@
                 {% endif %}
             </div>
 
-            {# ── Rejected table ── #}
+            {# ── Rejected list ── #}
             <div class="mr-table-panel mr-table-panel--hidden" id="mr-table-rejected" data-status-panel>
                 {% if rejected_reqs %}
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Capstone</th>
-                                <th>Year</th>
-                                <th>Specialization</th>
-                                <th>Requested On</th>
-                                <th>Rejected On</th>
-                                <th>Rejection Reason</th>
-                                <th class="col-actions">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for req in rejected_reqs %}
-                            <tr>
-                                <td><strong>{{ req.capstone_title }}</strong></td>
-                                <td>{{ req.capstone_year }}</td>
-                                <td>{{ req.specialization_name }}</td>
-                                <td>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</td>
-                                <td>{{ req.decision_date.strftime('%b %d, %Y · %I:%M %p') if req.decision_date else '—' }}</td>
-                                <td>{{ req.status_reason or '—' }}</td>
-                                <td class="col-actions">
-                                    <a href="{{ url_for('pages.request_capstone', capstone_id=req.capstone_id) }}" class="btn-pill btn-pill--ghost">
-                                        <i class="bx bx-refresh"></i> Resubmit
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="record-list">
+                    {% for req in rejected_reqs %}
+                    <div class="record-card">
+                        <div class="record-card__icon"><i class="bx bxs-file-pdf"></i></div>
+                        <div class="record-card__body">
+                            <p class="record-card__title">{{ req.capstone_title }}</p>
+                            <div class="record-card__meta">
+                                <span class="record-card__meta-item"><i class="bx bx-calendar"></i>{{ req.capstone_year }}</span>
+                                <span class="record-card__meta-item"><i class="bx bx-bookmark"></i>{{ req.specialization_name }}</span>
+                                <span class="record-card__meta-item"><i class="bx bx-time-five"></i>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</span>
+                                <span class="record-card__meta-item"><i class="bx bx-x-circle"></i>{{ req.decision_date.strftime('%b %d, %Y · %I:%M %p') if req.decision_date else '—' }}</span>
+                            </div>
+                            {% if req.status_reason %}
+                            <p class="record-card__note"><strong>Rejection Reason:</strong> {{ req.status_reason }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="status-badge status-badge--rejected">Rejected</span>
+                        <div class="record-card__actions">
+                            <a href="{{ url_for('pages.request_capstone', capstone_id=req.capstone_id) }}" class="btn-row btn-row--edit">
+                                <i class="bx bx-refresh"></i> Resubmit
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 {% else %}
                 <div class="empty-state">

@@ -28,7 +28,7 @@ def get_nav_links(role):
             "title": "Manage Repository",
             "url": "admin.view_capstone_repository",
             "icon": "bx bx-folder-open",
-            "roles": ["Admin", "Capstone Professor"],
+            "roles": ["Admin", "Capstone Professor", "Faculty"],
             "section": "Capstone"
         },
 

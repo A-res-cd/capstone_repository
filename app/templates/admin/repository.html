@@ -15,10 +15,11 @@
             <h2>Capstone Repository</h2>
             <p>Manage capstone projects — create, edit, or remove records from the archive.</p>
         </div>
-        {# Only show "New Capstone" when not already on create/edit tab #}
+        {% if session.get('role_name') in ['Admin', 'Capstone Professor'] %}
         <button class="btn-pill btn-pill--primary" id="btn-open-create">
             <i class="bx bx-plus"></i> New Capstone
         </button>
+        {% endif %}
     </div>
 
     {# ── Flash Messages ── #}
@@ -100,10 +101,12 @@
                         data-copyright="{{ 'true' if c.is_copyright_registered else 'false' }}">
                         <i class="bx bx-edit-alt"></i> Edit
                     </button>
+                    {% if session.get('role_name') in ['Admin'] %}
                     <button class="btn-row btn-row--delete"
                         onclick="confirmDelete('{{ c.capstone_id }}', '/repository/archive/', 'Move this capstone to the recycle bin?')">
                         <i class="bx bx-trash"></i> Recycle Bin
                     </button>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}

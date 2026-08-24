@@ -85,9 +85,11 @@ def _people_for_db(form):
 # ── PDF auto-extract ───────────────────────────────────────────────────────
 
 @admin.route("/repository/extract", methods=["POST"])
-@role_required(3)
+@role_required(3, 4)
 def extract_capstone_pdf():
     file = request.files.get('capstone_file')
+
+    print("File extracted")
     if not file or file.filename == '':
         return jsonify({'success': False, 'error': 'No file uploaded.'}), 400
 
@@ -124,7 +126,7 @@ def _save_file(file_obj):
 
 # Odds the "Developer Debug Tool" nav link actually shows the real
 # debug panel instead of the troll image — tune to taste.
-DEV_DEBUG_REAL_TOOL_CHANCE = 0.3
+DEV_DEBUG_REAL_TOOL_CHANCE = 0.85
 
 
 def _dev_debug_enabled():
@@ -454,7 +456,7 @@ def view_requests():
 # ── Repository ────────────────────────────────────────────────────────────────
 
 @admin.route("/repository")
-@role_required(3)
+@role_required(2, 3, 4)
 def view_capstone_repository():
     search = request.args.get("search", "").strip()
     program_id = request.args.get("program", "").strip()
@@ -539,7 +541,7 @@ def view_archived_capstones():
 
 
 @admin.route("/repository/create", methods=["GET", "POST"])
-@role_required(3)
+@role_required(3, 4)
 def admin_create_capstone():
     if request.method == "GET":
         return redirect(url_for("admin.view_capstone_repository"))

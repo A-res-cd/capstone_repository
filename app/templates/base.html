@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    {# Applied before any CSS paints so there's no flash of the wrong
-       theme on load. Falls back to the OS-level preference the very
-       first time, before the person has ever toggled anything. #}
+    
     <script>
         (function () {
             try {

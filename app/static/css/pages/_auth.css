@@ -187,6 +187,21 @@ main:has(.auth-shell) {
     box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
 }
 
+.auth-form-card::before,
+.auth-form-card::after {
+    content: '';
+    position: absolute;
+    left: 17px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #F1F2F8;
+    box-shadow: inset 0 1px 3px rgba(30,40,90,0.18);
+}
+
+.auth-form-card::before { top: 40px; }
+.auth-form-card::after  { bottom: 40px; }
+
 .auth-form-card--scroll {
     max-width: 425px;
 }

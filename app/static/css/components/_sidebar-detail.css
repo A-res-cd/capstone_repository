@@ -49,6 +49,22 @@
     display: none;
 }
 
+/* Binder punch-holes along the left edge */
+.sidebar-card::before,
+.sidebar-card::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #F1F2F8;
+    box-shadow: inset 0 1px 3px rgba(30,40,90,0.18);
+    z-index: 1;
+}
+.sidebar-card::before { top: 28px; }
+.sidebar-card::after  { bottom: 28px; }
+
 /* ── Fixed top section: title, quick stats, primary actions.
    Always visible — never requires scrolling to reach. ── */
 .sidebar-card__top {

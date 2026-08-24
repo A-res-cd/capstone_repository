@@ -14,7 +14,8 @@
 ============================================================ */
 @import url('../base/root.css');
 @import url('../components/_detail-card.css');
-@import url('../components/_table.css');
+@import url('../components/_table.css'); /* for .empty-state only now — table markup was replaced by .record-card */
+@import url('../components/_record-card.css');
 
 .manuscript-request-section {
     padding: var(--space-lg) var(--space-xl);
@@ -22,88 +23,6 @@
     flex-direction: column;
     gap: var(--space-md);
 }
-
-.hidden { display: none !important; }
-
-/* ── Page header — title + subtitle on the left, "Create New Request"
-   on the right. Only rendered on the list view (capstone is None). ── */
-.mr-page-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--space-md);
-    flex-wrap: wrap;
-}
-
-.mr-page-header h2 {
-    font-family: var(--font-display);
-    font-size: var(--text-xl);
-    font-weight: 600;
-    color: var(--color-primary);
-    margin: 0 0 3px;
-}
-
-.mr-page-header p {
-    font-size: var(--text-sm);
-    color: var(--color-gray-dark);
-    margin: 0;
-}
-
-/* ── Status tabs — Pending / Approved / Rejected, each backed by
-   its own table below (see [data-status-panel] in the template). ── */
-.mr-tabs {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    border-bottom: 2px solid var(--border-color);
-    margin-bottom: var(--space-md);
-}
-
-.mr-tab {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + 2px);
-    margin-bottom: -2px;
-    border: none;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    font-family: var(--font-primary);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--color-gray-dark);
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
-}
-
-.mr-tab i { font-size: 15px; }
-.mr-tab:hover { color: var(--color-primary); }
-
-.mr-tab--active {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-accent);
-}
-
-.mr-tab__count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background: var(--border-color);
-    color: var(--color-gray-dark);
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.mr-tab--active .mr-tab__count {
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
-}
-
-.mr-table-panel--hidden { display: none; }
 
 .hidden { display: none !important; }
 
@@ -219,13 +138,6 @@
 .manuscript-request-layout textarea:focus {
     border-color: var(--color-primary);
     background-color: var(--bg-card-neutral);
-}
-
-/* ── Action buttons inside table cells — a touch tighter than the
-   default .btn-pill sizing so they sit comfortably in a row. ── */
-.col-actions .btn-pill {
-    padding: 6px 14px;
-    font-size: var(--text-xs);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -370,6 +282,10 @@
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
+    .manuscript-request-section {
+        padding: var(--space-md);
+    }
+
     .manuscript-request-layout {
         grid-template-columns: 1fr;
     }

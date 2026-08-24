@@ -113,6 +113,22 @@
     color: var(--color-primary-light);
 }
 
+/* ── Optional secondary line of free-form text (e.g. a request
+   reason or admin feedback) — unlike .record-card__meta-item this
+   wraps normally rather than staying on one line, since this text
+   isn't a short fixed-format chip. ── */
+.record-card__note {
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    line-height: 1.5;
+    margin: 2px 0 0;
+}
+
+.record-card__note strong {
+    color: var(--text-dark);
+    font-weight: 700;
+}
+
 /* ── Role badge — outlined ink stamp, matching the request-status
    badge on Explore Archive. Replaces the old solid-filled .pill. ── */
 .role-badge {
@@ -236,5 +252,9 @@
         order: 4;
         width: 100%;
         justify-content: flex-start;
+    }
+
+    .record-card > .status-badge {
+        order: 3;
     }
 }
