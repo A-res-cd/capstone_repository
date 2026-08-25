@@ -16,16 +16,16 @@
 @import url('../base/root.css');
 
 .detail-card {
-    background: var(--color-white);
+    background: var(--bg-card-neutral);
     border: var(--border-light);
-    border-radius: var(--radius-lg);
+    border-radius: 3px 12px 12px 12px;
     box-shadow: var(--shadow-md);
     overflow: hidden;
 }
 
 /* manage-users keeps its edit card narrower than the page */
 .detail-card--compact {
-    max-width: 680px;
+    max-width: 578px;
 }
 
 .detail-card__header {
@@ -35,14 +35,15 @@
     gap: var(--space-md);
     padding: var(--space-lg) var(--space-xl);
     border-bottom: var(--border-light);
-    background: var(--bg-card-neutral);
+    background: var(--bg-card-header);
 }
 
 .detail-card__header h3 {
+    font-family: var(--font-display);
     font-size: var(--text-lg);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-primary);
-    margin: 0 0 4px;
+    margin: 0 0 3px;
 }
 
 .detail-card__header p {
@@ -69,7 +70,7 @@
     gap: var(--space-sm) var(--space-lg);
     padding: var(--space-lg) var(--space-xl);
     border-bottom: var(--border-light);
-    background: #fafbff;
+    background: var(--bg-card-header);
 }
 
 .info-chip {
@@ -121,4 +122,29 @@
     color: var(--color-gray-dark);
     margin: 0 0 var(--space-sm);
     line-height: 1.5;
+}
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .info-strip {
+        grid-template-columns: 1fr;
+        padding: var(--space-md);
+    }
+
+    .detail-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+        padding: var(--space-md);
+    }
+
+    .detail-card__body {
+        padding: var(--space-md);
+    }
+
+    .danger-zone {
+        padding: var(--space-md);
+    }
 }

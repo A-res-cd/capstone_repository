@@ -1,0 +1,260 @@
+/* ============================================================
+   COMPONENT: Record card
+   Replaces the row/column data-table pattern with a modern
+   stacked card list — used by repository management, manage
+   users, the recycle bin, and the analytics leaderboard.
+
+   Usage:
+     <div class="record-list">
+       <div class="record-card">
+         <div class="record-card__icon"><i class="bx ..."></i></div>
+         <div class="record-card__body">
+           <p class="record-card__title">...</p>
+           <div class="record-card__meta"> ... </div>
+         </div>
+         <div class="record-card__stat"> ... </div>
+         <div class="record-card__actions"> ... </div>
+       </div>
+     </div>
+============================================================ */
+@import url('../base/root.css');
+
+.record-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.record-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    background: var(--bg-card-neutral);
+    border: 1px solid var(--border-color);
+    border-radius: 3px 10px 10px 3px;
+    padding: var(--space-md) var(--space-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.record-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--color-accent);
+}
+
+/* ── Leading icon: an outlined spine label, not a solid squircle ── */
+.record-card__icon {
+    width: 34px;
+    height: 41px;
+    border-radius: 2px 7px 7px 2px;
+    border: 1.5px solid var(--color-primary-light);
+    background: var(--bg-card-header);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.record-card__avatar {
+    width: 37px;
+    height: 37px;
+    border-radius: 50%;
+    background: var(--color-primary-soft);
+    color: var(--color-primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--text-sm);
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+/* ── Body: title + meta ── */
+.record-card__body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.record-card__title {
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.record-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 14px;
+}
+
+.record-card__meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    white-space: nowrap;
+}
+
+.record-card__meta-item i {
+    font-size: 12px;
+    color: var(--color-primary-light);
+}
+
+/* ── Optional secondary line of free-form text (e.g. a request
+   reason or admin feedback) — unlike .record-card__meta-item this
+   wraps normally rather than staying on one line, since this text
+   isn't a short fixed-format chip. ── */
+.record-card__note {
+    font-size: var(--text-xs);
+    color: var(--color-gray-dark);
+    line-height: 1.5;
+    margin: 2px 0 0;
+}
+
+.record-card__note strong {
+    color: var(--text-dark);
+    font-weight: 700;
+}
+
+/* ── Role badge — outlined ink stamp, matching the request-status
+   badge on Explore Archive. Replaces the old solid-filled .pill. ── */
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-sm);
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1.5px solid currentColor;
+    transform: rotate(-2deg);
+}
+
+.role-badge--admin   { color: var(--role-admin); }
+.role-badge--faculty { color: var(--role-faculty); }
+.role-badge--student { color: var(--role-student); }
+
+.record-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.record-card__tag {
+    background: transparent;
+    border: 1px solid var(--border-tag);
+    color: var(--color-gray-dark);
+    font-size: var(--text-xs);
+    padding: 1px 8px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+}
+
+/* ── Trailing stat block (e.g. citation count) ── */
+.record-card__stat {
+    text-align: center;
+    flex-shrink: 0;
+    padding: 0 var(--space-sm);
+}
+
+.record-card__stat-value {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-accent);
+    line-height: 1;
+}
+
+.record-card__stat-label {
+    font-size: 8px;
+    color: var(--color-gray-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ── Countdown badge (recycle bin) ── */
+.record-card__countdown {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: #c0392b;
+    background: #fde8e8;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Trailing actions ── */
+.record-card__actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* ── Rank badge (analytics leaderboard) ── */
+.rank-badge {
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 700;
+    font-size: var(--text-sm);
+    background: transparent;
+    border: 1.5px solid var(--color-gray-light);
+    color: var(--color-gray-dark);
+    flex-shrink: 0;
+}
+
+.rank-badge--gold   { border-color: var(--rank-gold); color: var(--rank-gold); }
+.rank-badge--silver { border-color: var(--rank-silver); color: var(--rank-silver); }
+.rank-badge--bronze { border-color: var(--rank-bronze); color: var(--rank-bronze); }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .record-card {
+        flex-wrap: wrap;
+        padding: var(--space-md);
+    }
+
+    .record-card__title { white-space: normal; }
+
+    .record-card__stat {
+        order: 3;
+        text-align: left;
+        padding: 0;
+    }
+
+    .record-card__actions {
+        order: 4;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .record-card > .status-badge {
+        order: 3;
+    }
+}

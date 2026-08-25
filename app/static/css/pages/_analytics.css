@@ -1,26 +1,47 @@
-/* ============================================================
-   PAGE: Analytics & Reports
-   Three views into the database: capstones by program (bar),
-   request pipeline status (donut), and the most-cited capstones
-   (table). Reuses components/_detail-card.css and
-   components/_table.css for the card shells and leaderboard.
-============================================================ */
 @import url('../base/root.css');
-@import url('../components/_detail-card.css');
-@import url('../components/_table.css');
+
+:root {
+    --chart-color-0: var(--color-primary);
+    --chart-color-1: #27AE60;
+    --chart-color-2: var(--color-accent);
+    --chart-color-3: #1E96A3;
+    --chart-color-4: #7C56D1;
+    --chart-color-5: #B23A28;
+}
+
+/* ============================================================
+   PAGE SHELL
+============================================================ */
+
+main:has(.analytics-section) {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    background: var(--surface-page);
+}
 
 .analytics-section {
+    width: min(100%, 1420px);
+    margin: 0 auto;
     padding: var(--space-lg) var(--space-xl);
     display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
+    gap: var(--space-md);
+    flex: 1;
+    min-height: 100%;
+    overflow: visible;
 }
 
+/* ============================================================
+   PAGE HEADER
+============================================================ */
 .analytics-page-header h2 {
+    font-family: var(--font-display);
     font-size: var(--text-xl);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-primary);
-    margin: 0 0 4px;
+    margin: 0 0 3px;
 }
 
 .analytics-page-header p {
@@ -29,49 +50,343 @@
     margin: 0;
 }
 
-.analytics-placeholder {
+/* ============================================================
+   SUMMARY STAT CARDS
+============================================================ */
+.analytics-stats-row {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-md);
+    flex: 0 0 auto;
+}
+
+.analytics-stat-card {
+    position: relative;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    padding:
+        var(--space-sm)
+        var(--space-md);
+    background: var(--surface-paper);
+    border: 1px solid var(--border-color);
+    border-left:
+        3px solid var(--color-primary);
+    border-radius:
+        2px
+        8px
+        8px
+        2px;
+    box-shadow:
+        2px 2px 0
+        rgba(30, 40, 90, 0.04);
+}
+
+/* Small decorative corner dot */
+.analytics-stat-card::after {
+    content: '';
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-color);
+}
+
+/* Accent card */
+.analytics-stat-card--accent {
+    border-left-color: var(--color-accent);
+}
+
+/* ============================================================
+   STAT CARD ICON
+============================================================ */
+
+.analytics-stat-card__icon {
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-md);
-    padding: var(--space-xl);
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 7px;
+    background: var(--surface-selected);
+}
+
+.analytics-stat-card__icon i {
+    font-size: 16px;
+    color: var(--color-accent);
+}
+
+/* ============================================================
+   STAT CARD CONTENT
+============================================================ */
+.analytics-stat-card__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.analytics-stat-card__value {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1.1;
+}
+
+.analytics-stat-card__label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
     color: var(--color-gray-dark);
-    border: 2px dashed var(--color-gray-light);
-    border-radius: var(--radius-lg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.analytics-placeholder i {
-    font-size: 48px;
-    color: var(--color-gray);
+.analytics-stat-card__pct {
+    font-size: 9px;
+    font-weight: 700;
+    color: #27AE60;
 }
 
-/* ── Dashboard grid ── */
-.analytics-grid {
+.analytics-main-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-lg);
-    align-items: start;
+    grid-template-columns:
+        minmax(0, 1.55fr)
+        minmax(390px, 1fr);
+    gap: var(--space-md);
+    min-height: 350px;
 }
 
-.analytics-card {
-    min-width: 0; /* lets the canvas shrink inside a grid cell */
+/* ============================================================
+   GENERIC ANALYTICS PANEL
+============================================================ */
+.analytics-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-paper);
+    border: 1px solid var(--border-color);
+    border-radius:
+        3px
+        12px
+        12px
+        12px;
+    box-shadow:
+        2px 2px 0
+        rgba(30, 40, 90, 0.04);
+    padding: var(--space-md);
+    min-height: 0;
 }
 
-/* the leaderboard table spans both columns */
-.analytics-card--wide {
-    grid-column: 1 / -1;
+/* Main trend panel */
+.analytics-panel--main {
+    overflow: hidden;
 }
 
-.analytics-card canvas {
-    max-height: 320px;
+.analytics-panel--main .analytics-panel__chart-wrap {
+    height: 280px;
+    min-height: 280px;
 }
 
-/* ══════════════════════════════════════════════════════
+/* ============================================================
+   PANEL HEADER
+============================================================ */
+.analytics-panel__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--space-xs);
+    flex: 0 0 auto;
+}
+
+.analytics-panel__header h3 {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0 0 2px;
+}
+
+.analytics-panel__header h4 {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.analytics-panel__header p {
+    font-size: var(--text-sm);
+    color: var(--color-gray-dark);
+    margin: 0;
+}
+
+.analytics-panel__chart-wrap {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+/* ============================================================
+   EMPTY CHART MESSAGE
+============================================================ */
+.analytics-widget__empty-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--color-gray-dark);
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+.analytics-bottom-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(330px, 0.9fr)
+        minmax(0, 1.65fr);
+    gap: var(--space-md);
+    min-height: 280px;
+}
+
+/* ============================================================
+   SUMMARY TABLE PANEL
+============================================================ */
+.analytics-panel--table {
+    overflow: hidden;
+}
+.analytics-table-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* ============================================================
+   SUMMARY TABLE
+============================================================ */
+.analytics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+/* Table header */
+.analytics-table th {
+    text-align: left;
+    padding: 6px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--color-gray-dark);
+    border-bottom:
+        2px solid
+        var(--border-color);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--surface-paper);
+}
+
+/* Table cells */
+.analytics-table td {
+    padding: 7px 8px;
+    color: var(--color-primary);
+    border-bottom:
+        1px dashed
+        var(--border-color);
+    white-space: nowrap;
+}
+
+/* Last body row */
+.analytics-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Footer */
+.analytics-table tfoot td {
+    padding: 7px 8px;
+    font-weight: 700;
+    border-top:
+        2px solid
+        var(--border-color);
+    border-bottom: none;
+}
+/* ============================================================
+   PROGRAM COLOR DOT
+============================================================ */
+.analytics-table__dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 7px;
+}
+
+/* Percentage beside table values */
+.analytics-table__pct {
+    font-size: 9px;
+    color: var(--color-gray-dark);
+    font-weight: 500;
+}
+
+/* ============================================================
    RESPONSIVE
-══════════════════════════════════════════════════════ */
+============================================================ */
 @media (max-width: 900px) {
-    .analytics-grid {
+    /*
+     * At smaller resolutions the dashboard is allowed
+     * to grow vertically.
+     */
+    main:has(.analytics-section) {
+        overflow: visible;
+    }
+    .analytics-section {
+        overflow: visible;
+        flex: none;
+        padding: var(--space-md);
+    }
+    /* Stat cards */
+    .analytics-stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    /* Main chart + status charts */
+    .analytics-main-grid {
+        grid-template-columns: 1fr;
+        flex: none;
+    }
+    /*
+     * Generic chart wrapper.
+     *
+     * Doughnut charts override this in their component CSS.
+     */
+    .analytics-panel--main
+    .analytics-panel__chart-wrap {
+        min-height: 204px;
+    }
+    /* Bottom */
+    .analytics-bottom-grid {
+        grid-template-columns: 1fr;
+        flex: none;
+    }
+    /* Table */
+    .analytics-table-wrap {
+        overflow-x: auto;
+    }
+}
+
+/* ============================================================
+   VERY SMALL SCREENS
+============================================================ */
+@media (max-width: 480px) {
+    .analytics-stats-row {
         grid-template-columns: 1fr;
     }
 }

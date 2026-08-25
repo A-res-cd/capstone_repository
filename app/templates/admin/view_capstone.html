@@ -10,8 +10,13 @@
 
   <!-- Left: Metadata panel -->
   <div class="meta-panel">
-    {% if session.get('role_name') == 'Admin' %}
+    <span class="meta-panel__tab">Capstone Record</span>
+    <div class="meta-panel__body">
+    {% set role = session.get('role_name') %}
+    {% if role == 'Admin' or role == 'Capstone Professor' %}
     <a href="{{ url_for('admin.view_capstone_repository') }}" class="back-link">← Back to Repository</a>
+    {% elif role == 'Faculty' %}
+    <a href="{{ url_for('pages.browse') }}" class="back-link">← Back to Archive</a>
     {% else %}
     <a href="{{ url_for('pages.all_requests') }}" class="back-link">← Back to My Requests</a>
     {% endif %}
@@ -53,6 +58,7 @@
       </div>
     </div>
     {% endif %}
+    </div>
   </div>
 
   <!-- Right: PDF viewer -->
@@ -61,11 +67,18 @@
       <span class="pdf-label">{% if max_pages == 1 %}Abstract Preview{% else %}Full Document{% endif %}</span>
       <div class="pdf-controls">
         {% if max_pages is none %}
-        <button id="prev-page" onclick="changePage(-1)">‹ Prev</button>
-        <span id="page-info">Page <span id="current-page">1</span> / <span id="total-pages">—</span></span>
-        <button id="next-page" onclick="changePage(1)">Next ›</button>
+        <div class="pdf-search">
+          <input id="pdf-search-input" type="search" placeholder="Search manuscript">
+          <button id="pdf-search-btn" type="button">Search</button>
+          <button id="pdf-search-prev" type="button" title="Previous result">Prev result</button>
+          <button id="pdf-search-next" type="button" title="Next result">Next result</button>
+          <span id="pdf-search-status"></span>
+        </div>
+        <button id="prev-page" type="button">Prev</button>
+        <span id="page-info">Page <span id="current-page">1</span> / <span id="total-pages">-</span></span>
+        <button id="next-page" type="button">Next</button>
         {% else %}
-        <span id="page-info">Abstract Page 1</span>
+        <span id="page-info">Abstract Page {{ start_page or 1 }}</span>
         {% endif %}
       </div>
     </div>
@@ -73,52 +86,255 @@
     <div id="pdf-container">
       <canvas id="pdf-canvas"></canvas>
     </div>
-    <div id="pdf-loading">Loading PDF…</div>
+    <div id="pdf-loading">Loading PDF...</div>
   </div>
 
 </div>
 
-<!-- PDF.js from CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+  }
 
-  const PDF_URL = "{{ url_for('static', filename=capstone.capstone_file) }}";
-  const MAX_PAGES = {{ max_pages | tojson }};
+  const PDFJS_SOURCES = [
+    {
+      lib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+      worker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+    },
+    {
+      lib: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+      worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
+    },
+  ];
+
+  async function loadPdfJs() {
+    for (const source of PDFJS_SOURCES) {
+      try {
+        await loadScript(source.lib);
+        if (typeof pdfjsLib !== 'undefined') {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = source.worker;
+          return true;
+        }
+      } catch (e) {
+        console.warn('[view_capstone] PDF.js source failed, trying next:', e);
+      }
+    }
+    return false;
+  }
+
+  const PDF_URL = {{ (pdf_url or '') | tojson }};
+  const MAX_PAGES = {{ max_pages | default(none) | tojson }};
+  const START_PAGE = {{ start_page | default(1) | tojson }};
   let pdfDoc = null;
   let currentPage = 1;
-  const scale = 1.5;   
+  let minPage = 1;
+  let maxAllowed = null;
+  let searchQuery = '';
+  let searchMatches = [];
+  let searchIndex = -1;
+
+  const prevBtn = document.getElementById('prev-page');
+  const nextBtn = document.getElementById('next-page');
+  const searchInput = document.getElementById('pdf-search-input');
+  const searchBtn = document.getElementById('pdf-search-btn');
+  const searchPrevBtn = document.getElementById('pdf-search-prev');
+  const searchNextBtn = document.getElementById('pdf-search-next');
+  const searchStatus = document.getElementById('pdf-search-status');
+
+  // Fit the whole page inside #pdf-container — both width and height —
+  // instead of a fixed scale, so it never needs to scroll to be read.
+  // Capped so a small/portrait page in a big panel doesn't blow up to an
+  // unreasonable size.
+  const MIN_FIT_SCALE = 0.35;
+  const MAX_FIT_SCALE = 2.2;
+
+  function computeFitScale(nativeViewport) {
+    const container = document.getElementById('pdf-container');
+    const styles = getComputedStyle(container);
+    const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+    const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+
+    const availWidth = container.clientWidth - padX;
+    const availHeight = container.clientHeight - padY;
+
+    const fitScale = Math.min(
+      availWidth / nativeViewport.width,
+      availHeight / nativeViewport.height
+    );
+
+    return Math.max(MIN_FIT_SCALE, Math.min(MAX_FIT_SCALE, fitScale));
+  }
 
   async function renderPage(num) {
     const page = await pdfDoc.getPage(num);
+    const nativeViewport = page.getViewport({ scale: .90 });
+    const scale = computeFitScale(nativeViewport);
     const viewport = page.getViewport({ scale });
+
     const canvas = document.getElementById('pdf-canvas');
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const ctx = canvas.getContext('2d');
+
+    // Render at devicePixelRatio for crisp text on retina/high-DPI
+    // screens, then size the element itself down to the fitted CSS size —
+    // the backing bitmap stays sharp even though it's displayed smaller.
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = viewport.width * dpr;
+    canvas.height = viewport.height * dpr;
+    canvas.style.width = viewport.width + 'px';
+    canvas.style.height = viewport.height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
     document.getElementById('current-page').textContent = num;
+    updateNavButtons();
+  }
+
+  // Re-fit on resize (debounced) — panel size can change from sidebar
+  // collapse, window resize, or rotation.
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (!pdfDoc) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => renderPage(currentPage), 150);
+  });
+
+  function updateNavButtons() {
+    if (prevBtn) prevBtn.disabled = currentPage <= minPage;
+    if (nextBtn) nextBtn.disabled = currentPage >= maxAllowed;
   }
 
   function changePage(delta) {
     const next = currentPage + delta;
-    const maxAllowed = MAX_PAGES ? MAX_PAGES : pdfDoc.numPages;
-    if (next < 1 || next > maxAllowed) return;
+    if (next < minPage || next > maxAllowed) return;
     currentPage = next;
     renderPage(currentPage);
   }
 
-  pdfjsLib.getDocument(PDF_URL).promise.then(doc => {
-    pdfDoc = doc;
-    const maxAllowed = MAX_PAGES ? MAX_PAGES : doc.numPages;
-    document.getElementById('total-pages').textContent = doc.numPages;
-    document.getElementById('pdf-loading').style.display = 'none';
-    // Page 2 is usually the abstract — adjust if needed
-    currentPage = Math.min(1, maxAllowed, doc.numPages);
-    renderPage(currentPage);
-  }).catch(err => {
-    document.getElementById('pdf-loading').textContent = 'Could not load PDF.';
-    console.error(err);
+  function normalizeSearchText(value) {
+    return (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function countOccurrences(text, query) {
+    let count = 0;
+    let pos = text.indexOf(query);
+    while (pos !== -1) {
+      count += 1;
+      pos = text.indexOf(query, pos + query.length);
+    }
+    return count;
+  }
+
+  async function buildSearchMatches(query) {
+    const matches = [];
+    for (let pageNum = minPage; pageNum <= maxAllowed; pageNum += 1) {
+      if (searchStatus) searchStatus.textContent = `Searching ${pageNum}/${maxAllowed}...`;
+      const page = await pdfDoc.getPage(pageNum);
+      const content = await page.getTextContent();
+      const text = normalizeSearchText(content.items.map(item => item.str).join(' '));
+      const count = countOccurrences(text, query);
+      for (let i = 0; i < count; i += 1) matches.push({ page: pageNum });
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    return matches;
+  }
+
+  async function runSearch(direction = 1, reset = false) {
+    if (!pdfDoc || !searchInput) return;
+    const query = normalizeSearchText(searchInput.value);
+    if (!query) {
+      searchQuery = '';
+      searchMatches = [];
+      searchIndex = -1;
+      if (searchStatus) searchStatus.textContent = '';
+      return;
+    }
+
+    if (reset || query !== searchQuery) {
+      searchQuery = query;
+      searchMatches = await buildSearchMatches(query);
+      searchIndex = direction < 0 ? searchMatches.length - 1 : 0;
+    } else if (searchMatches.length) {
+      searchIndex = (searchIndex + direction + searchMatches.length) % searchMatches.length;
+    }
+
+    if (!searchMatches.length) {
+      if (searchStatus) searchStatus.textContent = 'No results';
+      return;
+    }
+
+    currentPage = searchMatches[searchIndex].page;
+    await renderPage(currentPage);
+    if (searchStatus) {
+      searchStatus.textContent = `${searchIndex + 1}/${searchMatches.length} on page ${currentPage}`;
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', () => changePage(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => changePage(1));
+  if (searchBtn) searchBtn.addEventListener('click', () => runSearch(1, true));
+  if (searchPrevBtn) searchPrevBtn.addEventListener('click', () => runSearch(-1));
+  if (searchNextBtn) searchNextBtn.addEventListener('click', () => runSearch(1));
+  if (searchInput) {
+    searchInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        runSearch(event.shiftKey ? -1 : 1, true);
+      }
+    });
+  }
+
+  function showLoadError(message) {
+    const loading = document.getElementById('pdf-loading');
+    if (loading) loading.textContent = message;
+  }
+
+  loadPdfJs().then(loaded => {
+    if (!loaded) {
+      showLoadError('Could not load the PDF viewer. Check your connection and try again.');
+      return;
+    }
+
+    pdfjsLib.getDocument(PDF_URL).promise.then(doc => {
+      pdfDoc = doc;
+      const docNumPages = doc.numPages;
+
+      // If START_PAGE is provided and MAX_PAGES==1, restrict view to that single page
+      if (typeof MAX_PAGES === 'number' && MAX_PAGES === 1 && typeof START_PAGE === 'number' && START_PAGE >= 1 && START_PAGE <= docNumPages) {
+        minPage = START_PAGE;
+        maxAllowed = START_PAGE;
+      } else {
+        minPage = 1;
+        maxAllowed = (typeof MAX_PAGES === 'number' && MAX_PAGES > 0) ? MAX_PAGES : docNumPages;
+      }
+
+      const totalElem = document.getElementById('total-pages');
+      if (totalElem) totalElem.textContent = docNumPages;
+      document.getElementById('pdf-loading').style.display = 'none';
+
+      // Determine initial page: prefer START_PAGE when valid
+      const desiredStart = (typeof START_PAGE === 'number' && START_PAGE >= 1 && START_PAGE <= docNumPages) ? START_PAGE : 1;
+      currentPage = Math.min(Math.max(desiredStart, minPage), maxAllowed);
+
+      // Update page-info display
+      const pageInfoElem = document.getElementById('page-info');
+      if (minPage === maxAllowed) {
+        // Replace content with 'Abstract Page <current>' but keep an updatable span
+        if (pageInfoElem) pageInfoElem.innerHTML = 'Abstract Page <span id="current-page">' + currentPage + '</span>';
+      } else {
+        if (pageInfoElem) pageInfoElem.innerHTML = 'Page <span id="current-page">' + currentPage + '</span> / <span id="total-pages">' + docNumPages + '</span>';
+      }
+
+      renderPage(currentPage);
+    }).catch(err => {
+      showLoadError('Could not load PDF.');
+      console.error(err);
+    });
   });
 </script>
 

@@ -2,166 +2,182 @@
 
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_analytics.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/_doughnut-chart.css')}}">
 {% endblock %}
 
 {% block title %}Analytics{% endblock %}
 
 {% block content %}
 <section class="analytics-section">
-    <div class="analytics-page-header">
-        <h2>Analytics &amp; Reports</h2>
-        <p>Repository usage and request trends.</p>
+
+    {# Flash Messages — shows the exact DB error so it's actionable #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flash-list">
+                {% for category, message in messages %}
+                    <li class="flash-{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    {# ── Summary cards — Total Capstones + one per program, matching
+       the reference dashboard's icon-card row. Dynamic: however many
+       programs exist in the DB, that many cards render. ── #}
+    <div class="analytics-stats-row">
+        <div class="analytics-stat-card analytics-stat-card--accent">
+            <span class="analytics-stat-card__icon"><i class="bx bx-collection"></i></span>
+            <div class="analytics-stat-card__body">
+                <span class="analytics-stat-card__value">{{ total_capstones }}</span>
+                <span class="analytics-stat-card__label">Total Capstone</span>
+                <span class="analytics-stat-card__pct">100% of Total</span>
+            </div>
+        </div>
+        {% for card in program_cards %}
+        <div class="analytics-stat-card">
+            <span class="analytics-stat-card__icon"><i class="bx bx-group"></i></span>
+            <div class="analytics-stat-card__body">
+                <span class="analytics-stat-card__value">{{ card.total }}</span>
+                <span class="analytics-stat-card__label">Total {{ card.name }} Capstone</span>
+                <span class="analytics-stat-card__pct">{{ card.pct }}% of Total</span>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 
-    {% if not program_totals and not status_totals and not top_cited %}
-    <div class="analytics-placeholder">
-        <i class="bx bx-line-chart"></i>
-        <p>No data yet — analytics will populate once capstones and requests are added.</p>
-    </div>
-    {% else %}
-    <div class="analytics-grid">
+    {# ── Row 2 — Trend chart (main) + Published/Utilized/Presented/Copyright
+       (2x2 donut grid), matching the reference dashboard's layout. ── #}
+    <div class="analytics-main-grid">
 
-        {# ── Capstones by Program ── #}
-        <div class="detail-card analytics-card">
-            <div class="detail-card__header">
+        <div class="analytics-panel analytics-panel--main">
+            <div class="analytics-panel__header">
                 <div>
-                    <h3>Capstones by Program</h3>
-                    <p>Total archived capstones per program</p>
+                    <h3>Capstone Trend per Year</h3>
                 </div>
             </div>
-            <div class="detail-card__body">
-                {% if program_totals %}
-                <canvas id="chart-by-program"></canvas>
-                {% else %}
-                <div class="empty-state"><p>No capstone records yet.</p></div>
-                {% endif %}
+            <div class="analytics-panel__chart-wrap">
+                <canvas id="trend-chart"></canvas>
             </div>
         </div>
 
-        {# ── Requests by Status ── #}
-        <div class="detail-card analytics-card">
-            <div class="detail-card__header">
-                <div>
-                    <h3>Manuscript Requests by Status</h3>
-                    <p>Where every request currently stands</p>
+        <div class="analytics-status-grid">
+            <div class="analytics-panel analytics-panel--status">
+                <div class="analytics-panel__header">
+                    <h4>Capstone Published</h4>
+                </div>
+                <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
+                    <canvas id="published-chart"></canvas>
                 </div>
             </div>
-            <div class="detail-card__body">
-                {% if status_totals %}
-                <canvas id="chart-by-status"></canvas>
-                {% else %}
-                <div class="empty-state"><p>No requests yet.</p></div>
-                {% endif %}
+
+            <div class="analytics-panel analytics-panel--status">
+                <div class="analytics-panel__header">
+                    <h4>Capstone Utilized</h4>
+                </div>
+                <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
+                    <canvas id="utilized-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="analytics-panel analytics-panel--status">
+                <div class="analytics-panel__header">
+                    <h4>Capstone Presented</h4>
+                </div>
+                <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
+                    <canvas id="presented-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="analytics-panel analytics-panel--status">
+                <div class="analytics-panel__header">
+                    <h4>Capstone Copyright</h4>
+                </div>
+                <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--small">
+                    <canvas id="copyright-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Row 3 — Program donut + Summary table, matching the reference
+       dashboard's bottom section ── #}
+    <div class="analytics-bottom-grid">
+
+        <div class="analytics-panel analytics-panel--donut">
+            <div class="analytics-panel__header">
+                <h3>Total Capstone by Program</h3>
+            </div>
+            <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--program-large">
+                <canvas id="program-chart"></canvas>
             </div>
         </div>
 
-        {# ── Top Cited Capstones ── #}
-        <div class="detail-card analytics-card analytics-card--wide">
-            <div class="detail-card__header">
-                <div>
-                    <h3>Most Cited Capstones</h3>
-                    <p>Top 5 by citation count</p>
-                </div>
+        <div class="analytics-panel analytics-panel--table">
+            <div class="analytics-panel__header">
+                <h3>Summary by Program</h3>
             </div>
-            <div class="detail-card__body">
-                {% if top_cited %}
-                <div class="table-wrap">
-                    <table class="data-table data-table--striped">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Title</th>
-                                <th>Program</th>
-                                <th class="col-center">Citations</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in top_cited %}
-                            <tr>
-                                <td class="cell-id">{{ loop.index }}</td>
-                                <td><strong>{{ row.capstone_title }}</strong></td>
-                                <td>{{ row.program_name }}</td>
-                                <td class="col-center">{{ row.citation_count }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    <p>No capstones have been cited yet.</p>
-                </div>
-                {% endif %}
+            <div class="analytics-table-wrap">
+                <table class="analytics-table">
+                    <thead>
+                        <tr>
+                            <th>Program</th>
+                            <th>Total Capstone</th>
+                            <th>Published</th>
+                            <th>Utilized</th>
+                            <th>Presented</th>
+                            <th>Copyright Registered</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in summary_rows %}
+                        <tr>
+                            <td><span class="analytics-table__dot" style="background: var(--chart-color-{{ loop.index0 % 6 }});"></span>{{ row.name }}</td>
+                            <td>{{ row.total }} <span class="analytics-table__pct">({{ row.total_pct }}%)</span></td>
+                            <td>{{ row.published }} <span class="analytics-table__pct">({{ row.published_pct }}%)</span></td>
+                            <td>{{ row.utilized }} <span class="analytics-table__pct">({{ row.utilized_pct }}%)</span></td>
+                            <td>{{ row.presented }} <span class="analytics-table__pct">({{ row.presented_pct }}%)</span></td>
+                            <td>{{ row.copyright_registered }} <span class="analytics-table__pct">({{ row.copyright_pct }}%)</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>Total</td>
+                            <td>{{ summary_totals.total }} <span class="analytics-table__pct">(100%)</span></td>
+                            <td>{{ summary_totals.published }} <span class="analytics-table__pct">(100%)</span></td>
+                            <td>{{ summary_totals.utilized }}</td>
+                            <td>{{ summary_totals.presented }}</td>
+                            <td>{{ summary_totals.copyright_registered }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
 
     </div>
-    {% endif %}
 </section>
+
+<script>
+    window.chartData = {
+        specialization_labels: {{ specialization_labels | tojson }},
+        specialization_totals: {{ specialization_totals | tojson }},
+        program_labels: {{ program_labels | tojson }},
+        program_totals: {{ program_totals | tojson }},
+        trend_years: {{ trend_years | tojson }},
+        trend_series: {{ trend_series | tojson }},
+        published_labels: {{ published_labels | tojson }},
+        published_totals: {{ published_totals | tojson }},
+        utilized_labels: {{ utilized_labels | tojson }},
+        utilized_totals: {{ utilized_totals | tojson }},
+        presented_labels: {{ presented_labels | tojson }},
+        presented_totals: {{ presented_totals | tojson }},
+        copyright_labels: {{ copyright_labels | tojson }},
+        copyright_totals: {{ copyright_totals | tojson }}
+    };
+</script>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Pull the design tokens straight from the page so the charts match
-    // the rest of the app instead of Chart.js's defaults.
-    const styles = getComputedStyle(document.documentElement);
-    const primary     = styles.getPropertyValue('--color-primary').trim()       || '#2E3F92';
-    const primaryLight= styles.getPropertyValue('--color-primary-light').trim()|| '#4A5ED1';
-    const accent      = styles.getPropertyValue('--color-accent').trim()       || '#F39C12';
-    const gray        = styles.getPropertyValue('--color-gray-light').trim()   || '#E5E7EB';
-
-    const byProgramCanvas = document.getElementById('chart-by-program');
-    if (byProgramCanvas) {
-        new Chart(byProgramCanvas, {
-            type: 'bar',
-            data: {
-                labels: {{ program_labels | tojson }},
-                datasets: [{
-                    label: 'Capstones',
-                    data: {{ program_totals | tojson }},
-                    backgroundColor: primary,
-                    borderRadius: 6,
-                    maxBarThickness: 48,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: gray } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    const byStatusCanvas = document.getElementById('chart-by-status');
-    if (byStatusCanvas) {
-        const statusColors = {
-            'Pending':   accent,
-            'Approved':  '#2ecc71',
-            'Rejected':  '#e74c3c',
-            'Cancelled': gray,
-        };
-        const labels = {{ status_labels | tojson }};
-        new Chart(byStatusCanvas, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: {{ status_totals | tojson }},
-                    backgroundColor: labels.map(l => statusColors[l] || primaryLight),
-                    borderWidth: 0,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-    }
-});
-</script>
+    <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 {% endblock %}

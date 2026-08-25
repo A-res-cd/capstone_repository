@@ -10,15 +10,16 @@
 <section class="repo-section">
 
     {# ── Page Header ── #}
-    <div class="repo-page-header">
+    <div class="repo-page-header" id="repo-page-header">
         <div class="repo-page-header__text">
             <h2>Capstone Repository</h2>
             <p>Manage capstone projects — create, edit, or remove records from the archive.</p>
         </div>
-        {# Only show "New Capstone" when not already on create/edit tab #}
+        {% if session.get('role_name') in ['Admin', 'Capstone Professor'] %}
         <button class="btn-pill btn-pill--primary" id="btn-open-create">
             <i class="bx bx-plus"></i> New Capstone
         </button>
+        {% endif %}
     </div>
 
     {# ── Flash Messages ── #}
@@ -37,75 +38,117 @@
     ══════════════════════════════════════════════════════ #}
     <div class="repo-panel" id="panel-list">
 
-        {% if capstones %}
-        <div class="table-wrap">
-            <table class="data-table data-table--striped">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Program</th>
-                        <th>Specialization</th>
-                        <th>Year</th>
-                        <th>Semester</th>
-                        <th>Keywords</th>
-                        <th>Citations</th>
-                        <th class="col-actions">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for c in capstones %}
-                    <tr>
-                        <td><strong>{{ c.capstone_title }}</strong></td>
-                        <td>{{ c.program_name }}</td>
-                        <td>{{ c.specialization_name }}</td>
-                        <td>{{ c.capstone_year }}</td>
-                        <td>{{ ('Sem ' ~ c.semester) if c.semester else '—' }}</td>
-                        <td class="cell-keywords">
-                            {{ c.capstone_keywords[:40] }}{% if c.capstone_keywords|length > 40 %}…{% endif %}
-                        </td>
-                        <td class="cell-center">{{ c.citation_count or 0 }}</td>
-                        <td class="cell-center">
-                            <div class="row-actions">
-                                <button class="btn-row btn-row--edit"
-                                    data-id="{{ c.capstone_id }}"
-                                    data-title="{{ c.capstone_title }}"
-                                    data-keywords="{{ c.capstone_keywords }}"
-                                    data-program="{{ c.program_id }}"
-                                    data-spec="{{ c.specialization_id }}"
-                                    data-year="{{ c.capstone_year }}"
-                                    data-semester="{{ c.semester }}"
-                                    data-citations="{{ c.citation_count }}"
-                                    data-file="{{ c.capstone_file }}">
-                                    <i class="bx bx-edit-alt"></i> Edit
-                                </button>
-                                <button class="btn-row btn-row--delete"
-                                    onclick="confirmDelete('{{ c.capstone_id }}', '/repository/archive/', 'Move this capstone to the recycle bin?')">
-                                    <i class="bx bx-trash"></i> Recycle Bin
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {# ── Filter Bar ── #}
+        <div class="repo-filters">
+            <form method="GET" action="{{ url_for('admin.view_capstone_repository') }}" class="filter-form">
+                <div class="filter-group">
+                    <span>Search:</span>
+                    <input type="text" name="search" class="filter-input"
+                           placeholder="Title or keyword…" value="{{ search }}">
+                </div>
+                <div class="filter-group">
+                    <span>Program:</span>
+                    <select name="program" class="filter-select">
+                        <option value="">All</option>
+                        {% for prog in programs %}
+                        <option value="{{ prog[0] }}" {% if selected_program == prog[0]|string %}selected{% endif %}>{{ prog[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn-filter">Search</button>
+                {% if search or selected_program %}
+                <a href="{{ url_for('admin.view_capstone_repository') }}" class="btn-clear">Clear</a>
+                {% endif %}
+            </form>
         </div>
+
+        {% if capstones %}
+        <p class="repo-results-count">{{ total_capstones }} capstone{{ 's' if total_capstones != 1 else '' }} found</p>
+        <div class="record-list">
+            {% for c in capstones %}
+            <div class="archive-card repo-archive-card">
+                <div class="col-title">
+                    <strong>{{ c.capstone_title }}</strong>
+                </div>
+                <span class="col-program"><i class="bx bx-book"></i> {{ c.program_name }}</span>
+                <span class="col-spec"><i class="bx bx-bookmark"></i> {{ c.specialization_name }}</span>
+                <span class="col-year"><i class="bx bx-calendar"></i> {{ c.capstone_year }}</span>
+                <span class="col-term">{{ c.semester }}</span>
+                <div class="repo-archive-card__actions">
+                    <button class="btn-row btn-row--edit"
+                        data-id="{{ c.capstone_id }}"
+                        data-title="{{ c.capstone_title }}"
+                        data-keywords="{{ c.capstone_keywords }}"
+                        data-program="{{ c.program_id }}"
+                        data-spec="{{ c.specialization_id }}"
+                        data-year="{{ c.capstone_year }}"
+                        data-semester="{{ c.semester }}"
+                        data-citations="{{ c.citation_count }}"
+                        data-file="{{ c.capstone_file }}"
+                        data-utilized="{{ 'true' if c.is_utilized else 'false' }}"
+                        data-presented="{{ 'true' if c.is_presented else 'false' }}"
+                        data-copyright="{{ 'true' if c.is_copyright_registered else 'false' }}">
+                        <i class="bx bx-edit-alt"></i> Edit
+                    </button>
+                    {% if session.get('role_name') in ['Admin'] %}
+                    <button class="btn-row btn-row--delete"
+                        onclick="confirmDelete('{{ c.capstone_id }}', '/repository/archive/', 'Move this capstone to the recycle bin?')">
+                        <i class="bx bx-trash"></i> Recycle Bin
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {# ── Pagination ── #}
+        {% if total_pages > 1 %}
+        <div class="repo-pagination">
+            {% set qs = {'search': search, 'program': selected_program} %}
+            <a href="{{ url_for('admin.view_capstone_repository', page=page-1, **qs) }}"
+               class="btn-pill btn-pill--ghost {% if page <= 1 %}repo-pagination__link--disabled{% endif %}">
+                <i class="bx bx-left-arrow-alt"></i> Prev
+            </a>
+            <span class="repo-pagination__status">Page {{ page }} of {{ total_pages }}</span>
+            <a href="{{ url_for('admin.view_capstone_repository', page=page+1, **qs) }}"
+               class="btn-pill btn-pill--ghost {% if page >= total_pages %}repo-pagination__link--disabled{% endif %}">
+                Next <i class="bx bx-right-arrow-alt"></i>
+            </a>
+        </div>
+        {% endif %}
+
         {% else %}
         <div class="empty-state">
             <i class="bx bx-folder-open"></i>
+            {% if search or selected_program %}
+            <p>No capstones match your filters. <a href="{{ url_for('admin.view_capstone_repository') }}">Clear filters</a></p>
+            {% else %}
             <p>No capstone records yet.</p>
             <button class="btn-pill btn-pill--primary" onclick="openCreate()">
                 <i class="bx bx-plus"></i> Add the First One
             </button>
+            {% endif %}
         </div>
         {% endif %}
 
     </div>
     <div class="repo-panel repo-panel--hidden" id="panel-form">
         <div class="detail-card">
-            <div class="detail-card__header">
-                <div>
+            <div class="detail-card__header detail-card__header--form-steps">
+                <div class="repo-form-title-state" hidden>
                     <h3 id="form-heading">New Capstone</h3>
                     <p id="form-subheading">Fill in the details to add a capstone to the archive.</p>
+                </div>
+                <div class="form-steps-indicator">
+                    <div class="form-step-dot form-step-dot--active" data-step-dot="1">
+                        <span class="form-step-dot__num">1</span>
+                        <span class="form-step-dot__label">Capstone Details</span>
+                    </div>
+                    <div class="form-step-dot__line"></div>
+                    <div class="form-step-dot" data-step-dot="2">
+                        <span class="form-step-dot__num">2</span>
+                        <span class="form-step-dot__label">Authors</span>
+                    </div>
                 </div>
                 <button class="btn-icon" id="btn-close-form" title="Back to list">
                     <i class="bx bx-x"></i>
@@ -121,6 +164,32 @@
                 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="capstone_id" id="field-capstone-id">
+                <input type="hidden" name="extracted_filename" id="extracted-filename">
+
+                {# ══════════════════════════════════════════════
+                   STEP 1 — Capstone Details
+                ══════════════════════════════════════════════ #}
+                <div class="form-step" data-step="1">
+
+                {# ── Step 0: Upload PDF for auto-extraction ──
+                   This sits above the fields and auto-fills them on upload.
+                   Only shown when creating (not editing). #}
+                <div class="form-group form-group--full" id="extract-section">
+                    <label>
+                        Upload Capstone File <span class="req">*</span>
+                        <span class="label-note">(PDF, DOC, or DOCX — PDFs also auto-fill the form)</span>
+                    </label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="extract-file-input" name="capstone_file" accept=".pdf,.doc,.docx" required
+                               data-extract-url="{{ url_for('admin.extract_capstone_pdf') }}">
+                        <p class="file-hint">
+                            <i class="bx bx-info-circle"></i>
+                            Upload the capstone file — a PDF will pre-fill the fields below automatically.
+                            You can still edit anything before submitting.
+                        </p>
+                    </div>
+                    <div id="extract-status" class="extract-status" style="display:none;"></div>
+                </div>
 
                 <div class="form-row">
                     <div class="form-group">
@@ -178,40 +247,67 @@
                         <label for="capstone_keywords">Keywords <span class="req">*</span></label>
                         <input type="text" id="capstone_keywords" name="capstone_keywords"
                                placeholder="e.g. machine learning, neural networks" required>
+                        <!-- {# Keyword suggestion chips appear here after extraction #}
+                        <div id="keyword-chips" class="keyword-chips" style="display:none;">
+                            <p class="field-hint">Suggested — click to add:</p>
+                            <div id="keyword-chips-list"></div>
+                        </div> -->
                     </div>
                 </div>
 
-                <div class="form-group form-group--full">
-                    <label for="capstone_file">
-                        Capstone File
-                        <span id="file-label-note" class="label-note">(required)</span>
-                    </label>
-                    <div class="file-upload-wrapper">
-                        <input type="file" id="capstone_file" name="capstone_file"
-                               accept=".pdf,.doc,.docx">
-                        <p class="file-hint">
-                            <i class="bx bx-info-circle"></i>
-                            Accepted: PDF, DOC, DOCX &nbsp;·&nbsp; Max 50 MB
-                            <span id="current-file-note" class="current-file"></span>
-                        </p>
+                <fieldset class="form-group form-group--full">
+                    <legend>Status</legend>
+                    <div class="status-checkbox-row">
+                        <label class="status-checkbox">
+                            <input type="checkbox" id="is_utilized" name="is_utilized">
+                            <span>Utilized</span>
+                        </label>
+                        <label class="status-checkbox">
+                            <input type="checkbox" id="is_presented" name="is_presented">
+                            <span>Presented</span>
+                        </label>
+                        <label class="status-checkbox">
+                            <input type="checkbox" id="is_copyright_registered" name="is_copyright_registered">
+                            <span>Copyright Registered</span>
+                        </label>
                     </div>
+                </fieldset>
+
+                <div class="form-actions" data-step-actions="1">
+                    <button type="button" class="btn-pill btn-pill--primary" id="btn-step-next">
+                        Next: Authors <i class="bx bx-right-arrow-alt"></i>
+                    </button>
+                    <button type="reset" class="btn-pill btn-pill--ghost" id="btn-reset">
+                        <i class="bx bx-revision"></i> Clear
+                    </button>
+                    <button type="button" class="btn-pill btn-pill--secondary" id="btn-cancel">
+                        <i class="bx bx-arrow-back"></i> Cancel
+                    </button>
                 </div>
-                
+
+                </div>
+                {# ── end Step 1 ── #}
+
+                {# ══════════════════════════════════════════════
+                   STEP 2 — Authors & Adviser
+                ══════════════════════════════════════════════ #}
+                <div class="form-step form-step--hidden" data-step="2">
+
                 <fieldset class="form-group form-group--full">
                     <legend>Authors (up to 4)</legend>
-                    {% for i in range(1, 5) %}
+                    {% for i in range(4) %}
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="author_first_{{ i }}">Author {{ i }} — First</label>
-                            <input type="text" id="author_first_{{ i }}" name="author_first_{{ i }}" placeholder="First name">
+                            <label for="authors-{{ i }}-first_name">Author {{ i + 1 }} — First</label>
+                            <input type="text" id="authors-{{ i }}-first_name" name="authors-{{ i }}-first_name" placeholder="First name">
                         </div>
                         <div class="form-group">
-                            <label for="author_middle_{{ i }}">Middle</label>
-                            <input type="text" id="author_middle_{{ i }}" name="author_middle_{{ i }}" placeholder="Middle name">
+                            <label for="authors-{{ i }}-middle_name">Middle</label>
+                            <input type="text" id="authors-{{ i }}-middle_name" name="authors-{{ i }}-middle_name" placeholder="Middle name">
                         </div>
                         <div class="form-group">
-                            <label for="author_last_{{ i }}">Last</label>
-                            <input type="text" id="author_last_{{ i }}" name="author_last_{{ i }}" placeholder="Last name">
+                            <label for="authors-{{ i }}-last_name">Last</label>
+                            <input type="text" id="authors-{{ i }}-last_name" name="authors-{{ i }}-last_name" placeholder="Last name">
                         </div>
                     </div>
                     {% endfor %}
@@ -221,33 +317,36 @@
                     <legend>Adviser <span class="req">*</span></legend>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="adviser_first">First <span class="req">*</span></label>
-                            <input type="text" id="adviser_first" name="adviser_first" placeholder="First name" required>
+                            <label for="adviser-first_name">First <span class="req">*</span></label>
+                            <input type="text" id="adviser-first_name" name="adviser-first_name" placeholder="First name" required>
                         </div>
                         <div class="form-group">
-                            <label for="adviser_middle">Middle</label>
-                            <input type="text" id="adviser_middle" name="adviser_middle" placeholder="Middle name">
+                            <label for="adviser-middle_name">Middle</label>
+                            <input type="text" id="adviser-middle_name" name="adviser-middle_name" placeholder="Middle name">
                         </div>
                         <div class="form-group">
-                            <label for="adviser_last">Last <span class="req">*</span></label>
-                            <input type="text" id="adviser_last" name="adviser_last" placeholder="Last name" required>
+                            <label for="adviser-last_name">Last <span class="req">*</span></label>
+                            <input type="text" id="adviser-last_name" name="adviser-last_name" placeholder="Last name" required>
                         </div>
                     </div>
                 </fieldset>
 
 
-                <div class="form-actions">
+                <div class="form-actions" data-step-actions="2">
+                    <button type="button" class="btn-pill btn-pill--ghost" id="btn-step-back">
+                        <i class="bx bx-left-arrow-alt"></i> Back
+                    </button>
                     <button type="submit" class="btn-pill btn-pill--primary" id="btn-submit">
                         <i class="bx bx-save"></i>
                         <span id="btn-submit-label">Submit Capstone</span>
                     </button>
-                    <button type="reset" class="btn-pill btn-pill--ghost" id="btn-reset">
-                        <i class="bx bx-revision"></i> Clear
-                    </button>
-                    <button type="button" class="btn-pill btn-pill--secondary" id="btn-cancel">
+                    <button type="button" class="btn-pill btn-pill--secondary" id="btn-cancel-2">
                         <i class="bx bx-arrow-back"></i> Cancel
                     </button>
                 </div>
+
+                </div>
+                {# ── end Step 2 ── #}
 
             </form>
         </div>

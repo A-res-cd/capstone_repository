@@ -7,50 +7,309 @@
 {% block content %}
 <section class="user-information-section">
     <div class="user-information-content">
-        <!-- Tab Navigation -->
-        <div class="update-selection">
-            <button class="tab-btn active">Personal info</button>
-            <button class="tab-btn">Contact info</button>
+
+        {# ── Identity header — avatar + name + role, so the page
+           confirms "this is you" at a glance instead of dropping
+           straight into form fields. ── #}
+        <div class="ui-identity-header">
+            <div class="ui-avatar">{{ (profile.user_first_name or '?')[0] | upper }}</div>
+            <div class="ui-identity-header__text">
+                <h2>{{ profile.user_first_name }} {{ profile.user_last_name }}</h2>
+                <p>View your profile details and manage how others can reach you.</p>
+            </div>
+            {% if profile.role_name %}
+            <span class="role-badge
+                {% if profile.role_name == 'Admin' %}role-badge--admin
+                {% elif profile.role_name == 'Faculty' %}role-badge--faculty
+                {% else %}role-badge--student{% endif %}">
+                {{ profile.role_name }}
+            </span>
+            {% endif %}
         </div>
 
-        <!-- Section 1: Basic Info -->
-        <div class="user-information-update-group">
-            <h2>Basic Information</h2>
-            
-            <div class="input-row">
-                <div class="input-field-wrapper">
-                    <label>First name</label>
-                    <input type="text" placeholder="Juan">
+        {# ── Flash Messages ── #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <ul class="flash-list">
+            {% for category, message in messages %}
+            <li class="flash-{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+
+        {# ── Personal Info + Contact Info, side by side — no more
+           tab-switching, both are always visible. ── #}
+        <div class="ui-grid">
+
+            <div class="user-information-update-group">
+                <div class="ui-card-header">
+                    <h3><i class="bx bx-id-card"></i> Basic Information</h3>
+                    <p>Managed by the university registrar — reach out to Admin to request a correction.</p>
                 </div>
-                <div class="input-field-wrapper">
-                    <label>Middle name</label>
-                    <input type="text" placeholder="Dela Cruz">
+
+                <div class="form-row form-row--3col">
+                    <div class="form-group">
+                        <label>First name</label>
+                        <input type="text" value="{{ profile.user_first_name or '' }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Middle name</label>
+                        <input type="text" value="{{ profile.user_middle_name or '' }}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Last name</label>
+                        <input type="text" value="{{ profile.user_last_name or '' }}" readonly>
+                    </div>
                 </div>
-                <div class="input-field-wrapper">
-                    <label>Last name</label>
-                    <input type="text" placeholder="Miguel">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" value="{{ profile.username or '' }}" readonly>
+                        <span class="helper-text">This cannot be changed</span>
+                    </div>
+                    <div class="form-group">
+                        <label>University ID</label>
+                        <input type="text" value="{{ profile.university_no or '' }}" readonly>
+                        <span class="helper-text">Assigned by university</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="input-row">
-                <div class="input-field-wrapper">
-                    <label>User name</label>
-                    <input type="text" placeholder="juanDaMan">
-                    <span class="helper-text">This cannot be changed</span>
+            <div class="user-information-update-group">
+                <div class="ui-card-header">
+                    <h3><i class="bx bx-address-book"></i> Contact Information</h3>
+                    <p>Kept on file for faculty/admin outreach — not shown publicly in the archive.</p>
                 </div>
-                <div class="input-field-wrapper">
-                    <label>University ID</label>
-                    <input type="text" placeholder="SUM2020-01055">
-                    <span class="helper-text">Assigned by university</span>
-                </div>
+                <form method="post" action="{{ url_for('pages.update_user_contact_info') }}" id="contact-info-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" value="{{ contact_by_type.get('email').contact_value if contact_by_type.get('email') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Contact number</label>
+                            <input type="tel" name="phone" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Facebook</label>
+                            <input type="text" name="facebook" value="{{ contact_by_type.get('facebook').contact_value if contact_by_type.get('facebook') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Instagram</label>
+                            <input type="text" name="instagram" value="{{ contact_by_type.get('instagram').contact_value if contact_by_type.get('instagram') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                    </div>
+                    <div class="form-row form-row--single">
+                        <div class="form-group">
+                            <label>Twitter/X</label>
+                            <input type="text" name="twitter" value="{{ contact_by_type.get('twitter').contact_value if contact_by_type.get('twitter') else '' }}" placeholder="Not provided" readonly>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-pill btn-pill--secondary" id="edit-contact-btn">
+                            <i class="bx bx-edit-alt"></i> Edit contact info
+                        </button>
+                        <button type="submit" class="btn-pill btn-pill--primary hidden" id="save-contact-btn">
+                            <i class="bx bx-save"></i> Save contact info
+                        </button>
+                        <button type="button" class="btn-pill btn-pill--ghost hidden" id="cancel-contact-btn">
+                            <i class="bx bx-x"></i> Cancel
+                        </button>
+                    </div>
+                </form>
             </div>
+
         </div>
 
-        <!-- Section 2: Replicated for footer info if needed -->
+        {# ── Request Promotion — a user requesting a different role,
+           reviewed by Admin (DFD 2.4.1/2.4.2). Distinct from account
+           verification, which only applies to new sign-ups. ── #}
         <div class="user-information-update-group">
-            <h2>Basic Information</h2>
-            <!-- Additional rows here -->
+            <div class="ui-card-header">
+                <h3><i class="bx bx-up-arrow-circle"></i> Request Role Promotion</h3>
+                <p>Request a different role — an Admin will review and decide.</p>
+            </div>
+
+            {% if profile.role_name == 'Admin' %}
+                <div class="promotion-pending-notice promotion-pending-notice--disabled">
+                    <i class="bx bx-shield-quarter"></i>
+                    <span>Admins already hold the highest role and can't request a promotion.</span>
+                </div>
+            {% elif has_pending_promotion %}
+                {% for pr in promotion_requests if pr.request_status == 'pending' %}
+                <div class="promotion-pending-notice">
+                    <i class="bx bx-time-five"></i>
+                    <span>Your request to become <strong>{{ pr.target_role }}</strong> is pending review.</span>
+                    <form method="post" action="{{ url_for('pages.cancel_promotion_request_route', request_id=pr.request_id) }}" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn-pill btn-pill--ghost">Cancel Request</button>
+                    </form>
+                </div>
+                {% endfor %}
+            {% else %}
+                <form method="post" action="{{ url_for('pages.submit_promotion_request_route') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="target_role_id">Requested role</label>
+                            <select id="target_role_id" name="target_role_id" required>
+                                <option value="" disabled selected>Select a role</option>
+                                {% for r in roles %}
+                                {% if r[1] != profile.role_name and r[1] != 'Admin' %}
+                                <option value="{{ r[0] }}">{{ r[1] }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="reason">Reason</label>
+                            <input type="text" id="reason" name="reason" placeholder="Why are you requesting this role?" required>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-pill btn-pill--primary">
+                            <i class="bx bx-send"></i> Submit Request
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+
+            {% set past_requests = promotion_requests | rejectattr('request_status', 'equalto', 'pending') | list %}
+            {% if past_requests %}
+            <div class="promotion-history">
+                <p class="promotion-history__label">Past requests</p>
+                {% for pr in past_requests %}
+                <div class="promotion-history__item">
+                    <span>Requested <strong>{{ pr.target_role }}</strong></span>
+                    <span class="status-badge status-badge--{{ pr.request_status }}">{{ pr.request_status | capitalize }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# ── Change Password — full-width, kept visually separate from
+           the two info cards since it's a sensitive/security action,
+           not a display-info-about-yourself action. ── #}
+        <div class="user-information-update-group ui-password-card">
+            <div class="ui-card-header">
+                <h3><i class="bx bx-lock-alt"></i> Change Password</h3>
+                <p>Choose a password you don't use anywhere else.</p>
+            </div>
+            <form method="post" action="{{ url_for('pages.update_own_password') }}" id="password-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-row form-row--3col">
+                    <div class="form-group">
+                        <label for="current_password">Current password</label>
+                        <input type="password" id="current_password" name="current_password" placeholder="••••••••" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">New password</label>
+                        <input type="password" id="new_password" name="new_password" placeholder="At least 6 characters" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm new password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="6" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-pill btn-pill--primary">
+                        <i class="bx bx-lock-alt"></i> Update Password
+                    </button>
+                </div>
+            </form>
+        </div>
+        {# ── Danger Zone — self-service account deletion, requires the
+           current password since this is irreversible. ── #}
+        <div class="danger-zone ui-danger-zone">
+            <div class="danger-zone__header">
+                <i class="bx bx-error-circle"></i>
+                <span>Danger Zone</span>
+            </div>
+            <p>Permanently deletes your account and all associated data. This action <strong>cannot be undone</strong>.</p>
+
+            <form method="post" action="{{ url_for('pages.delete_own_account_route') }}" id="delete-account-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-row form-row--single">
+                    <div class="form-group">
+                        <label for="delete_password">Confirm your password to continue</label>
+                        <input type="password" id="delete_password" name="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-pill btn-pill--danger">
+                        <i class="bx bx-trash"></i> Delete My Account
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const editContactBtn = document.getElementById('edit-contact-btn');
+    const saveContactBtn = document.getElementById('save-contact-btn');
+    const contactForm = document.getElementById('contact-info-form');
+
+    if (editContactBtn && saveContactBtn && contactForm) {
+        const cancelContactBtn = document.getElementById('cancel-contact-btn');
+        const initialValues = Array.from(contactForm.querySelectorAll('input')).map(input => input.value);
+
+        editContactBtn.addEventListener('click', () => {
+            contactForm.querySelectorAll('input').forEach(input => {
+                input.removeAttribute('readonly');
+            });
+            editContactBtn.classList.add('hidden');
+            saveContactBtn.classList.remove('hidden');
+            cancelContactBtn.classList.remove('hidden');
+        });
+
+        cancelContactBtn.addEventListener('click', () => {
+            contactForm.querySelectorAll('input').forEach((input, index) => {
+                input.value = initialValues[index] || '';
+                input.setAttribute('readonly', 'readonly');
+            });
+            editContactBtn.classList.remove('hidden');
+            saveContactBtn.classList.add('hidden');
+            cancelContactBtn.classList.add('hidden');
+        });
+    }
+
+    // Password confirmation check — catches typos before hitting the
+    // server, which still re-validates via EqualTo() regardless.
+    const passwordForm = document.getElementById('password-form');
+    if (passwordForm) {
+        passwordForm.addEventListener('submit', (e) => {
+            const newPw = document.getElementById('new_password').value;
+            const confirmPw = document.getElementById('confirm_password').value;
+            if (newPw !== confirmPw) {
+                e.preventDefault();
+                document.getElementById('confirm_password').setCustomValidity('Passwords do not match.');
+                document.getElementById('confirm_password').reportValidity();
+            }
+        });
+        document.getElementById('confirm_password').addEventListener('input', function () {
+            this.setCustomValidity('');
+        });
+    }
+
+    // Delete-account confirmation — this is irreversible, so a plain
+    // confirm() on top of the password requirement, not just the browser's
+    // default form submission.
+    const deleteAccountForm = document.getElementById('delete-account-form');
+    if (deleteAccountForm) {
+        deleteAccountForm.addEventListener('submit', (e) => {
+            if (!confirm('Delete your account permanently?\n\nThis cannot be undone — all your data will be removed and you will be signed out immediately.')) {
+                e.preventDefault();
+            }
+        });
+    }
+</script>
 {% endblock %}

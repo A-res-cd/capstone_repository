@@ -15,16 +15,28 @@
 @import url('../base/root.css');
 
 .table-wrap {
-    border: var(--border-light);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    border-radius: 3px 10px 10px 10px;
+    box-shadow: 0 8px 20px rgba(30,40,90,0.05);
     overflow: hidden;
     overflow-x: auto;
+    background: var(--bg-card-neutral);
+    -webkit-overflow-scrolling: touch;
 }
 
 .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: var(--text-sm);
+}
+
+@media (max-width: 900px) {
+    /* Columns already wrap onto one line via white-space: nowrap on th —
+       below this width that starts crushing cells illegibly, so force a
+       floor and let .table-wrap's overflow-x handle scrolling instead. */
+    .data-table {
+        min-width: 544px;
+    }
 }
 
 .data-table thead {
@@ -41,19 +53,19 @@
 
 .data-table td {
     padding: var(--space-sm) var(--space-md);
-    border-bottom: var(--border-light);
+    border-bottom: 1px solid var(--border-color);
     color: var(--text-dark);
     vertical-align: middle;
 }
 
 .data-table tbody tr:last-child td { border-bottom: none; }
-.data-table tbody tr:hover { background: #f5f7ff; }
+.data-table tbody tr:hover { background: rgba(46,63,146,0.045); }
 
 /* zebra striping — only the manage-users table originally had this,
    it's offered here as an opt-in modifier so repository's table can
    skip it if that's the intended look */
-.data-table--striped tbody tr:nth-child(even) { background: #e4e9ff; }
-.data-table--striped tbody tr:nth-child(odd)  { background: var(--color-white); }
+.data-table--striped tbody tr:nth-child(even) { background: var(--surface-page); }
+.data-table--striped tbody tr:nth-child(odd)  { background: var(--bg-card-neutral); }
 
 .cell-id      { color: var(--color-gray-dark); font-size: var(--text-xs); }
 .cell-mono    { font-family: monospace; font-size: var(--text-xs); letter-spacing: 0.05em; }
@@ -71,7 +83,7 @@
 /* ── Status / role pills ── */
 .pill {
     display: inline-block;
-    padding: 2px 10px;
+    padding: 2px 8px;
     border-radius: var(--radius-pill);
     font-size: var(--text-xs);
     font-weight: 700;
@@ -91,8 +103,9 @@
     justify-content: center;
     gap: var(--space-md);
     padding: var(--space-xl) var(--space-lg);
-    border: 2px dashed var(--color-gray-light);
+    border: 2px dashed var(--border-tag);
     border-radius: var(--radius-lg);
+    background: var(--surface-paper);
     color: var(--color-gray-dark);
     text-align: center;
 }

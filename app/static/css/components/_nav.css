@@ -1,215 +1,307 @@
 /* ============================================================
    COMPONENT: Sidebar navigation
-   The collapsible left-hand nav with role badge, sections, and
-   logout link. Loaded on every page via base.html.
-
-   Note: this file now imports root.css directly (it didn't before —
-   see BUGS.md #12) so it no longer silently depends on being loaded
-   after global.css.
+   Light paper panel — matches the landing page and auth
+   pages' ruled-paper / index-card theme.
 ============================================================ */
 @import url('../base/root.css');
 
-/* CONTAINER */
+/* ── Container ── */
 .nav-container {
-    width: 250px;
-    height: 100vh;
-    background: var(--bg-card-neutral);
+    width: 212px;
+    height: 100%;
+    min-height: 0;
+    background: var(--surface-paper);
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    border-right: 1px solid #ddd;
-    margin-right: var(--space-sm);
+    position: relative;
+    align-self: stretch;
+    flex-shrink: 0;
+    max-height: 100%;
+    overflow: hidden;
+    transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
 }
 
-/* HEADER */
-.nav-container-header {
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Faint ruled lines, same device used site-wide */
+.nav-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+        180deg,
+        transparent 0,
+        transparent 35px,
+        rgba(46,63,146,0.04) 36px
+    );
+    pointer-events: none;
 }
 
-.logo {
-    width: 140px;
-}
-
-/* BODY */
+/* ── Body ── */
 .nav-container-body {
     flex: 1;
-    padding: 10px 20px;
+    min-height: 0;
+    padding: 17px 14px 10px;
+    position: relative;
+    z-index: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-/* USER SECTION */
-.nav-container-user {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.avatar {
-    width: 90px;
-    height: 90px;
-    background: #d9d9d9;
-    border-radius: 50%;
-    margin: 0 auto 10px;
-}
-
-.username {
-    height: 12px;
-    width: 120px;
-    background: #d9d9d9;
-    border-radius: 8px;
-    margin: 0 auto;
-}
-
-/* LINKS */
-.nav-links {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-/* NAV ITEM */
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    text-decoration: none;
-    color: var(--color-primary-dark);
-    font-size: 15px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    transition: 0.2s ease;
-}
-
-/* ICON */
-.nav-item i {
-    color: inherit;
-    font-size: 20px;
-}
-
-/* HOVER */
-.nav-item:hover {
-    background: var(--color-primary-soft);
-    color: var(--color-primary-dark);
-}
-
-/* ACTIVE */
-.nav-item.active {
-    background: var(--color-primary-light);
-    color: var(--color-white);
-    font-weight: 600;
-}
-
-/* FOOTER */
-.nav-container-footer {
-    padding: 15px;
-}
-
-/* LOGOUT */
-.logout {
-    background: var(--color-primary-soft);
-    color: var(--color-primary-dark);
-    border-radius: var(--radius-lg);
-    justify-content: flex-start;
-}
-
-.logout:hover {
-    background: var(--color-primary-light);
-    color: var(--color-white);
-}
-
-/* COLLAPSED STATE */
-.layout.collapsed .nav-container {
-    width: 80px;
-}
-
-/* hide text */
-.layout.collapsed .nav-item span,
-.layout.collapsed .username {
-    display: none;
-}
-
-/* center icons */
-.layout.collapsed .nav-item {
-    justify-content: center;
-}
-
-/* avatar smaller */
-.layout.collapsed .avatar {
-    width: 50px;
-    height: 50px;
-}
-
-/* ===== ROLE BADGE ===== */
-.role-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 8px;
-    padding: 3px 10px;
-    border-radius: var(--radius-pill);
-    font-size: var(--text-xs);
-    font-weight: 600;
-}
-
-.role-badge i {
-    font-size: 13px;
-}
-
+/* ── Role badge colors — reused by .header-user__role now that the
+   user block itself lives in the header, not the sidebar ── */
 .badge-admin {
-    background: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffc107;
+    background: rgba(243,156,18,0.14);
+    color: var(--badge-admin);
+    border: 1px solid rgba(243,156,18,0.3);
 }
 
 .badge-professor {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
+    background: rgba(30,150,163,0.12);
+    color: var(--badge-professor);
+    border: 1px solid rgba(30,150,163,0.28);
 }
 
 .badge-faculty {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: rgba(38,164,90,0.12);
+    color: var(--badge-faculty);
+    border: 1px solid rgba(38,164,90,0.28);
 }
 
 .badge-student {
-    background: #e2d9f3;
-    color: #4a235a;
-    border: 1px solid #c9b8e8;
+    background: rgba(124,86,209,0.12);
+    color: var(--badge-student);
+    border: 1px solid rgba(124,86,209,0.28);
 }
 
-/* hide badge label when collapsed */
-.layout.collapsed .role-badge .role-label {
-    display: none;
+/* ── Nav sections ── */
+.nav-links {
+    margin-top: 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.layout.collapsed .role-badge {
-    padding: 4px;
-    border-radius: 50%;
-    justify-content: center;
-}
-
-/* ===== NAV SECTIONS ===== */
 .nav-section {
-    margin-bottom: 16px;
+    margin-bottom: 17px;
 }
 
 .nav-section-label {
     display: block;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1.2px;
-    color: var(--color-gray-dark);
-    padding: 0 12px;
-    margin-bottom: 6px;
-    opacity: 0.6;
+    letter-spacing: 1.5px;
+    color: #B7B0A0;
+    padding: 0 8px;
+    margin-bottom: 5px;
+    max-height: 14px;
+    overflow: hidden;
+    opacity: 1;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.18s ease,
+                margin 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* hide section labels when collapsed */
+/* ── Nav item ── */
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--color-gray-dark);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    transition: background 0.15s, color 0.15s,
+                padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                gap 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.nav-item i {
+    font-size: 17px;
+    flex-shrink: 0;
+}
+
+.nav-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 136px;
+    opacity: 1;
+    transition: max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.18s ease;
+}
+
+.nav-item:hover {
+    background: rgba(46,63,146,0.06);
+    color: var(--color-primary);
+}
+
+/* Active: left accent bar + light fill */
+.nav-item.active {
+    background: rgba(46,63,146,0.08);
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    bottom: 7px;
+    width: 3px;
+    background: var(--color-accent);
+    border-radius: 0 3px 3px 0;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+
+/* ── Footer: logout ── */
+.nav-container-footer {
+    padding: 10px 14px 17px;
+    border-top: 1px solid var(--border-color);
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+.logout {
+    background: rgba(211,60,45,0.08);
+    color: var(--color-red);
+    border-radius: var(--radius-md);
+    justify-content: flex-start;
+    border: 1px solid rgba(211,60,45,0.18);
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s,
+                padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                gap 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logout:hover {
+    background: rgba(211,60,45,0.15);
+    color: var(--color-red);
+    filter: brightness(0.85);
+}
+
+/* ── Collapsed state ── */
+.layout.collapsed .nav-container { width: 72px; }
+
+.layout.collapsed .nav-item span {
+    opacity: 0;
+    max-width: 0;
+}
+
 .layout.collapsed .nav-section-label {
+    opacity: 0;
+    max-height: 0;
+    margin: 0;
+}
+
+.layout.collapsed .nav-item {
+    justify-content: center;
+    padding: 8px;
+    gap: 0;
+}
+
+.layout.collapsed .nav-item.active::before { opacity: 0; }
+
+.layout.collapsed .logout {
+    justify-content: center;
+    padding: 8px;
+    gap: 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   MOBILE — sidebar becomes a slide-in drawer over the
+   content instead of a permanent column. Triggered by the
+   same #nav-toggle burger button; see index.js. The desktop
+   "collapsed" (icon-only) state is ignored here — on a phone
+   there's no room for a permanent icon rail, so the drawer
+   is always either fully open or fully hidden.
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .nav-container {
+        position: fixed;
+        top: 51px;
+        left: 0;
+        width: 221px;
+        max-width: 82vw;
+        height: calc(100vh - 51px);
+        height: calc(100dvh - 51px); /* accounts for mobile browser chrome
+            (address bar, home indicator) that 100vh doesn't */
+        overflow-y: auto;
+        /* Desktop uses flex column + justify-content:space-between to pin
+           the footer (Logout) to the bottom, which depends on the
+           container's height being computed precisely — .nav-container-body
+           also has flex:1 + its own overflow-y:auto with no min-height:0,
+           a classic flexbox gotcha where the item refuses to shrink below
+           its content's natural height instead of respecting flex:1. The
+           combination made the footer render below the actual visible
+           area in some mobile WebViews (Messenger's in-app browser
+           reproduced it; desktop devtools' viewport emulation did not,
+           since it runs the same engine as the full desktop browser).
+           Simplest fix that can't fail regardless of any given browser's
+           height quirks: drop back to normal block flow on mobile, so
+           Logout just sits after the nav links in document order and the
+           *whole* drawer is the one and only scroll container. */
+        display: block;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 24px rgba(30, 40, 90, 0.18);
+        z-index: 30;
+    }
+
+    .nav-container-body {
+        overflow-y: visible; /* .nav-container itself owns scrolling now */
+    }
+
+    /* Ignore desktop icon-only collapse on mobile — width always full */
+    .layout.collapsed .nav-container {
+        width: 221px;
+        max-width: 82vw;
+    }
+
+    .layout.mobile-nav-open .nav-container {
+        transform: translateX(0);
+    }
+
+    .layout.collapsed .nav-item span,
+    .layout.collapsed .nav-section-label {
+        opacity: 1;
+        max-width: 136px;
+        max-height: none;
+        margin: initial;
+    }
+
+    .layout.collapsed .nav-item {
+        justify-content: flex-start;
+        padding: 8px 10px;
+        gap: 8px;
+    }
+}
+
+/* Dimmed backdrop behind the open drawer — tapping it closes the nav */
+.nav-backdrop {
     display: none;
+}
+
+@media (max-width: 900px) {
+    .nav-backdrop {
+        display: block;
+        position: fixed;
+        inset: 60px 0 0 0;
+        background: rgba(20, 24, 50, 0.35);
+        z-index: 25;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+
+    .layout.mobile-nav-open .nav-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+    }
 }

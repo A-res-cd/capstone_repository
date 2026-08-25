@@ -1,6 +1,11 @@
 from functools import wraps
 from flask import session, g, redirect, url_for, flash
 
+from app.db.requests import get_user_requests
+
+
+FULL_MANUSCRIPT_ROLES = {"Admin", "Faculty", "Capstone Professor"}
+
 
 def login_required(f):
     """Redirect to signin if user is not logged in."""
@@ -32,3 +37,18 @@ def role_required(*allowed_roles):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def can_view_full_manuscript(capstone_id, user_id=None):
+    role_name = g.user.get("role_name") if getattr(g, "user", None) else session.get("role_name")
+    if role_name in FULL_MANUSCRIPT_ROLES:
+        return True
+
+    user_id = user_id or session.get("user_id")
+    if not user_id:
+        return False
+
+    return any(
+        r["capstone_id"] == capstone_id and r["request_status"] == "approved"
+        for r in get_user_requests(user_id)
+    )

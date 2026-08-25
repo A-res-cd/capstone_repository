@@ -1,82 +1,150 @@
 {% extends "base.html" %}
 
 {% block extra_css %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_auth.css') }}">
 {% endblock %}
 
 {% block title %}Sign In{% endblock %}
 
 {% block content %}
-<section class="auth-section">
-    <div class="auth-card">
-        <h2>Sign In</h2>
+<div class="auth-shell">
+    <div class="auth-shell__bg"></div>
 
-        {# Flash Messages #}
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <ul class="flash-list">
-                    {% for category, message in messages %}
-                        <li class="flash-{{ category }}">{{ message }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        {% endwith %}
+    <header class="auth-shell__nav">
+        <a href="{{ url_for('main.home') }}" class="auth-shell__wordmark">CAPRE</a>
+        <a href="{{ url_for('main.home') }}" class="auth-shell__back">
+            <i class="bx bx-arrow-back"></i> Back to Home
+        </a>
+    </header>
 
-        {% if locked_until %}
-            <div class="lockout-banner" id="lockout-banner">
-                <ul class="flash-list">
-                    <li class="flash-danger">
-                        Account locked. Try again in <strong id="lockout-timer">--:--</strong>
-                    </li>
-                </ul>
-            </div>
-            <script>
-                const unlocksAt = new Date("{{ locked_until }}");
-                function updateTimer() {
-                    const now = new Date();
-                    const diff = Math.max(0, Math.floor((unlocksAt - now) / 1000));
-                    if (diff === 0) {
-                        document.getElementById("lockout-banner").innerHTML =
-                            "&#128275; Account unlocked. You may try again.";
-                        return;
-                    }
-                    const mins = String(Math.floor(diff / 60)).padStart(2, "0");
-                    const secs = String(diff % 60).padStart(2, "0");
-                    document.getElementById("lockout-timer").textContent = `${mins}:${secs}`;
-                    setTimeout(updateTimer, 1000);
-                }
-                updateTimer();
-            </script>
-        {% endif %}
+    <div class="auth-shell__body">
 
-        <form action="{{ url_for('auth.signin') }}" method="POST" class="auth-form" novalidate>
-            {{ form.hidden_tag() }}
-
-            <div class="form-group">
-                {{ form.username.label }}
-                {{ form.username(id="username", placeholder="Type here", autocomplete="username", class="") }}
-                {% for error in form.username.errors %}
-                    <span class="flash-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <div class="form-group">
-                {{ form.password.label }}
-                {{ form.password(id="password", placeholder="Type here", autocomplete="current-password", class="") }}
-                {% for error in form.password.errors %}
-                    <span class="flash-danger">{{ error }}</span>
-                {% endfor %}
-            </div>
-
-            <button type="submit" class="btn-auth-primary">Sign In</button>
-        </form>
-
-        <div class="auth-footer">
-            <p class="auth-link">
-                Don't have an account? <a href="{{ url_for('auth.signup') }}">Sign Up</a>
+        {# ── Annotation column ── #}
+        <div class="auth-annotation">
+            <span class="auth-annotation__eyebrow">BSIT &middot; CICT &middot; NEUST Sumacab</span>
+            <h1 class="auth-annotation__title">
+                Welcome back to<br><em>CAPRE</em>
+            </h1>
+            <p class="auth-annotation__text">
+                Your centralized capstone repository. Sign in to continue discovering, archiving, and managing capstone research.
             </p>
-            <a href="{{ url_for('auth.forgot_password') }}" class="auth-link">Forgot password?</a>
+            <ol class="auth-annotation__index">
+                <li><span>01</span> Browse the capstone archive</li>
+                <li><span>02</span> Request full manuscript access</li>
+                <li><span>03</span> Manage submissions and users</li>
+            </ol>
         </div>
+
+        {# ── Card column ── #}
+        <div class="auth-card-wrap">
+            <div class="auth-form-card">
+                <span class="auth-card__tab">Sign In</span>
+
+                <div class="auth-form-card__header">
+                    <h2>Sign In</h2>
+                    <p>Enter your credentials to access your account</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <ul class="flash-list">
+                            {% for category, message in messages %}
+                                <li class="flash-{{ category }}">{{ message }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
+
+                {% if locked_until %}
+                    <div id="lockout-banner" class="flash-list">
+                        <li class="flash-danger">
+                            Account locked. Try again in <strong id="lockout-timer">--:--</strong>
+                        </li>
+                    </div>
+                    <script>
+                        const unlocksAt = new Date("{{ locked_until }}");
+                        function updateTimer() {
+                            const now  = new Date();
+                            const diff = Math.max(0, Math.floor((unlocksAt - now) / 1000));
+                            if (diff === 0) {
+                                document.getElementById("lockout-banner").innerHTML =
+                                    "<li class='flash-success'>&#128275; Account unlocked. You may try again.</li>";
+                                return;
+                            }
+                            const mins = String(Math.floor(diff / 60)).padStart(2, "0");
+                            const secs = String(diff % 60).padStart(2, "0");
+                            document.getElementById("lockout-timer").textContent = `${mins}:${secs}`;
+                            setTimeout(updateTimer, 1000);
+                        }
+                        updateTimer();
+                    </script>
+                {% endif %}
+
+                <form action="{{ url_for('auth.signin') }}" method="POST" class="auth-form" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="form-group">
+                        {{ form.username.label }}
+                        {{ form.username(id="username", placeholder="Enter your username",
+                                        autocomplete="username") }}
+                        {% for error in form.username.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group">
+                        {{ form.password.label }}
+                        <div class="input-with-toggle">
+                            {{ form.password(id="password", placeholder="Enter your password",
+                                            autocomplete="current-password") }}
+                            <button type="button" class="input-toggle-btn" onclick="togglePassword('password', this)" tabindex="-1">
+                                <i class="bx bx-hide"></i>
+                            </button>
+                        </div>
+                        {% for error in form.password.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="auth-form__meta">
+                        <a href="{{ url_for('auth.forgot_password') }}" class="auth-meta-link">
+                            Forgot password?
+                        </a>
+                    </div>
+
+                    <button type="submit" class="btn-auth-primary">
+                        <i class="bx bx-log-in"></i>
+                        Sign In
+                    </button>
+                </form>
+
+                <div class="auth-form-card__footer">
+                    <p>Don't have an account?
+                        <a href="{{ url_for('auth.signup') }}">Create one</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
     </div>
-</section>
+</div>
+
+{% block extra_js %}
+<script>
+function togglePassword(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+    const icon  = btn.querySelector('i');
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'bx bx-show';
+    } else {
+        field.type = 'password';
+        icon.className = 'bx bx-hide';
+    }
+}
+</script>
+{% endblock %}
 {% endblock %}

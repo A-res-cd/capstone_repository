@@ -30,18 +30,18 @@
 }
 
 .manuscript-request-layout--single .detail-card {
-    max-width: 640px;
+    max-width: 544px;
 }
 
 .manuscript-request-layout textarea {
     width: 100%;
     padding: 0.8rem;
-    border: 1px solid #D1D1D1;
+    border: 1px solid var(--border-input);
     border-radius: var(--radius-md);
     box-sizing: border-box;
     font-size: var(--text-md);
     font-family: var(--font-primary);
-    background: #FAFAFA;
+    background: var(--surface-input);
     color: var(--text-dark);
     outline: none;
     resize: vertical;
@@ -50,7 +50,7 @@
 
 .manuscript-request-layout textarea:focus {
     border-color: var(--color-primary);
-    background-color: var(--color-white);
+    background-color: var(--bg-card-neutral);
 }
 
 /* ── Request history list ── */

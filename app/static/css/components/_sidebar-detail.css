@@ -1,54 +1,225 @@
 /* ============================================================
    COMPONENT: Sidebar detail card
    The sticky right-hand "click a row to see details" card shared
-   by the Explore Archive page and the Admin Requests page.
+   by the Explore Archive page and the Admin Requests page. Matches
+   the record-card visual language (accent border, chip meta).
 ============================================================ */
 @import url('../base/root.css');
 
 .archive-sidebar {
-    width: 280px;
+    width: 272px;
     flex-shrink: 0;
-    overflow-y: auto;
+    height: 100%;
+    display: flex;
 }
 
 .sidebar-card {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
     background: var(--bg-card-neutral);
-    border: var(--border-light);
-    border-radius: var(--radius-md);
-    padding: var(--space-lg);
+    border: 1px solid var(--border-color);
+    border-radius: 3px 12px 12px 3px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Folder tab, matching auth-form-card / doc-card / role-card */
+.sidebar-card__tab {
+    position: absolute;
+    top: -11px;
+    left: 20px;
+    z-index: 1;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 3px 3px 0 0;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.08);
+}
+
+/* Mobile-only "back to list" — hidden entirely on desktop, where the
+   sidebar sits inline beside the list and never needs a close action. */
+.sidebar-close-btn {
+    display: none;
+}
+
+/* Binder punch-holes along the left edge */
+.sidebar-card::before,
+.sidebar-card::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #F1F2F8;
+    box-shadow: inset 0 1px 3px rgba(30,40,90,0.18);
+    z-index: 1;
+}
+.sidebar-card::before { top: 28px; }
+.sidebar-card::after  { bottom: 28px; }
+
+/* ── Fixed top section: title, quick stats, primary actions.
+   Always visible — never requires scrolling to reach. ── */
+.sidebar-card__top {
+    flex-shrink: 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    position: sticky;
-    top: 0;
+    padding: var(--space-lg) var(--space-lg) var(--space-md) 29px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* ── Scrollable body for secondary detail (program, spec, keywords) ── */
+.sidebar-card__scroll {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg) var(--space-lg) 29px;
+}
+
+/* Only the section actually touching the bottom edge should clip to the
+   card's bottom corner radius — that's .sidebar-card__scroll on Explore
+   Archive, but .sidebar-card__bottom on Admin Requests (which has a
+   pinned action bar after the scroll area). */
+.sidebar-card__scroll:not(:has(~ .sidebar-card__bottom)) {
+    border-radius: 0 0 12px 3px;
+}
+
+.sidebar-card__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: fit-content;
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--color-accent-hover);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding-bottom: 3px;
+    border-bottom: 2px solid var(--color-accent);
 }
 
 .sidebar-card h3 {
+    font-family: var(--font-display);
     font-size: var(--text-md);
-    font-weight: 700;
+    font-weight: 600;
     color: var(--color-primary);
     margin: 0;
     line-height: 1.4;
+    overflow-wrap: anywhere;
 }
 
+/* ── Icon-labeled meta rows (replaces bare label/paragraph pairs) ── */
 .sidebar-meta {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-sm);
 }
 
-.sidebar-meta label {
-    font-size: var(--text-xs);
+.sidebar-meta-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+}
+
+.sidebar-meta-row i {
+    font-size: 14px;
+    color: var(--color-primary-light);
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.sidebar-meta-row span {
+    min-width: 0;
+    word-break: break-word;
+}
+
+.sidebar-section-label {
+    font-size: 8px;
     font-weight: 700;
     color: var(--color-gray-dark);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    margin: 0 0 5px;
 }
 
-.sidebar-meta p {
-    font-size: var(--text-sm);
-    margin: 0;
-    color: var(--text-dark);
+/* ── Keyword / tag chips ── */
+.sidebar-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.sidebar-tag {
+    background: transparent;
+    border: 1px solid var(--border-tag);
+    color: var(--color-gray-dark);
+    font-size: var(--text-xs);
+    padding: 1px 8px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+}
+
+/* ── Inline stats (year / semester / citations) — a divided ledger
+   row instead of three separate colored boxes ── */
+.sidebar-stats {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--surface-paper);
+}
+
+.sidebar-stat {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    padding: var(--space-sm) 3px;
+}
+
+.sidebar-stat + .sidebar-stat {
+    border-left: 1px solid var(--border-color);
+}
+
+.sidebar-stat-value {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-accent-hover);
+    line-height: 1;
+}
+
+.sidebar-stat-label {
+    font-size: 8px;
+    color: var(--color-gray-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+
+/* ── Fixed bottom section: pinned action bar (requests sidebar) ── */
+.sidebar-card__bottom {
+    flex-shrink: 0;
+    border-radius: 0 0 12px 3px;
+    overflow: hidden;
+    padding: var(--space-md) var(--space-lg) var(--space-lg) 29px;
+    border-top: 1px solid var(--border-color);
 }
 
 .sidebar-card hr {
@@ -61,19 +232,87 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-sm);
-    margin-top: var(--space-sm);
 }
 
 .sidebar-empty {
+    width: 100%;
+    height: 100%;
     align-items: center;
     justify-content: center;
     text-align: center;
     color: var(--color-gray-dark);
-    min-height: 200px;
 }
 
 .sidebar-empty i {
-    font-size: 36px;
+    font-size: 31px;
     color: var(--color-gray);
     margin-bottom: var(--space-sm);
+}
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — full width once it drops below the list
+   (see .archive-layout-wrapper stacking in _archive.css)
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .archive-sidebar {
+        width: 100%;
+        height: auto;
+        min-height: 221px;
+    }
+
+    /* Hidden until a row/card is tapped, then the page's own JS
+       (archive_sidebar.js on Explore Archive, request_sidebar.js on
+       Admin Requests) adds --mobile-open to bring it up as a
+       full-screen overlay. Scoped to --collapsible rather than
+       .archive-sidebar globally so any future page reusing this
+       component without wiring up the toggle JS doesn't end up with
+       a sidebar it can never show on mobile. */
+    .archive-sidebar--collapsible {
+        display: none;
+    }
+
+    /* Tapping a card opens the detail as a full-screen overlay instead
+       of an inline block sitting below the list — title, stats, and
+       both action buttons (View Abstract / Request Full Manuscript)
+       are all visible immediately, without scrolling past the whole
+       list first. Matches the standard mobile list→detail pattern. */
+    .archive-sidebar--mobile-open {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        width: 100%;
+        height: 100%;
+        background: var(--surface-page);
+    }
+
+    .archive-sidebar--mobile-open .sidebar-card {
+        border-radius: 0;
+        height: 100%;
+    }
+
+    .archive-sidebar--mobile-open .sidebar-close-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: fit-content;
+        margin: var(--space-md) var(--space-md) 0 29px;
+        padding: 5px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-pill);
+        background: var(--color-white);
+        font-size: var(--text-xs);
+        font-weight: 700;
+        color: var(--color-primary);
+        cursor: pointer;
+    }
+
+    .archive-sidebar--mobile-open .sidebar-close-btn i {
+        font-size: 14px;
+    }
+
+    /* The page behind the overlay shouldn't scroll while it's open */
+    body.archive-mobile-detail-open {
+        overflow: hidden;
+    }
 }

@@ -41,15 +41,8 @@
             {# ── Main list ── #}
             <div class="archive-main-content">
 
-                <div class="archive-table-header">
-                    <span class="col-title">Title</span>
-                    <span class="col-program">Program</span>
-                    <span class="col-spec">Specialization</span>
-                    <span class="col-year">Year</span>
-                    <span class="col-term">Term</span>
-                </div>
-
                 {% if projects %}
+                    <p class="archive-results-count">{{ projects|length }} capstone{{ 's' if projects|length != 1 else '' }} found</p>
                     <div class="archive-grid" id="archive-grid">
                         {% for project in projects %}
                         <div class="archive-card"
@@ -60,14 +53,15 @@
                              data-keywords="{{ project.capstone_keywords }}"
                              data-year="{{ project.capstone_year }}"
                              data-semester="{{ project.semester }}"
-                             data-citations="{{ project.citation_count }}">
+                             data-citations="{{ project.citation_count }}"
+                             data-approved="{{ 'true' if project.capstone_id in approved_capstone_ids else 'false' }}">
                             <div class="col-title">
                                 <strong>{{ project.capstone_title }}</strong>
                             </div>
-                            <div class="col-program">{{ project.program_name }}</div>
-                            <div class="col-spec">{{ project.specialization_name }}</div>
-                            <div class="col-year">{{ project.capstone_year }}</div>
-                            <div class="col-term">{{ project.semester }}</div>
+                            <span class="col-program"><i class="bx bx-book"></i> {{ project.program_name }}</span>
+                            <span class="col-spec"><i class="bx bx-bookmark"></i> {{ project.specialization_name }}</span>
+                            <span class="col-year"><i class="bx bx-calendar"></i> {{ project.capstone_year }}</span>
+                            <span class="col-term">{{ project.semester }}</span>
                         </div>
                         {% endfor %}
                     </div>
@@ -89,57 +83,109 @@
             </div>{# end archive-main-content #}
 
             {# ── Sidebar ── #}
-            <aside class="archive-sidebar">
+            <aside class="archive-sidebar archive-sidebar--collapsible">
                 {% if sidebar_project %}
                 <div class="sidebar-card" id="sidebar-card" data-capstone-id="{{ sidebar_project.capstone_id }}">
-                    <h3 id="sb-title">{{ sidebar_project.capstone_title }}</h3>
-                    <div class="sidebar-meta">
-                        <label>Program</label>
-                        <p id="sb-program">{{ sidebar_project.program_name }}</p>
-                        <label>Specialization</label>
-                        <p id="sb-spec">{{ sidebar_project.specialization_name }}</p>
-                        <label>Keywords</label>
-                        <p id="sb-keywords">{{ sidebar_project.capstone_keywords }}</p>
-                    </div>
-                    <hr>
-                    <div class="sidebar-meta">
-                        <p>
-                            <label>Year:</label>
-                            <span id="sb-year">{{ sidebar_project.capstone_year }}</span>
-                        </p>
-                        <p>
-                            <label>Semester:</label>
-                            <span id="sb-term">{{ sidebar_project.semester }}</span>
-                        </p>
-                        <p>
-                            <label>Citations:</label>
-                            <span id="sb-citations">{{ sidebar_project.citation_count }}</span>
-                        </p>
-                    </div>
-                    <div class="sidebar-actions">
-                        {% if session.get('role_name') == 'Admin' %}
-                        <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
-                            id="sb-abstract-link" 
-                            class="btn-abstract"
-                            data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
-                            target="_blank"
-                            rel="noopener noreferrer">
-                            View Abstract
-                        </a>
-                        {% else %}
-                        <button class="btn-abstract" disabled title="Admin only">View Abstract</button>
-                        {% endif %}
-
-                        <a id="sb-request-link"
-                           class="btn-manuscript"
-                           href="{{ url_for('pages.request_capstone', capstone_id=sidebar_project.capstone_id) }}"
-                           data-base-url="{{ url_for('pages.request_capstone', capstone_id=0) }}">
-                            Request Full Manuscript
-                        </a>
-                    </div>
-                    <button type="button" id="sb-cite-btn" class="btn-cite">
-                        Cite
+                    <span class="sidebar-card__tab">Record</span>
+                    <button type="button" id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Back to list">
+                        <i class="bx bx-arrow-back"></i> Back to list
                     </button>
+                    <div class="sidebar-card__top">
+                        <span class="sidebar-card__eyebrow"><i class="bx bx-file"></i> Capstone Details</span>
+                        <h3 id="sb-title">{{ sidebar_project.capstone_title }}</h3>
+
+                        <div class="sidebar-stats">
+                            <div class="sidebar-stat">
+                                <div class="sidebar-stat-value" id="sb-year">{{ sidebar_project.capstone_year }}</div>
+                                <div class="sidebar-stat-label">Year</div>
+                            </div>
+                            <div class="sidebar-stat">
+                                <div class="sidebar-stat-value" id="sb-term">{{ sidebar_project.semester }}</div>
+                                <div class="sidebar-stat-label">Semester</div>
+                            </div>
+                            <div class="sidebar-stat">
+                                <div class="sidebar-stat-value" id="sb-citations">{{ sidebar_project.citation_count }}</div>
+                                <div class="sidebar-stat-label">Citations</div>
+                            </div>
+                        </div>
+
+                        {% set is_approved = sidebar_project.capstone_id in approved_capstone_ids %}
+
+                        <div class="sidebar-actions">
+                            {% if session.get('role_name') in ['Admin', 'Faculty'] %}
+                            <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
+                                id="sb-abstract-link" 
+                                class="btn-abstract"
+                                data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
+                                target="_blank"
+                                rel="noopener noreferrer">
+                                View PDF
+                            </a>
+                            {% elif session.get('role_name') == 'Student' %}
+                            {# Approved students get one link straight to the full manuscript;
+                               everyone else gets the abstract link + a request button. Both
+                               elements always exist so archive_sidebar.js can toggle between
+                               them when switching cards without a page reload. #}
+                            <a href="{{ url_for('pages.view_approved_manuscript', capstone_id=sidebar_project.capstone_id) }}"
+                                id="sb-fullview-link"
+                                class="btn-abstract"
+                                data-base-url="{{ url_for('pages.view_approved_manuscript', capstone_id=0) }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                {% if not is_approved %}style="display:none"{% endif %}>
+                                View Full Manuscript
+                            </a>
+                            <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
+                                id="sb-abstract-link" 
+                                class="btn-abstract"
+                                data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                {% if is_approved %}style="display:none"{% endif %}>
+                                View Abstract
+                            </a>
+                            {% endif %}
+
+                            {% if session.get('role_name') == 'Student' %}
+                            <a id="sb-request-link"
+                               class="btn-manuscript"
+                               href="{{ url_for('pages.request_capstone', capstone_id=sidebar_project.capstone_id) }}"
+                               data-base-url="{{ url_for('pages.request_capstone', capstone_id=0) }}"
+                               {% if is_approved %}style="display:none"{% endif %}>
+                                Request Full Manuscript
+                            </a>
+
+                            <button type="button" id="sb-cite-btn" class="btn-cite">
+                                Cite
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="sidebar-card__scroll">
+                        <div>
+                            <p class="sidebar-section-label">Program &amp; Specialization</p>
+                            <div class="sidebar-meta">
+                                <div class="sidebar-meta-row">
+                                    <i class="bx bx-book"></i>
+                                    <span id="sb-program">{{ sidebar_project.program_name }}</span>
+                                </div>
+                                <div class="sidebar-meta-row">
+                                    <i class="bx bx-bookmark"></i>
+                                    <span id="sb-spec">{{ sidebar_project.specialization_name }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <p class="sidebar-section-label">Keywords</p>
+                            <div class="sidebar-tags" id="sb-keywords-tags">
+                                {% for kw in (sidebar_project.capstone_keywords or '').split(',') %}
+                                {% if kw.strip() %}<span class="sidebar-tag">{{ kw.strip() }}</span>{% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {% else %}
                 <div class="sidebar-card sidebar-empty">

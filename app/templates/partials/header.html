@@ -1,7 +1,57 @@
 <header class="header">
     <div class="header-container">
-        <h2>
-            {{ page_title if page_title else "Home" }}
-        </h2>
+
+        <button type="button" id="nav-toggle" aria-label="Toggle navigation">
+            <i class='bx bx-menu'></i>
+        </button>
+
+        <img src="{{ url_for('static', filename='images/capre-logo.png') }}" alt="CAPRE" class="header-logo">
+
+        {# ── Reserved for the future global search bar (see HANDOFF).
+           Carries the breadcrumb for now so page context isn't lost. ── #}
+        <div class="header-breadcrumb">
+            {% if breadcrumb %}
+                {% for crumb in breadcrumb %}
+                    {% if not loop.first %}
+                    <span class="breadcrumb__sep">
+                        <i class="bx bx-chevron-right"></i>
+                    </span>
+                    {% endif %}
+                    {% if crumb.url %}
+                    <a href="{{ crumb.url }}" class="breadcrumb__parent">{{ crumb.name }}</a>
+                    {% elif loop.first %}
+                    <span class="breadcrumb__current breadcrumb__current--root">{{ crumb.name }}</span>
+                    {% else %}
+                    <span class="breadcrumb__current">{{ crumb.name }}</span>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {# Fallback #}
+                <span class="breadcrumb__current breadcrumb__current--root">
+                    {{ page_title or "Home" }}
+                </span>
+            {% endif %}
+        </div>
+
+        <!-- USER — moved here from the sidebar to reclaim vertical space -->
+        <div class="header-user">
+            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false" title="Toggle dark mode">
+                <i class='bx bx-moon theme-toggle__icon theme-toggle__icon--dark'></i>
+                <i class='bx bx-sun theme-toggle__icon theme-toggle__icon--light'></i>
+            </button>
+            <div class="header-user__avatar">
+                <span>{{ current_user.initials }}</span>
+            </div>
+            <div class="header-user__info">
+                <span class="header-user__name">{{ current_user.display_name }}</span>
+                {% if role_meta %}
+                <span class="header-user__role {{ role_meta.badge_class }}">
+                    <i class="{{ role_meta.icon }}"></i>
+                    {{ role_meta.label }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
     </div>
 </header>

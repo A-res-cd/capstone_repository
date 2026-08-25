@@ -1,28 +1,252 @@
 /* ============================================================
-   COMPONENT: Top header bar
-   The blue strip showing the current page title, next to the
-   sidebar toggle. Loaded on every page via base.html.
+   COMPONENT: Top header
+   Full-width bar spanning the whole screen, above the sidebar —
+   Gmail-style layout: burger menu, logo, then a flexible area
+   currently carrying the breadcrumb. That flexible area is
+   reserved for a future global search bar (not implemented yet).
 ============================================================ */
 @import url('../base/root.css');
 
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    height: 51px;
+    background: var(--surface-paper);
+    border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+/* Faint ruled lines, same device used site-wide */
+.header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+        180deg,
+        transparent 0,
+        transparent 35px,
+        rgba(46,63,146,0.035) 36px
+    );
+    pointer-events: none;
+}
+
 .header-container {
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
-    gap: 15px;
-    padding: 12px 20px;
-    color: var(--color-white);
-    background-color: var(--color-primary);
-    border-bottom-left-radius: var(--radius-lg);
+    gap: 14px;
+    height: 100%;
+    padding: 0 17px;
+    color: var(--color-primary);
 }
 
-/* toggle icon */
+/* ── Burger toggle ── */
 #nav-toggle {
-    font-size: 24px;
+    background: none;
+    border: none;
+    padding: 5px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
 }
 
-.burger-menu {
+#nav-toggle i {
+    font-size: 20px;
+    line-height: 1;
+    display: block;
+}
+
+#nav-toggle:hover {
+    background: rgba(46,63,146,0.08);
+    color: var(--color-accent-hover);
+}
+
+/* ── Logo ── */
+.header-logo {
+    height: 27px;
+    width: auto;
+    flex-shrink: 0;
+}
+
+/* ── Breadcrumb — occupies the space reserved for the future
+   search bar. Same markup/behavior as before, just repositioned. ── */
+.header-breadcrumb {
     display: flex;
-    justify-content: flex-end;
-    align-self: flex-end;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Clickable parent — e.g. "Explore Archive" */
+.breadcrumb__parent {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+    white-space: nowrap;
+    opacity: 0.6;
+    transition: opacity 0.15s, color 0.15s;
+}
+
+.breadcrumb__parent:hover {
+    opacity: 1;
+    color: var(--color-accent-hover);
+}
+
+/* Chevron separator */
+.breadcrumb__sep {
+    display: flex;
+    align-items: center;
+    color: var(--color-gray);
+    font-size: 17px;
+    flex-shrink: 0;
+}
+
+/* Current page name */
+.breadcrumb__current {
+    font-family: var(--font-display, var(--font-heading));
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--color-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Root page — same weight as branch but no parent, so full opacity */
+.breadcrumb__current--root {
+    font-weight: 600;
+}
+
+/* ── User block — moved here from the sidebar (nav-container-user)
+   to reclaim vertical space in the nav. Sits at the far right since
+   .header-breadcrumb above has flex:1 and pushes everything after
+   it outward. ── */
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding-left: 14px;
+    border-left: 1px solid var(--border-color);
+}
+
+.header-user__avatar {
+    width: 31px;
+    height: 31px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(243,156,18,0.3);
+}
+
+.header-user__avatar span {
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+    user-select: none;
+}
+
+.header-user__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.header-user__name {
+    font-family: var(--font-display, var(--font-heading));
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 136px;
+}
+
+.header-user__role {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    width: fit-content;
+    padding: 1px 7px;
+    border-radius: var(--radius-pill);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.header-user__role i {
+    font-size: 8px;
+}
+
+/* ── Theme toggle — sun/moon icon button, sits just left of the
+   avatar. Icon swap is driven purely by [data-theme] on <html> (see
+   theme.js) so it works instantly, no JS re-render needed. ── */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 31px;
+    height: 31px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    background: var(--surface-paper);
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.theme-toggle:hover {
+    background: var(--hover-tint);
+    border-color: var(--color-primary-soft);
+}
+
+.theme-toggle__icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+/* Light mode: show the moon (click to go dark). */
+.theme-toggle__icon--light { display: none; }
+
+/* Dark mode: show the sun (click to go light). */
+[data-theme="dark"] .theme-toggle__icon--dark  { display: none; }
+[data-theme="dark"] .theme-toggle__icon--light { display: block; }
+
+@media (max-width: 900px) {
+    .header-logo { display: none; }
+
+    /* Name/role text hidden on small screens — avatar alone is enough,
+       matching how the nav-toggle and logo already shed labels here */
+    .header-user__info {
+        display: none;
+    }
+
+    .header-user {
+        padding-left: 8px;
+        gap: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-user {
+        border-left: none;
+        padding-left: 3px;
+    }
 }

@@ -28,11 +28,10 @@ def get_nav_links(role):
             "title": "Manage Repository",
             "url": "admin.view_capstone_repository",
             "icon": "bx bx-folder-open",
-            "roles": ["Admin", "Capstone Professor"],
+            "roles": ["Admin", "Capstone Professor", "Faculty"],
             "section": "Capstone"
         },
 
-        # --- Process 3.5 Admin archived records ready for deletion container — Admin only ---
         {
             "name": "Recycle Bin",
             "title": "Recycle Bin",
@@ -79,6 +78,19 @@ def get_nav_links(role):
             "section": "Management"
         },
 
+        # --- Data mining: content-based topic-similarity check — Student only ---
+        # Not tied to an existing DFD process number yet (new feature).
+        # Lets a student check a proposed title/keywords against the
+        # archive before submitting, via TF-IDF + cosine similarity.
+        {
+            "name": "Propose Topic",
+            "title": "Propose a Topic",
+            "url": "pages.propose_topic",
+            "icon": "bx bx-bulb",
+            "roles": ["Student"],
+            "section": "Capstone"
+        },
+
         # --- Process 5.0: Manage User Information — All roles ---
         # Level2ManageUserInformation.drawio shows all 4 actors
         # (Admin, Capstone Professor, Student, Faculty) with flows
@@ -89,6 +101,18 @@ def get_nav_links(role):
             "url": "pages.user_info",
             "icon": "bx bx-id-card",
             "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
+            "section": "Account"
+        },
+
+        # --- Not a real DFD process — an internal dev tool that mostly
+        # trolls, occasionally shows something actually useful. Admin
+        # only; see admin.dev_debug for the odds. ---
+        {
+            "name": "Developer Debug Tool",
+            "title": "Developer Debug Tool",
+            "url": "admin.dev_debug",
+            "icon": "bx bx-terminal",
+            "roles": ["Admin"],
             "section": "Account"
         },
     ]
@@ -105,6 +129,89 @@ def get_nav_links(role):
         sections[sec].append(link)
 
     return filtered, sections
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Branch-page breadcrumb mapping
+#
+# Keys are URL *prefixes* (checked with startswith) for pages that don't have
+# their own nav link. Each entry defines:
+#   ancestors  — an ordered list of (endpoint, label) tuples, root-first,
+#                for every level between the root nav link and this page.
+#                Most branch pages sit one level below a root nav link, so
+#                this list usually has one item — but it can hold as many
+#                ancestor levels as the page is actually nested under,
+#                which is what lets the header render a full
+#                "root -> child -> child" chain instead of just root -> current.
+#   page_name  — this page's own label, shown last and not a link.
+# ─────────────────────────────────────────────────────────────────────────────
+_BRANCH_MAP = [
+    # Capstone detail / PDF viewer  →  parent is whichever list page makes sense
+    ("/abstract/",          [("pages.browse",                   "Explore Archive")], "View Abstract"),
+    ("/manuscript/view/",   [("pages.all_requests",              "My Requests")],     "View Manuscript"),
+    # Per-capstone request form  →  nested under Explore Archive -> My Requests,
+    # since a student reaches this form by browsing the archive first.
+    ("/requests/",          [("pages.browse",                   "Explore Archive"),
+                              ("pages.all_requests",              "My Requests")],     "Request Manuscript"),
+    # Admin: view/edit individual capstone  →  parent is Repository
+    ("/repository/view/",   [("admin.view_capstone_repository", "Capstone Repository")], "View Capstone"),
+    ("/repository/update/", [("admin.view_capstone_repository", "Capstone Repository")], "Edit Capstone"),
+    # Admin: decide on a request  →  parent is Requests
+    ("/repository/decide/", [("admin.view_requests",            "Requests")],         "Review Request"),
+]
+
+
+def get_breadcrumb(nav_links, path):
+    """
+    Returns an ordered list of crumbs, root-first:
+      [ {"name": ..., "url": ...}, {"name": ..., "url": ...}, ... ]
+
+    Every crumb except the last has a resolved "url" and renders as a link;
+    the last crumb represents the current page, has "url": None, and renders
+    as plain (non-link) text. The header template just loops over this list
+    and joins the crumbs with a separator — so it naturally renders
+    "root -> child -> child -> ... -> current" for any depth, rather than
+    being limited to a single parent/current pair.
+
+    For a direct nav-link page (e.g. /archive), this is a single crumb:
+      [ {"name": "Explore Archive", "url": None} ]
+
+    For a branch page nested under N ancestors (e.g. /requests/5), this is
+    N + 1 crumbs, e.g.:
+      [ {"name": "Explore Archive", "url": "/archive"},
+        {"name": "My Requests",     "url": "/my-requests"},
+        {"name": "Request Manuscript", "url": None} ]
+    """
+    def _resolve_url(endpoint):
+        parent_url = next(
+            (l["url"] for l in nav_links if l.get("_endpoint") == endpoint),
+            None
+        )
+        if parent_url:
+            return parent_url
+        try:
+            from flask import url_for
+            return url_for(endpoint)
+        except Exception:
+            return "#"
+
+    # Check if this is a direct nav-link page first
+    for link in nav_links:
+        if link["url"] == path:
+            return [{"name": link.get("title") or link["name"], "url": None, "endpoint": None}]
+
+    # Check branch map
+    for prefix, ancestors, page_name in _BRANCH_MAP:
+        if path.startswith(prefix):
+            crumbs = [
+                {"name": label, "url": _resolve_url(endpoint), "endpoint": endpoint}
+                for endpoint, label in ancestors
+            ]
+            crumbs.append({"name": page_name, "url": None, "endpoint": None})
+            return crumbs
+
+    # Unknown page — no breadcrumb
+    return []
 
 
 def get_role_meta(role):
@@ -136,16 +243,8 @@ def get_role_meta(role):
     }
     return meta.get(role, {"label": role, "badge_class": "", "icon": "bx bx-user"})
 
-
 def resolve_title(nav_sections, nav_links, path):
-    for section in nav_sections.values():
-        for link in section:
-            if link["url"] == path:
-                return link.get("title") or link["name"]
-
-    # Fallback to flat list (catches anything not in a section)
     for link in nav_links:
         if link["url"] == path:
             return link.get("title") or link["name"]
-
     return None

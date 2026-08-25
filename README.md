@@ -17,7 +17,20 @@ pip install -r requirements.txt
 
 # 5. Create .env file
 inside .env file put:
-MONGO_URI = mongodb://localhost:27017/collection_name
+SECRET_KEY = your-secret-key
+
+PG_HOST = localhost
+PG_PORT = 5432
+PG_USER = your-postgres-user
+PG_PASSWORD = your-postgres-password
+PG_DB = your-database-name
+
+MAIL_SERVER = smtp.example.com
+MAIL_PORT = 587
+MAIL_USERNAME = your-email@example.com
+MAIL_PASSWORD = your-email-password
+
+UPLOAD_FOLDER = app/static/uploads
 
 # 6. Run the app
 flask run

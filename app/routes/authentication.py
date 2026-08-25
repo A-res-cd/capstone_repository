@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
 from flask_mail import Message
 from smtplib import SMTPException
+import logging
 import psycopg2.extras
 from app.db.database import db_connect
 
@@ -12,6 +13,7 @@ from app.db.database import (
     create_otp,
     verify_otp,
     change_password,
+    get_device_ip,
     OTP_EXPIRY_MINUTES,
 )
 from app import mail
@@ -20,6 +22,7 @@ from app.routes.forms import (
     SigninForm, SignupForm, ForgotPasswordForm, ResetPasswordForm, VerifyOTPForm)
 
 auth = Blueprint("auth", __name__)
+logger = logging.getLogger(__name__)
 
 
 @auth.route("/signin", methods=["GET", "POST"])
@@ -58,10 +61,13 @@ def signin():
 
             return render_template("authentication/signin.html", form=form, hide_nav=True, hide_header=True, locked_until=locked_until)
         if user:
-            session["user_id"] = user["user_id"]
-            session["username"] = user["username"]
-            session["role_id"] = user["role_id"]
-            session["role_name"] = user["role_name"]
+            session["user_id"]    = user["user_id"]
+            session["username"]   = user["username"]
+            session["role_id"]    = user["role_id"]
+            session["role_name"]  = user["role_name"]
+            session["first_name"] = user.get("user_first_name", "")
+            session["last_name"]  = user.get("user_last_name", "")
+            session["log_in_id"]  = user.get("log_in_id")
 
             if user["role_id"] == 3:    # Admin
                 return redirect(url_for("admin.analytics"))
@@ -93,7 +99,7 @@ def signup():
         )
 
         if success:
-            flash("Account created successfully! Please sign in.", "success")
+            flash("Account created successfully! Please wait for approval.", "success")
             return redirect(url_for("auth.signin"))
         else:
             flash(message, "danger")
@@ -240,3 +246,12 @@ def get_current_user(user_id):
     conn.close()
 
     return user
+
+# @auth.route("/debug-ip")
+# def debug_ip():
+#     logger.debug("Device IP: %s", get_device_ip(request))
+#     logger.debug("Remote Addr: %s", request.remote_addr)
+#     logger.debug("X-Forwarded-For: %s", request.headers.get("X-Forwarded-For"))
+#     logger.debug("Headers: %s", dict(request.headers))
+
+#     return "Check terminal"
