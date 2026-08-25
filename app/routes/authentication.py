@@ -67,6 +67,7 @@ def signin():
             session["role_name"]  = user["role_name"]
             session["first_name"] = user.get("user_first_name", "")
             session["last_name"]  = user.get("user_last_name", "")
+            session["log_in_id"]  = user.get("log_in_id")
 
             if user["role_id"] == 3:    # Admin
                 return redirect(url_for("admin.analytics"))

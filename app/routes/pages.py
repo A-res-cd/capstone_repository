@@ -8,7 +8,7 @@ get_capstones_corpus, get_own_profile, change_own_password, delete_own_account,
 get_all_roles, submit_promotion_request, get_own_promotion_requests, cancel_promotion_request,
 get_requestable_capstones,
 )
-from app.routes.decorators import login_required, role_required
+from app.routes.decorators import login_required, role_required, can_view_full_manuscript
 from app.routes.forms import ChangePasswordForm
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 from app.services.recommender import TopicRecommender
@@ -322,12 +322,7 @@ def view_approved_manuscript(capstone_id):
     # Confirm this user actually has an approved request for this capstone
     # before letting them view it — otherwise this would just be a second
     # admin-only route under a different name. See BUGS.md #1.
-    user_requests = get_user_requests(user_id)
-    has_access = any(
-        r["capstone_id"] == capstone_id and r["request_status"] == "approved"
-        for r in user_requests
-    )
-    if not has_access:
+    if not can_view_full_manuscript(capstone_id, user_id):
         flash("You don't have an approved request for this manuscript.", "danger")
         return redirect(url_for("pages.browse"))
 
@@ -348,11 +343,13 @@ def view_approved_manuscript(capstone_id):
     # This route only runs after an approved-access check above, so the
     # requester gets the full document, not the abstract-only restriction.
     return render_template(
-        "admin/view_capstone.html",
+        "admin/native_pdf_viewer.html",
         capstone=capstone,
         max_pages=None,
         start_page=1,
         pdf_url=pdf_url,
+        hide_nav=True,
+        hide_header=True,
     )
 
 
@@ -377,12 +374,7 @@ def manuscript_file(capstone_id):
     if not user_id:
         abort(401)
 
-    user_requests = get_user_requests(user_id)
-    has_access = any(
-        r["capstone_id"] == capstone_id and r["request_status"] == "approved"
-        for r in user_requests
-    )
-    if not has_access:
+    if not can_view_full_manuscript(capstone_id, user_id):
         abort(403)
 
     capstone = get_capstone_details(capstone_id)

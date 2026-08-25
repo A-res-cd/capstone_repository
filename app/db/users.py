@@ -231,6 +231,8 @@ def _run_delete_cascade(mithrix, conn, user_id, acting_id):
     delete_own_account() (self-service) — the actual hard-delete cascade.
     Order matters — FK constraints cascade from least to most dependent.
     """
+    conn = db_connect()
+    mithrix = conn.cursor()
     # audit first, while user still exists
     log_audit(mithrix, acting_id, "delete_user", "user", user_id)
 
@@ -241,8 +243,13 @@ def _run_delete_cascade(mithrix, conn, user_id, acting_id):
     mithrix.execute('DELETE FROM signup  WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM contact WHERE user_id = %s', (user_id,))
 
+    # Temporary fix for now, !TODO
+    mithrix.execute('DELETE FROM "audit" WHERE user_id = %s', (user_id,))
+    mithrix.execute('DELETE FROM "request" WHERE user_id = %s', (user_id,))
+
     # finally the user row itself
     mithrix.execute('DELETE FROM "user"  WHERE user_id = %s', (user_id,))
+    
 
     conn.commit()
 

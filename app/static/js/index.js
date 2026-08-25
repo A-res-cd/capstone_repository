@@ -1,4 +1,5 @@
-document.addEventListener("DOMContentLoaded", function () {
+(function () {
+function initApp() {
     const toggleBtn = document.getElementById("nav-toggle");
     const layout = document.querySelector(".layout");
     const backdrop = document.getElementById("nav-backdrop");
@@ -9,7 +10,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (layout) layout.classList.remove("mobile-nav-open");
     }
 
-    if (toggleBtn && layout) {
+    if (toggleBtn && layout && !toggleBtn.dataset.bound) {
+        toggleBtn.dataset.bound = "true";
         toggleBtn.addEventListener("click", () => {
             if (isMobile()) {
                 // Mobile: slide the drawer open/closed. This is a transient
@@ -38,23 +40,49 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Tapping the dimmed backdrop closes the drawer
-    if (backdrop) {
+    if (backdrop && !backdrop.dataset.bound) {
+        backdrop.dataset.bound = "true";
         backdrop.addEventListener("click", closeMobileNav);
     }
 
     // Picking a nav link closes the drawer instead of leaving it open
     // behind the newly-loaded page
     document.querySelectorAll(".nav-item").forEach((link) => {
+        if (link.dataset.navBound) return;
+        link.dataset.navBound = "true";
         link.addEventListener("click", () => {
             if (isMobile()) closeMobileNav();
         });
     });
 
+    document.querySelectorAll(".flash-list li, .mu-flash-list li").forEach((item) => {
+        if (item.dataset.flashBound) return;
+        item.dataset.flashBound = "true";
+
+        const close = document.createElement("button");
+        close.type = "button";
+        close.className = "flash-close";
+        close.setAttribute("aria-label", "Dismiss message");
+        close.textContent = "×";
+
+        const dismiss = () => {
+            item.classList.add("flash-dismiss");
+            window.setTimeout(() => item.remove(), 180);
+        };
+
+        close.addEventListener("click", dismiss);
+        item.appendChild(close);
+        window.setTimeout(dismiss, 10000);
+    });
+
     // If the window is resized/rotated past the breakpoint, drop the
     // mobile-only open state so it doesn't linger into desktop view
-    window.addEventListener("resize", () => {
-        if (!isMobile()) closeMobileNav();
-    });
+    if (!window.__capreResizeBound) {
+        window.__capreResizeBound = true;
+        window.addEventListener("resize", () => {
+            if (!isMobile()) closeMobileNav();
+        });
+    }
 
     // ── Auto-submitting filter bars ──────────────────────────────────
     // Applies to every GET filter form on the site (Explore Archive,
@@ -68,6 +96,8 @@ document.addEventListener("DOMContentLoaded", function () {
     let filterDebounceTimer = null;
 
     document.querySelectorAll(".filter-input").forEach((input) => {
+        if (input.dataset.filterBound) return;
+        input.dataset.filterBound = "true";
         input.addEventListener("input", () => {
             clearTimeout(filterDebounceTimer);
             filterDebounceTimer = setTimeout(() => {
@@ -89,9 +119,23 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     document.querySelectorAll(".filter-select").forEach((select) => {
+        if (select.dataset.filterBound) return;
+        select.dataset.filterBound = "true";
         select.addEventListener("change", () => {
             const form = select.closest("form");
             if (form) (form.requestSubmit ? form.requestSubmit() : form.submit());
         });
     });
-});
+}
+
+if (!window.__caprePageShowBound) {
+    window.__caprePageShowBound = true;
+    window.addEventListener("pageshow", (event) => {
+        if (event.persisted) window.location.reload();
+    });
+}
+
+window.CAPRE = window.CAPRE || {};
+window.CAPRE.initApp = initApp;
+document.addEventListener("DOMContentLoaded", initApp);
+})();

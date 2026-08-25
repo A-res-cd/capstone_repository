@@ -39,6 +39,14 @@ def create_app():
         if request.path.startswith(static_upload_path):
             abort(404)
 
+    @app.after_request
+    def prevent_protected_page_cache(response):
+        if request.path == "/logout" or getattr(request, "endpoint", None) != "static" and request.path != "/":
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
     from .routes import blueprints
     for bp in blueprints:
         app.register_blueprint(bp)

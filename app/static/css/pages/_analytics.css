@@ -17,17 +17,20 @@ main:has(.analytics-section) {
     padding: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: auto;
+    background: var(--surface-page);
 }
 
 .analytics-section {
-    padding: var(--space-md) var(--space-xl);
+    width: min(100%, 1420px);
+    margin: 0 auto;
+    padding: var(--space-lg) var(--space-xl);
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
     flex: 1;
-    min-height: 0;
-    overflow: hidden;
+    min-height: 100%;
+    overflow: visible;
 }
 
 /* ============================================================
@@ -155,11 +158,10 @@ main:has(.analytics-section) {
 .analytics-main-grid {
     display: grid;
     grid-template-columns:
-        1.7fr
-        1fr;
-    gap: var(--space-lg);
-    flex: 1.15;
-    min-height: 0;
+        minmax(0, 1.55fr)
+        minmax(390px, 1fr);
+    gap: var(--space-md);
+    min-height: 350px;
 }
 
 /* ============================================================
@@ -185,6 +187,11 @@ main:has(.analytics-section) {
 /* Main trend panel */
 .analytics-panel--main {
     overflow: hidden;
+}
+
+.analytics-panel--main .analytics-panel__chart-wrap {
+    height: 280px;
+    min-height: 280px;
 }
 
 /* ============================================================
@@ -243,11 +250,10 @@ main:has(.analytics-section) {
 .analytics-bottom-grid {
     display: grid;
     grid-template-columns:
-        1fr
-        1.7fr;
-    gap: var(--space-lg);
-    flex: 1;
-    min-height: 0;
+        minmax(330px, 0.9fr)
+        minmax(0, 1.65fr);
+    gap: var(--space-md);
+    min-height: 280px;
 }
 
 /* ============================================================

@@ -20,7 +20,7 @@
      * The reference image has the heading at the
      * upper-left corner.
      */
-    justify-content: flex-start;
+    justify-content: space-evenly;
     min-width: 0;
     padding:
         var(--space-sm);
@@ -157,6 +157,15 @@
     justify-content: center;
 }
 
+.analytics-panel--donut
+.analytics-panel__chart-wrap--program-large {
+    flex: 1 1 auto;
+    min-height: 220px;
+    height: 220px;
+    max-width: 100%;
+    margin: var(--space-lg) 0 0;
+}
+
 /* ============================================================
    PROGRAM CANVAS
 ============================================================ */
@@ -216,6 +225,12 @@
         max-width: 320px;
         margin-top: var(--space-lg);
     }
+
+    .analytics-panel--donut
+    .analytics-panel__chart-wrap--program-large {
+        max-width: 100%;
+        margin-top: var(--space-md);
+    }
 }
 
 
@@ -240,5 +255,10 @@
     .analytics-panel__chart-wrap {
         height: 240px;
         max-width: 340px;
+    }
+
+    .analytics-panel--donut
+    .analytics-panel__chart-wrap--program-large {
+        max-width: 100%;
     }
 }

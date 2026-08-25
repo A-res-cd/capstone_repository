@@ -36,7 +36,7 @@
         {% endif %}
 
         <div class="main-wrapper">
-            <main>
+            <main id="page-content">
                 {% block content %}{% endblock %}
             </main>
         </div>
@@ -45,6 +45,7 @@
 
     <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/spa_navigation.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

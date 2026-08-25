@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.confirmDelete = confirmDelete;
 
     // ── Panel switching ─────────────────────────────────────
-    const panelList = document.getElementById('panel-list');
     const panelForm = document.getElementById('panel-form');
     const btnOpenCreate = document.getElementById('btn-open-create');
     const btnCloseForm = document.getElementById('btn-close-form');
@@ -133,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dot.classList.toggle('form-step-dot--active', n === stepNum);
             dot.classList.toggle('form-step-dot--done', n < stepNum);
         });
-        panelForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        panelForm.scrollTop = 0;
     }
 
     // Validates only the fields inside step 1 before advancing — step 2's
@@ -164,22 +163,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showForm() {
-        panelList.classList.add('repo-panel--hidden');
         panelForm.classList.remove('repo-panel--hidden');
-        document.getElementById('repo-page-header').classList.add('repo-page-header--hidden');
-        panelForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.body.classList.add('repo-modal-open');
     }
 
     function showList() {
         panelForm.classList.add('repo-panel--hidden');
-        panelList.classList.remove('repo-panel--hidden');
-        document.getElementById('repo-page-header').classList.remove('repo-page-header--hidden');
+        document.body.classList.remove('repo-modal-open');
     }
 
     btnOpenCreate.addEventListener('click', openCreate);
     btnCloseForm.addEventListener('click', showList);
     btnCancel.addEventListener('click', showList);
     document.getElementById('btn-cancel-2')?.addEventListener('click', showList);
+    panelForm.addEventListener('click', event => {
+        if (event.target === panelForm) showList();
+    });
 
     // Wire up all Edit buttons
     document.querySelectorAll('.btn-row--edit').forEach(btn => {

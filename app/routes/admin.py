@@ -18,8 +18,7 @@ from app.db.database import (
     get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags,
     get_capstone_program_summary
 )
-from app.db.requests import get_user_requests
-from app.routes.decorators import role_required
+from app.routes.decorators import role_required, can_view_full_manuscript
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
 from app.utils.pdf_extractor import extract_capstone_data
 from app.utils.uploads import (
@@ -126,7 +125,7 @@ def _save_file(file_obj):
 
 # Odds the "Developer Debug Tool" nav link actually shows the real
 # debug panel instead of the troll image — tune to taste.
-DEV_DEBUG_REAL_TOOL_CHANCE = 0.85
+DEV_DEBUG_REAL_TOOL_CHANCE = 1
 
 
 def _dev_debug_enabled():
@@ -735,12 +734,11 @@ def view_capstone(capstone_id):
         max_pages=max_pages,
         start_page=1,
         pdf_url=pdf_url,
-        hide_header=True,
     )
 
 
 @admin.route("/repository/pdf/<int:capstone_id>")
-@role_required(1, 2, 3)
+@role_required(1, 2, 3, 4)
 def view_capstone_pdf(capstone_id):
     capstone = get_capstone_details(capstone_id)
     if not capstone:
@@ -755,11 +753,15 @@ def view_capstone_pdf(capstone_id):
     # Default values
     max_pages = None
     start_page = 1
+    abstract_text = None
+    has_full_access = can_view_full_manuscript(capstone_id)
+    if not has_full_access and role_name != 'Student':
+        abort(403)
 
     # If user is Student, restrict to abstract page only. Attempt to determine
     # the actual abstract page number from stored capstone data or by parsing
     # the PDF on disk (fall back to page 1).
-    if role_name == 'Student':
+    if role_name == 'Student' and not has_full_access:
         max_pages = 1
 
         # try to read abstract_page from capstone record (dict-like)
@@ -787,14 +789,32 @@ def view_capstone_pdf(capstone_id):
     # Normalize capstone file path for use with url_for('static')
     pdf_url = None
     file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
-    if file_rel:
+    if file_rel and has_full_access:
         pdf_url = url_for('admin.manuscript_file', capstone_id=capstone_id)
+    elif file_rel:
+        pdf_path = resolve_manuscript_file(file_rel)
+        if pdf_path and pdf_path.lower().endswith('.pdf'):
+            try:
+                abstract_text = extract_capstone_data(pdf_path).get('abstract_text') or ''
+            except Exception as e:
+                logger.error("Error extracting abstract preview: %s", e)
+        if not abstract_text:
+            abstract_text = "Abstract preview is not available for this manuscript."
 
-    return render_template("admin/view_capstone.html", capstone=capstone, max_pages=max_pages, start_page=start_page, pdf_url=pdf_url, hide_header=True)
+    return render_template(
+        "admin/native_pdf_viewer.html",
+        capstone=capstone,
+        max_pages=max_pages,
+        start_page=start_page,
+        pdf_url=pdf_url,
+        abstract_text=abstract_text,
+        hide_nav=True,
+        hide_header=True,
+    )
 
 
 @admin.route("/repository/file/<int:capstone_id>")
-@role_required(1, 2, 3)
+@role_required(1, 2, 3, 4)
 def manuscript_file(capstone_id):
     capstone = get_capstone_details(capstone_id)
     if not capstone:
@@ -809,15 +829,8 @@ def manuscript_file(capstone_id):
     # the "View Full Manuscript" flow. Without this, any logged-in
     # student could fetch any capstone's complete PDF straight from this
     # URL, whether they'd ever requested it or not.
-    role_name = g.user.get("role_name") if g.user else None
-    if role_name not in ("Admin", "Faculty"):
-        user_requests = get_user_requests(session.get("user_id"))
-        has_access = any(
-            r["capstone_id"] == capstone_id and r["request_status"] == "approved"
-            for r in user_requests
-        )
-        if not has_access:
-            abort(403)
+    if not can_view_full_manuscript(capstone_id):
+        abort(403)
 
     file_path = resolve_manuscript_file(capstone.get("capstone_file"))
     if not file_path:

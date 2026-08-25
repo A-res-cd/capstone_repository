@@ -3,6 +3,7 @@ Manuscript/full-view access requests: create, list, review
 (approve/reject), cancel, and status breakdowns.
 """
 import logging
+import psycopg2
 import psycopg2.extras
 from datetime import datetime, timezone
 
@@ -19,6 +20,27 @@ def request_fullview(user_id, capstone_id, request_reason):
     now = datetime.now(timezone.utc)
 
     try:
+        mithrix.execute(
+            "SELECT pg_try_advisory_xact_lock(%s, %s) AS locked",
+            (int(user_id), int(capstone_id)),
+        )
+        if not mithrix.fetchone()["locked"]:
+            conn.rollback()
+            return False, "This action is currently being processed by another user."
+
+        mithrix.execute("""
+            SELECT request_id
+            FROM request
+            WHERE user_id = %s
+              AND capstone_id = %s
+              AND request_type = 'manuscript'
+              AND request_status IN ('pending', 'approved')
+            FOR UPDATE
+        """, (user_id, capstone_id))
+        if mithrix.fetchone():
+            conn.rollback()
+            return False, "You already have a request for this capstone."
+
         mithrix.execute("""
             INSERT INTO request(user_id, capstone_id, request_status, request_reason, request_date, request_type)
             VALUES(%s, %s, 'pending', %s, %s, 'manuscript')
@@ -83,6 +105,20 @@ def review_request(request_id, request_status, status_reason, reviewed_by):
 
     try:
         mithrix.execute("""
+            SELECT request_status
+            FROM request
+            WHERE request_id = %s
+            FOR UPDATE NOWAIT
+        """, (request_id,))
+        row = mithrix.fetchone()
+        if not row:
+            conn.rollback()
+            return False, "Request not found."
+        if row[0] != "pending":
+            conn.rollback()
+            return False, "This request has already been processed."
+
+        mithrix.execute("""
             UPDATE request SET 
             request_status = %s,
             status_reason = %s,
@@ -96,6 +132,9 @@ def review_request(request_id, request_status, status_reason, reviewed_by):
 
         conn.commit()
         return True, None
+    except psycopg2.errors.LockNotAvailable:
+        conn.rollback()
+        return False, "This action is currently being processed by another user."
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
@@ -173,6 +212,20 @@ def cancel_manuscript_request(request_id, user_id):
 
     try:
         mithrix.execute("""
+            SELECT request_status
+            FROM request
+            WHERE request_id = %s AND user_id = %s
+            FOR UPDATE NOWAIT
+        """, (request_id, user_id))
+        row = mithrix.fetchone()
+        if not row:
+            conn.rollback()
+            return False, "Request not found."
+        if row[0] != "pending":
+            conn.rollback()
+            return False, "This request can no longer be cancelled â€” it may have already been decided or cancelled."
+
+        mithrix.execute("""
             UPDATE request
             SET request_status = 'cancelled'
             WHERE request_id = %s AND user_id = %s
@@ -187,6 +240,9 @@ def cancel_manuscript_request(request_id, user_id):
 
         conn.commit()
         return True, None
+    except psycopg2.errors.LockNotAvailable:
+        conn.rollback()
+        return False, "This action is currently being processed by another user."
 
     except Exception as exc:
         conn.rollback()

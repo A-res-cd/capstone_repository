@@ -67,11 +67,18 @@
       <span class="pdf-label">{% if max_pages == 1 %}Abstract Preview{% else %}Full Document{% endif %}</span>
       <div class="pdf-controls">
         {% if max_pages is none %}
-        <button id="prev-page" type="button">‹ Prev</button>
-        <span id="page-info">Page <span id="current-page">1</span> / <span id="total-pages">—</span></span>
-        <button id="next-page" type="button">Next ›</button>
+        <div class="pdf-search">
+          <input id="pdf-search-input" type="search" placeholder="Search manuscript">
+          <button id="pdf-search-btn" type="button">Search</button>
+          <button id="pdf-search-prev" type="button" title="Previous result">Prev result</button>
+          <button id="pdf-search-next" type="button" title="Next result">Next result</button>
+          <span id="pdf-search-status"></span>
+        </div>
+        <button id="prev-page" type="button">Prev</button>
+        <span id="page-info">Page <span id="current-page">1</span> / <span id="total-pages">-</span></span>
+        <button id="next-page" type="button">Next</button>
         {% else %}
-      <span id="page-info">Abstract Page {{ start_page or 1 }}</span>
+        <span id="page-info">Abstract Page {{ start_page or 1 }}</span>
         {% endif %}
       </div>
     </div>
@@ -79,12 +86,11 @@
     <div id="pdf-container">
       <canvas id="pdf-canvas"></canvas>
     </div>
-    <div id="pdf-loading">Loading PDF…</div>
+    <div id="pdf-loading">Loading PDF...</div>
   </div>
 
 </div>
 
-<!-- PDF.js from CDN, with a fallback CDN if the primary one is unreachable -->
 <script>
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -129,9 +135,17 @@
   let currentPage = 1;
   let minPage = 1;
   let maxAllowed = null;
+  let searchQuery = '';
+  let searchMatches = [];
+  let searchIndex = -1;
 
   const prevBtn = document.getElementById('prev-page');
   const nextBtn = document.getElementById('next-page');
+  const searchInput = document.getElementById('pdf-search-input');
+  const searchBtn = document.getElementById('pdf-search-btn');
+  const searchPrevBtn = document.getElementById('pdf-search-prev');
+  const searchNextBtn = document.getElementById('pdf-search-next');
+  const searchStatus = document.getElementById('pdf-search-status');
 
   // Fit the whole page inside #pdf-container — both width and height —
   // instead of a fixed scale, so it never needs to scroll to be read.
@@ -202,8 +216,78 @@
     renderPage(currentPage);
   }
 
+  function normalizeSearchText(value) {
+    return (value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function countOccurrences(text, query) {
+    let count = 0;
+    let pos = text.indexOf(query);
+    while (pos !== -1) {
+      count += 1;
+      pos = text.indexOf(query, pos + query.length);
+    }
+    return count;
+  }
+
+  async function buildSearchMatches(query) {
+    const matches = [];
+    for (let pageNum = minPage; pageNum <= maxAllowed; pageNum += 1) {
+      if (searchStatus) searchStatus.textContent = `Searching ${pageNum}/${maxAllowed}...`;
+      const page = await pdfDoc.getPage(pageNum);
+      const content = await page.getTextContent();
+      const text = normalizeSearchText(content.items.map(item => item.str).join(' '));
+      const count = countOccurrences(text, query);
+      for (let i = 0; i < count; i += 1) matches.push({ page: pageNum });
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    return matches;
+  }
+
+  async function runSearch(direction = 1, reset = false) {
+    if (!pdfDoc || !searchInput) return;
+    const query = normalizeSearchText(searchInput.value);
+    if (!query) {
+      searchQuery = '';
+      searchMatches = [];
+      searchIndex = -1;
+      if (searchStatus) searchStatus.textContent = '';
+      return;
+    }
+
+    if (reset || query !== searchQuery) {
+      searchQuery = query;
+      searchMatches = await buildSearchMatches(query);
+      searchIndex = direction < 0 ? searchMatches.length - 1 : 0;
+    } else if (searchMatches.length) {
+      searchIndex = (searchIndex + direction + searchMatches.length) % searchMatches.length;
+    }
+
+    if (!searchMatches.length) {
+      if (searchStatus) searchStatus.textContent = 'No results';
+      return;
+    }
+
+    currentPage = searchMatches[searchIndex].page;
+    await renderPage(currentPage);
+    if (searchStatus) {
+      searchStatus.textContent = `${searchIndex + 1}/${searchMatches.length} on page ${currentPage}`;
+    }
+  }
+
   if (prevBtn) prevBtn.addEventListener('click', () => changePage(-1));
   if (nextBtn) nextBtn.addEventListener('click', () => changePage(1));
+  if (searchBtn) searchBtn.addEventListener('click', () => runSearch(1, true));
+  if (searchPrevBtn) searchPrevBtn.addEventListener('click', () => runSearch(-1));
+  if (searchNextBtn) searchNextBtn.addEventListener('click', () => runSearch(1));
+  if (searchInput) {
+    searchInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        runSearch(event.shiftKey ? -1 : 1, true);
+      }
+    });
+  }
 
   function showLoadError(message) {
     const loading = document.getElementById('pdf-loading');

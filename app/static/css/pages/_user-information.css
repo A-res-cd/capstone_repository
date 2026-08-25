@@ -13,11 +13,14 @@
 @import url('../components/_forms.css');
 @import url('../components/_record-card.css');
 @import url('../components/_detail-card.css');
+@import url('../components/_buttons.css');
 
 .user-information-section {
-    padding: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
     min-height: 100vh;
     font-family: var(--font-primary);
+    display: flex;
+    flex-direction: column;
 }
 
 .user-information-content {
@@ -31,19 +34,25 @@
 .ui-identity-header {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--bg-card-neutral);
+    border: var(--border-light);
+    border-radius: 3px 12px 12px 12px;
+    box-shadow: var(--shadow-md);
 }
 
 .ui-avatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
+    width: 50px;
+    height: 50px;
     flex-shrink: 0;
-    border-radius: 50%;
-    background: var(--color-primary);
-    color: #fff;
+    border-radius: 3px 10px 10px 3px;
+    background: var(--bg-card-header);
+    border: 1px dashed #E2DCC8;
+    color: var(--color-accent-hover);
     font-family: var(--font-display);
     font-size: 22px;
     font-weight: 700;
@@ -72,6 +81,7 @@
     flex-shrink: 0;
     font-size: 10px;
     padding: 4px 11px;
+    transform: rotate(-2deg);
 }
 
 /* ── Personal Info + Contact Info, side by side ── */
@@ -87,15 +97,14 @@
     background: var(--bg-card-neutral);
     border: var(--border-light);
     border-radius: 3px 12px 12px 12px;
-    padding: var(--space-xl);
     box-shadow: var(--shadow-md);
     height: 100%;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .ui-password-card {
     height: auto;
-    border-left: 3px solid var(--color-accent);
     height: 100%;
     box-sizing: border-box;
 }
@@ -105,6 +114,7 @@
     border: 1px solid #F0D5CE;
     border-radius: 3px 12px 12px 12px;
     box-shadow: var(--shadow-md);
+    padding: var(--space-xl);
 }
 
 .ui-danger-zone .form-row--single .form-group {
@@ -122,6 +132,7 @@
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
     color: var(--text-dark);
+    margin: var(--space-xl);
 }
 
 .promotion-pending-notice i {
@@ -147,7 +158,7 @@
 }
 
 .promotion-history {
-    margin-top: var(--space-md);
+    margin: 0 var(--space-xl) var(--space-xl);
     padding-top: var(--space-md);
     border-top: 2px dashed var(--border-color);
 }
@@ -199,9 +210,10 @@
 .status-badge--cancelled { color: var(--status-cancelled); }
 
 .ui-card-header {
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 2px dashed var(--border-color);
+    margin-bottom: 0;
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: var(--border-light);
+    background: var(--bg-card-header);
 }
 
 .ui-card-header h3 {
@@ -217,17 +229,17 @@
 
 .ui-card-header p {
     font-size: var(--text-sm);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--color-gray-dark);
-    margin: 0 0 var(--space-sm);
-}
-
-.ui-card-header p {
-    font-size: var(--text-sm);
     color: var(--color-gray-dark);
     margin: 0;
+}
+
+.user-information-update-group > .form-row,
+.user-information-update-group > form {
+    padding: var(--space-xl);
+}
+
+.user-information-update-group > .form-row + .form-row {
+    padding-top: 0;
 }
 
 /* Read-only fields (Basic Information) — visually distinct from the
@@ -289,9 +301,26 @@
 @media (max-width: 900px) {
     .user-information-section { padding: var(--space-md); }
 
-    .user-information-update-group {
+    .ui-identity-header,
+    .ui-card-header,
+    .user-information-update-group > .form-row,
+    .user-information-update-group > form,
+    .ui-danger-zone {
         padding: var(--space-lg);
-        border-radius: var(--radius-lg);
+    }
+
+    .user-information-update-group,
+    .ui-danger-zone,
+    .ui-identity-header {
+        border-radius: 3px 10px 10px 10px;
+    }
+
+    .promotion-pending-notice {
+        margin: var(--space-lg);
+    }
+
+    .promotion-history {
+        margin: 0 var(--space-lg) var(--space-lg);
     }
 
     .form-actions {

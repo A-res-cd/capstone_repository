@@ -158,6 +158,7 @@ def extract_capstone_data(pdf_path: str) -> dict:
         'adviser':        None,
         'keywords':       [],
         'abstract_page':  None,
+        'abstract_text':  '',
     }
 
     try:
@@ -205,6 +206,7 @@ def extract_capstone_data(pdf_path: str) -> dict:
             # ── Abstract page: scan all pages ─────────────────────
             abstract_page, abstract_full_text = _parse_abstract_page(pdf.pages)
             result['abstract_page'] = abstract_page
+            result['abstract_text'] = abstract_full_text
 
 
             # YAKE fallback: if no explicit keywords line was found

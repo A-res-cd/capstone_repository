@@ -66,26 +66,15 @@
         <p class="repo-results-count">{{ total_capstones }} capstone{{ 's' if total_capstones != 1 else '' }} found</p>
         <div class="record-list">
             {% for c in capstones %}
-            <div class="record-card">
-                <div class="record-card__icon"><i class="bx bxs-file-pdf"></i></div>
-                <div class="record-card__body">
-                    <p class="record-card__title">{{ c.capstone_title }}</p>
-                    <div class="record-card__meta">
-                        <span class="record-card__meta-item"><i class="bx bx-book"></i>{{ c.program_name }}</span>
-                        <span class="record-card__meta-item"><i class="bx bx-bookmark"></i>{{ c.specialization_name }}</span>
-                        <span class="record-card__meta-item"><i class="bx bx-calendar"></i>{{ c.capstone_year }}{{ (' • Sem ' ~ c.semester) if c.semester else '' }}</span>
-                    </div>
-                    <div class="record-card__tags">
-                        {% for kw in (c.capstone_keywords or '').split(',')[:5] %}
-                        {% if kw.strip() %}<span class="record-card__tag">{{ kw.strip() }}</span>{% endif %}
-                        {% endfor %}
-                    </div>
+            <div class="archive-card repo-archive-card">
+                <div class="col-title">
+                    <strong>{{ c.capstone_title }}</strong>
                 </div>
-                <div class="record-card__stat">
-                    <div class="record-card__stat-value">{{ c.citation_count or 0 }}</div>
-                    <div class="record-card__stat-label">Citations</div>
-                </div>
-                <div class="record-card__actions">
+                <span class="col-program"><i class="bx bx-book"></i> {{ c.program_name }}</span>
+                <span class="col-spec"><i class="bx bx-bookmark"></i> {{ c.specialization_name }}</span>
+                <span class="col-year"><i class="bx bx-calendar"></i> {{ c.capstone_year }}</span>
+                <span class="col-term">{{ c.semester }}</span>
+                <div class="repo-archive-card__actions">
                     <button class="btn-row btn-row--edit"
                         data-id="{{ c.capstone_id }}"
                         data-title="{{ c.capstone_title }}"
@@ -145,10 +134,21 @@
     </div>
     <div class="repo-panel repo-panel--hidden" id="panel-form">
         <div class="detail-card">
-            <div class="detail-card__header">
-                <div>
+            <div class="detail-card__header detail-card__header--form-steps">
+                <div class="repo-form-title-state" hidden>
                     <h3 id="form-heading">New Capstone</h3>
                     <p id="form-subheading">Fill in the details to add a capstone to the archive.</p>
+                </div>
+                <div class="form-steps-indicator">
+                    <div class="form-step-dot form-step-dot--active" data-step-dot="1">
+                        <span class="form-step-dot__num">1</span>
+                        <span class="form-step-dot__label">Capstone Details</span>
+                    </div>
+                    <div class="form-step-dot__line"></div>
+                    <div class="form-step-dot" data-step-dot="2">
+                        <span class="form-step-dot__num">2</span>
+                        <span class="form-step-dot__label">Authors</span>
+                    </div>
                 </div>
                 <button class="btn-icon" id="btn-close-form" title="Back to list">
                     <i class="bx bx-x"></i>
@@ -165,19 +165,6 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="capstone_id" id="field-capstone-id">
                 <input type="hidden" name="extracted_filename" id="extracted-filename">
-
-                {# ── Step indicator ── #}
-                <div class="form-steps-indicator">
-                    <div class="form-step-dot form-step-dot--active" data-step-dot="1">
-                        <span class="form-step-dot__num">1</span>
-                        <span class="form-step-dot__label">Capstone Details</span>
-                    </div>
-                    <div class="form-step-dot__line"></div>
-                    <div class="form-step-dot" data-step-dot="2">
-                        <span class="form-step-dot__num">2</span>
-                        <span class="form-step-dot__label">Authors</span>
-                    </div>
-                </div>
 
                 {# ══════════════════════════════════════════════
                    STEP 1 — Capstone Details
@@ -260,11 +247,11 @@
                         <label for="capstone_keywords">Keywords <span class="req">*</span></label>
                         <input type="text" id="capstone_keywords" name="capstone_keywords"
                                placeholder="e.g. machine learning, neural networks" required>
-                        {# Keyword suggestion chips appear here after extraction #}
+                        <!-- {# Keyword suggestion chips appear here after extraction #}
                         <div id="keyword-chips" class="keyword-chips" style="display:none;">
                             <p class="field-hint">Suggested — click to add:</p>
                             <div id="keyword-chips-list"></div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
 

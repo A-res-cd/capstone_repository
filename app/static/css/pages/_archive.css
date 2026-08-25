@@ -330,7 +330,7 @@ main:has(.explore-archive-section) {
     }
 
     .archive-grid {
-        overflow-y: visible;
+        overflow-y: auto;
         max-height: 60vh;
     }
 

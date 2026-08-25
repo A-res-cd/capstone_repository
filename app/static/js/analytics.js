@@ -127,9 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const positiveValue = values[0] || 0;
+            const mainValue =
+                pluginOptions.value === 'total' ? total : positiveValue;
             const percentage = Math.round(
                 (positiveValue / total) * 100
             );
+            const subText =
+                pluginOptions.value === 'total'
+                    ? (pluginOptions.subtitle || 'Total')
+                    : `${percentage}%`;
             const centerX = (left + right) / 2;
             const centerY = (top + bottom) / 2;
             const computedStyles =
@@ -147,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fillStyle = textColor;
             ctx.font = '700 18px "Segoe UI", sans-serif';
             ctx.fillText(
-                positiveValue.toLocaleString(),
+                mainValue.toLocaleString(),
                 centerX,
                 centerY - 6
             );
@@ -156,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
              */
             ctx.font = '600 9px "Segoe UI", sans-serif';
             ctx.fillText(
-                `${percentage}%`,
+                subText,
                 centerX,
                 centerY + 11
             );
@@ -301,7 +307,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     responsive: true,
                     maintainAspectRatio: false,
                     cutout: '62%',
+                    layout: {
+                        padding: {
+                            right: 75
+                        }
+                    },
                     plugins: {
+                        doughnutCenterText: {
+                            display: true,
+                            value: 'total',
+                            subtitle: 'Total'
+                        },
                         legend: {
                             position: 'right',
                             align: 'center',
@@ -309,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 color: textDark,
                                 boxWidth: 8,
                                 boxHeight: 8,
-                                padding: 8,
+                                padding: 22,
                                 font: {
                                     size: 10
                                 }

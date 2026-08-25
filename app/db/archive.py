@@ -3,6 +3,7 @@ Recycle Bin (soft-delete/restore/purge) and the public Explore
 Archive browse/search — everything touching is_archived capstones.
 """
 import logging
+import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta, timezone
 
@@ -165,7 +166,7 @@ def delete_capstone(capstone_id, acting_user_id=None):
         mithrix.execute("""
             SELECT keyword_id, is_archived, capstone_title FROM capstone
             WHERE capstone_id = %s
-            FOR UPDATE
+            FOR UPDATE NOWAIT
         """, (capstone_id,))
         row = mithrix.fetchone()
         if not row:
@@ -200,6 +201,9 @@ def delete_capstone(capstone_id, acting_user_id=None):
 
         conn.commit()
         return True, "Capstone deleted successfully"
+    except psycopg2.errors.LockNotAvailable:
+        conn.rollback()
+        return False, "This action is currently being processed by another user."
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
@@ -224,7 +228,7 @@ def add_to_bin(capstone_id, acting_user_id=None):
         mithrix.execute("""
             SELECT is_archived FROM capstone
             WHERE capstone_id = %s
-            FOR UPDATE
+            FOR UPDATE NOWAIT
         """, (capstone_id,))
         row = mithrix.fetchone()
         if not row:
@@ -245,6 +249,9 @@ def add_to_bin(capstone_id, acting_user_id=None):
 
         conn.commit()
         return True, "Capstone moved to the recycle bin."
+    except psycopg2.errors.LockNotAvailable:
+        conn.rollback()
+        return False, "This action is currently being processed by another user."
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
@@ -268,7 +275,7 @@ def restore_capstone(capstone_id, acting_user_id=None):
         mithrix.execute("""
             SELECT is_archived FROM capstone
             WHERE capstone_id = %s
-            FOR UPDATE
+            FOR UPDATE NOWAIT
         """, (capstone_id,))
         row = mithrix.fetchone()
         if not row:
@@ -289,6 +296,9 @@ def restore_capstone(capstone_id, acting_user_id=None):
 
         conn.commit()
         return True, "Capstone restored to the repository."
+    except psycopg2.errors.LockNotAvailable:
+        conn.rollback()
+        return False, "This action is currently being processed by another user."
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)

@@ -327,8 +327,16 @@ def sign_in(username, password, device_ip=None):
                 FROM login
                 WHERE user_id = %s
                   AND failed_attempts > 0
-                  AND log_in_time >= NOW() - (%s * INTERVAL '1 minute')
-            """, (row["user_id"], LOCKOUT_DURATION))
+                  AND log_in_time >= GREATEST(
+                      NOW() - (%s * INTERVAL '1 minute'),
+                      COALESCE(
+                          (SELECT MAX(log_in_time)
+                           FROM login
+                           WHERE user_id = %s AND failed_attempts = 0),
+                          '-infinity'::timestamp
+                      )
+                  )
+            """, (row["user_id"], LOCKOUT_DURATION, row["user_id"]))
             fails = mithrix.fetchone()["fails"]
 
             if fails >= LOCKOUT_THRESHOLD:
@@ -360,12 +368,6 @@ def sign_in(username, password, device_ip=None):
         user_id = row["user_id"]
 
         mithrix.execute("""
-            UPDATE login
-            SET failed_attempts = 0
-            WHERE user_id = %s AND failed_attempts > 0
-        """, (row["user_id"],))
-
-        mithrix.execute("""
             INSERT INTO login (user_id, log_in_time, login_device_ip, failed_attempts)
             VALUES (%s, %s, %s, 0)
             RETURNING log_in_id
@@ -381,6 +383,7 @@ def sign_in(username, password, device_ip=None):
             "username":  row["username"],
             "role_id":   row["role_id"],
             "role_name": row["role_name"],
+            "log_in_id": log_in_id,
         }, None
 
     except Exception as exc:

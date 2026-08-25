@@ -354,7 +354,7 @@ def set_capstone_people(capstone_id, authors, adviser, acting_user_id=None):
         mithrix.close()
         conn.close()
 
-def add_citations(capstone_id):
+def add_citations(capstone_id, user_id):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 

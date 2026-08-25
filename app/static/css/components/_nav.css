@@ -8,16 +8,18 @@
 /* ── Container ── */
 .nav-container {
     width: 212px;
-    min-height: calc(100vh - 51px);
+    height: 100%;
+    min-height: 0;
     background: var(--surface-paper);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    position: sticky;
-    top: 51px;
-    align-self: flex-start;
+    position: relative;
+    align-self: stretch;
     flex-shrink: 0;
+    max-height: 100%;
+    overflow: hidden;
     transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
 }
@@ -39,6 +41,7 @@
 /* ── Body ── */
 .nav-container-body {
     flex: 1;
+    min-height: 0;
     padding: 17px 14px 10px;
     position: relative;
     z-index: 1;
@@ -163,6 +166,7 @@
     border-top: 1px solid var(--border-color);
     position: relative;
     z-index: 1;
+    flex-shrink: 0;
 }
 
 .logout {

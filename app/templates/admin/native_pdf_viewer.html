@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_view-capstone.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="native-pdf-page">
+  {% if abstract_text is defined and abstract_text %}
+  <article class="native-abstract-page">
+    <p class="native-abstract-kicker">Abstract Preview</p>
+    <h1>{{ capstone.capstone_title }}</h1>
+    <div class="native-abstract-text">{{ abstract_text }}</div>
+  </article>
+  {% elif pdf_url %}
+  <iframe
+    class="native-pdf-frame"
+    src="{{ pdf_url }}{% if start_page %}#page={{ start_page }}{% endif %}"
+    title="{{ capstone.capstone_title or 'PDF viewer' }}"
+  ></iframe>
+  {% else %}
+  <div class="native-pdf-empty">
+    <h1>No PDF available</h1>
+    <p>This capstone does not have a manuscript file.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

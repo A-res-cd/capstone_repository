@@ -11,7 +11,10 @@ main:has(.auth-shell) {
 .auth-shell {
     position: relative;
     min-height: 100vh;
+    min-height: 100dvh;
     background: var(--surface-page);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
 }
 
@@ -76,14 +79,16 @@ main:has(.auth-shell) {
 .auth-shell__body {
     position: relative;
     z-index: 1;
+    flex: 1;
     max-width: 918px;
     margin: 0 auto;
-    padding: 20px 48px 82px;
+    padding: 20px 48px 48px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: 54px;
-    min-height: calc(100vh - 178px);
+    width: 100%;
+    min-height: 0;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -381,6 +386,22 @@ main:has(.auth-shell) {
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
+}
+
+.auth-form-card .flash-list {
+    position: static;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    width: 100%;
+    margin: 0 0 var(--space-lg);
+    transform: none;
+    pointer-events: auto;
+}
+
+.auth-form-card .flash-list li {
+    width: 100%;
 }
 
 .otp-input {
