@@ -37,10 +37,12 @@ class Config:
     SECRET_KEY = os.environ["SECRET_KEY"]
 
     PG_HOST = os.environ["PG_HOST"]
-    PG_PORT = _int_env("PG_PORT", 5432)
+    PG_PORT = _int_env("PG_PORT")
     PG_USER = os.environ["PG_USER"]
     PG_PASSWORD = os.environ["PG_PASSWORD"]
     PG_DB = os.environ["PG_DB"]
+    PG_POOL_MIN = _int_env("PG_POOL_MIN")
+    PG_POOL_MAX = _int_env("PG_POOL_MAX")
 
     MAIL_SERVER = os.environ.get("MAIL_SERVER")
     # Optional in dev (mail may be unconfigured locally) but must not crash

@@ -178,9 +178,14 @@ def delete_capstone(capstone_id, acting_user_id=None):
             conn.rollback()
             return False, "This capstone was just restored by another admin and can no longer be deleted from the recycle bin."
 
-        # delete related capAuth entries first (authors/advisers)
+        # delete related capauth entries first (authors/advisers)
         mithrix.execute("""
-            DELETE FROM capAuth WHERE capstone_id = %s
+            DELETE FROM capauth WHERE capstone_id = %s
+        """, (capstone_id,))
+
+        # Keep request/audit history while releasing the foreign-key reference.
+        mithrix.execute("""
+            UPDATE request SET capstone_id = NULL WHERE capstone_id = %s
         """, (capstone_id,))
 
         mithrix.execute("""

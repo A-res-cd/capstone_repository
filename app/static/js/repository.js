@@ -23,24 +23,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnOpenCreate = document.getElementById('btn-open-create');
     const btnCloseForm = document.getElementById('btn-close-form');
     const btnCancel = document.getElementById('btn-cancel');
+    let preserveCreateDraft = false;
+
+    // Recycle Bin reuses confirmDelete but has no repository form panel.
+    if (!panelForm || !btnOpenCreate || !btnCloseForm || !btnCancel) return;
 
     function openCreate() {
-        resetForm();
-        document.getElementById('form-heading').textContent = 'New Capstone';
-        document.getElementById('form-subheading').textContent = 'Fill in the details to add a capstone to the archive.';
-        document.getElementById('btn-submit-label').textContent = 'Submit Capstone';
-        setText('file-label-note', '(required)');
-        setText('current-file-note', '');
-        setDisplay('extract-section', 'block');
-        document.getElementById('extract-file-input').required = true;
-        document.getElementById('capstone-form').action =
-            "/repository/create";
+        if (!preserveCreateDraft) {
+            resetForm();
+            document.getElementById('form-heading').textContent = 'New Capstone';
+            document.getElementById('form-subheading').textContent = 'Fill in the details to add a capstone to the archive.';
+            document.getElementById('btn-submit-label').textContent = 'Submit Capstone';
+            setText('file-label-note', '(required)');
+            setText('current-file-note', '');
+            setDisplay('extract-section', 'block');
+            document.getElementById('extract-file-input').required = true;
+            document.getElementById('capstone-form').action =
+                "/repository/create";
+        }
+        preserveCreateDraft = false;
         showForm();
     }
     // exposed on window: repository.html calls this from an inline onclick="" attribute
     window.openCreate = openCreate;
 
     function openEdit(btn) {
+        preserveCreateDraft = false;
         resetForm();
 
         const id = btn.dataset.id;
@@ -116,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('field-capstone-id').value = '';
         setField('extracted-filename', '');
         setDisplay('keyword-chips', 'none');
+        setDisplay('extract-status', 'none');
         goToStep(1);
     }
 
@@ -172,12 +181,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('repo-modal-open');
     }
 
+    function closeForm() {
+        preserveCreateDraft = false;
+        showList();
+    }
+
     btnOpenCreate.addEventListener('click', openCreate);
-    btnCloseForm.addEventListener('click', showList);
-    btnCancel.addEventListener('click', showList);
-    document.getElementById('btn-cancel-2')?.addEventListener('click', showList);
+    btnCloseForm.addEventListener('click', closeForm);
+    btnCancel.addEventListener('click', closeForm);
+    document.getElementById('btn-cancel-2')?.addEventListener('click', closeForm);
     panelForm.addEventListener('click', event => {
-        if (event.target === panelForm) showList();
+        if (event.target !== panelForm) return;
+        preserveCreateDraft = !document.getElementById('field-capstone-id').value;
+        showList();
     });
 
     // Wire up all Edit buttons
@@ -193,12 +209,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // literal + innerHTML — the icon class is always ours (safe), but the
     // message text may contain a filename or server text we don't fully
     // control, so it's inserted as a text node, never as raw HTML.
-    function setExtractStatus(iconClass, message) {
+    function setExtractStatus(iconClass, message, dismissible = false) {
         extractStatus.innerHTML = '';
         const icon = document.createElement('i');
         icon.className = iconClass;
         extractStatus.appendChild(icon);
-        extractStatus.appendChild(document.createTextNode(' ' + message));
+
+        const messageText = document.createElement('span');
+        messageText.className = 'extract-status__message';
+        messageText.textContent = message;
+        extractStatus.appendChild(messageText);
+
+        if (dismissible) {
+            const closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'extract-status__close';
+            closeButton.setAttribute('aria-label', 'Dismiss notification');
+            closeButton.title = 'Dismiss';
+
+            const closeIcon = document.createElement('i');
+            closeIcon.className = 'bx bx-x';
+            closeButton.appendChild(closeIcon);
+            closeButton.addEventListener('click', () => {
+                extractStatus.style.display = 'none';
+            });
+            extractStatus.appendChild(closeButton);
+        }
     }
 
     if (extractInput) {
@@ -223,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!json.success) {
                     extractStatus.className = 'extract-status extract-status--error';
-                    setExtractStatus('bx bx-error-circle', json.error);
+                    setExtractStatus('bx bx-error-circle', json.error, true);
                     return;
                 }
 
@@ -235,10 +271,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 extractStatus.className = 'extract-status extract-status--success';
                 setExtractStatus('bx bx-check-circle',
-                    `Fields pre-filled from ${file.name}. Review everything below before submitting.`);
+                    `Fields pre-filled from ${file.name}. Review everything below before submitting.`, true);
             } catch (err) {
                 extractStatus.className = 'extract-status extract-status--error';
-                setExtractStatus('bx bx-error-circle', 'Extraction failed: ' + err.message);
+                setExtractStatus('bx bx-error-circle', 'Extraction failed: ' + err.message, true);
             }
         });
     }

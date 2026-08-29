@@ -497,6 +497,41 @@ body.repo-modal-open {
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
+.people-section {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.people-section > legend {
+    width: 100%;
+    margin-bottom: var(--space-md);
+    padding: 0 0 var(--space-sm);
+    border-bottom: var(--border-light);
+    color: var(--text-dark);
+    font-size: var(--text-sm);
+    font-weight: 700;
+}
+
+.people-section > legend .label-note {
+    margin-left: var(--space-xs);
+}
+
+.people-section > .form-row + .form-row {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px dashed var(--border-color);
+}
+
+.person-name-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.person-name-row .form-group {
+    min-width: 0;
+}
+
 @media (max-width: 768px) {
     .repo-section { padding: var(--space-md); }
 
@@ -547,6 +582,38 @@ body.repo-modal-open {
 }
 
 .extract-status i { font-size: 18px; flex-shrink: 0; }
+
+.extract-status__message {
+    flex: 1;
+}
+
+.extract-status__close {
+    display: inline-grid;
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    margin-left: auto;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.extract-status__close:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.extract-status__close:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.extract-status__close i {
+    font-size: 20px;
+}
 
 .extract-status--loading {
     background: #EEF2FF;

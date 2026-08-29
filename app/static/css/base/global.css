@@ -51,20 +51,8 @@ main {
     overflow-y: auto;
 }
 
-#page-content {
-    transition: opacity 180ms ease, transform 180ms ease;
-}
-
-#page-content.page-content--leaving {
-    opacity: 0;
-    transform: translateY(-10px);
-    transition-timing-function: ease-in;
-}
-
-#page-content.page-content--entering {
-    opacity: 0;
-    transform: translateY(14px);
-    transition-timing-function: ease-out;
+#page-content:focus {
+    outline: none;
 }
 
 /* Give eyes time when theme colors change. */
@@ -80,11 +68,5 @@ html.theme-transitioning body *::after {
 @media (max-width: 900px) {
     main {
         padding: 14px;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    #page-content {
-        transition: none;
     }
 }

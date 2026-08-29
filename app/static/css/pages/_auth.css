@@ -379,31 +379,6 @@ main:has(.auth-shell) {
 
 .auth-form-card__footer a:hover { text-decoration: underline; }
 
-.flash-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-}
-
-.auth-form-card .flash-list {
-    position: static;
-    top: auto;
-    right: auto;
-    bottom: auto;
-    left: auto;
-    width: 100%;
-    margin: 0 0 var(--space-lg);
-    transform: none;
-    pointer-events: auto;
-}
-
-.auth-form-card .flash-list li {
-    width: 100%;
-}
-
 .otp-input {
     text-align: center !important;
     font-size: 27px !important;

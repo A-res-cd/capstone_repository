@@ -284,7 +284,8 @@ CREATE TABLE IF NOT EXISTS request (
 
     CONSTRAINT fk_request_capstone
         FOREIGN KEY (capstone_id)
-        REFERENCES capstone(capstone_id),
+        REFERENCES capstone(capstone_id)
+        ON DELETE SET NULL,
 
     CONSTRAINT fk_request_reviewer
         FOREIGN KEY (reviewed_by)

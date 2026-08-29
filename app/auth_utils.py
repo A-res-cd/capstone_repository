@@ -1,5 +1,5 @@
 
-from flask import session, g
+from flask import session, g, request
 from app.db.database import db_connect
 import psycopg2.extras
 
@@ -27,7 +27,10 @@ def get_current_user(user_id):
 
 
 def load_current_user():
-    """Load current user from PostgreSQL every request."""
+    """Load the current user for application requests."""
+
+    if request.endpoint == "static":
+        return
 
     user_id = session.get("user_id")
     if not user_id:

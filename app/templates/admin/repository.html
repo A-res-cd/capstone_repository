@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_repository.css') }}">
 {% endblock %}
 
-{% block title %}Repository Management{% endblock %}
+{% block title %}Repository Management | CAPRE{% endblock %}
 
 {% block content %}
 <section class="repo-section">
@@ -293,10 +293,10 @@
                 ══════════════════════════════════════════════ #}
                 <div class="form-step form-step--hidden" data-step="2">
 
-                <fieldset class="form-group form-group--full">
-                    <legend>Authors (up to 4)</legend>
+                <fieldset class="form-group form-group--full people-section">
+                    <legend>Authors <span class="label-note">Up to 4</span></legend>
                     {% for i in range(4) %}
-                    <div class="form-row">
+                    <div class="form-row person-name-row">
                         <div class="form-group">
                             <label for="authors-{{ i }}-first_name">Author {{ i + 1 }} — First</label>
                             <input type="text" id="authors-{{ i }}-first_name" name="authors-{{ i }}-first_name" placeholder="First name">
@@ -313,9 +313,9 @@
                     {% endfor %}
                 </fieldset>
 
-                <fieldset class="form-group form-group--full">
+                <fieldset class="form-group form-group--full people-section">
                     <legend>Adviser <span class="req">*</span></legend>
-                    <div class="form-row">
+                    <div class="form-row person-name-row">
                         <div class="form-group">
                             <label for="adviser-first_name">First <span class="req">*</span></label>
                             <input type="text" id="adviser-first_name" name="adviser-first_name" placeholder="First name" required>
