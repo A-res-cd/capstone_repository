@@ -210,7 +210,6 @@ CREATE TABLE IF NOT EXISTS capstone (
     capstone_title VARCHAR(255),
     capstone_year INT,
     capstone_file TEXT,
-    citation_count INT,
     semester VARCHAR(20),
     term INT,
     is_archived BOOLEAN DEFAULT FALSE,

@@ -39,18 +39,20 @@
                 <i class='bx bx-moon theme-toggle__icon theme-toggle__icon--dark'></i>
                 <i class='bx bx-sun theme-toggle__icon theme-toggle__icon--light'></i>
             </button>
-            <div class="header-user__avatar">
-                <span>{{ current_user.initials }}</span>
-            </div>
-            <div class="header-user__info">
-                <span class="header-user__name">{{ current_user.display_name }}</span>
-                {% if role_meta %}
-                <span class="header-user__role {{ role_meta.badge_class }}">
-                    <i class="{{ role_meta.icon }}"></i>
-                    {{ role_meta.label }}
+            <a href="{{ url_for('pages.user_info') }}" class="header-user__profile" aria-label="Open user profile">
+                <span class="header-user__avatar" aria-hidden="true">
+                    <span>{{ current_user.initials }}</span>
                 </span>
-                {% endif %}
-            </div>
+                <span class="header-user__info">
+                    <span class="header-user__name">{{ current_user.display_name }}</span>
+                    {% if role_meta %}
+                    <span class="header-user__role {{ role_meta.badge_class }}">
+                        <i class="{{ role_meta.icon }}"></i>
+                        {{ role_meta.label }}
+                    </span>
+                    {% endif %}
+                </span>
+            </a>
         </div>
 
     </div>

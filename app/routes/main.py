@@ -29,6 +29,8 @@ def inject_global_template_vars():
 
     nav_links, nav_sections = get_nav_links(role)
     role_meta = get_role_meta(role)
+    first_name = g.user.get("user_first_name") or session.get("first_name", "")
+    last_name = g.user.get("user_last_name") or session.get("last_name", "")
 
     for link in nav_links:
         try:
@@ -51,17 +53,16 @@ def inject_global_template_vars():
         "current_user": {
             "username":     session.get("username"),
             "user_id":      session.get("user_id"),
-            "first_name":   session.get("first_name", ""),
-            "last_name":    session.get("last_name", ""),
+            "first_name":   first_name,
+            "last_name":    last_name,
             # Full name for display — falls back to username if name not set
             "display_name": (
-                f"{session.get('first_name', '')} {session.get('last_name', '')}".strip()
+                f"{first_name} {last_name}".strip()
                 or session.get("username", "")
             ),
             # Initials for the avatar circle — up to 2 letters
             "initials": (
-                (session.get("first_name", "") or "")[:1].upper() +
-                (session.get("last_name",  "") or "")[:1].upper()
+                first_name[:1].upper() + last_name[:1].upper()
             ) or (session.get("username", "?")[:1].upper()),
         },
         "current_path": request.path,

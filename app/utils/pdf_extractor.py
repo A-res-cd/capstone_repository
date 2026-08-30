@@ -215,7 +215,8 @@ def extract_capstone_data(pdf_path: str) -> dict:
 
     except Exception as exc:
         # Return whatever was collected before the error; never crash the route
-        result['_error'] = str(exc)
-    logger.debug("Extracted capstone data: %s", result)
+        logger.error("Could not fully extract capstone PDF: %s", exc)
+        result['_error'] = "Could not fully extract metadata from this PDF."
+    logger.debug("Capstone extraction completed with fields: %s", sorted(result))
     return result
     

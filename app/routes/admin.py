@@ -11,7 +11,7 @@ from app.db.database import (
     get_capstone_details, update_capstone_record, update_keyword,
     delete_capstone, get_users, update_user_role, get_all_roles, set_account_status,
     get_all_requests, review_request, set_capstone_people, get_capstone_people,
-    get_capstones_by_specialization, get_requests_by_status, get_top_cited_capstones, add_to_bin,
+    get_capstones_by_specialization, get_requests_by_status, add_to_bin,
     restore_capstone, ARCHIVE_RETENTION_DAYS,
     get_pending_verifications, review_verification_request,
     get_pending_promotion_requests, review_promotion_request,
@@ -88,7 +88,6 @@ def _people_for_db(form):
 def extract_capstone_pdf():
     file = request.files.get('capstone_file')
 
-    print("File extracted")
     if not file or file.filename == '':
         return jsonify({'success': False, 'error': 'No file uploaded.'}), 400
 
@@ -146,14 +145,27 @@ def dev_debug():
         return render_template("admin/dev_debug_troll.html")
 
     # ── The real tool — admin-only internal debug panel ──
-    sensitive_keys = {"SECRET_KEY", "PG_PASSWORD", "MAIL_PASSWORD"}
+    safe_config_keys = {
+        "DEBUG", "TESTING", "MAX_CONTENT_LENGTH",
+        "SESSION_COOKIE_HTTPONLY", "SESSION_COOKIE_SAMESITE",
+        "SESSION_COOKIE_SECURE",
+    }
     config_items = sorted(
-        (k, ("••••••••" if k in sensitive_keys else v))
+        (k, v)
         for k, v in current_app.config.items()
-        if k.isupper() and not callable(v)
+        if k in safe_config_keys and not callable(v)
     )
 
-    session_items = sorted(session.items())
+    session_items = sorted((key, "set") for key in session.keys())
+
+    safe_header_names = {
+        "Accept", "Accept-Encoding", "Accept-Language", "Host", "User-Agent",
+    }
+    request_headers = sorted(
+        (key, value)
+        for key, value in request.headers.items()
+        if key in safe_header_names
+    )
 
     routes = sorted(
         (
@@ -171,7 +183,7 @@ def dev_debug():
         routes=routes,
         python_version=sys.version.split()[0],
         flask_version=flask.__version__,
-        request_headers=sorted(request.headers.items()),
+        request_headers=request_headers,
         troll_odds_pct=round((1 - DEV_DEBUG_REAL_TOOL_CHANCE) * 100),
         debug_mode=current_app.debug,
     )
@@ -589,7 +601,7 @@ def admin_create_capstone():
             success, message = create_capstone_project(
                 keyword_id, form.specialization_id.data, form.program_id.data,
                 form.capstone_title.data, form.capstone_year.data,
-                file_path, form.citation_count.data or 0, form.semester.data,
+                file_path, form.semester.data,
                 acting_user_id=session.get("user_id"),
                 is_utilized=form.is_utilized.data,
                 is_presented=form.is_presented.data,
@@ -670,7 +682,7 @@ def update_capstone(capstone_id):
         success, message = update_capstone_record(
             capstone_id, keyword_id, form.specialization_id.data, form.program_id.data,
             form.capstone_title.data, form.capstone_year.data, file_path,
-            form.citation_count.data or 0, form.semester.data,
+            form.semester.data,
             acting_user_id=session.get("user_id"),
             is_utilized=form.is_utilized.data,
             is_presented=form.is_presented.data,

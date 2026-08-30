@@ -225,33 +225,63 @@ def update_user_role(user_id, new_role_id, acting_admin_id):
         mithrix.close()
         conn.close()
 
-def _run_delete_cascade(mithrix, conn, user_id, acting_id):
+def _run_delete_cascade(mithrix, user_id, acting_id):
     """
     Shared by delete_user_account() (admin-initiated) and
     delete_own_account() (self-service) — the actual hard-delete cascade.
     Order matters — FK constraints cascade from least to most dependent.
     """
-    conn = db_connect()
-    mithrix = conn.cursor()
+    mithrix.execute(
+        'SELECT username_id, password_id FROM slug WHERE user_id = %s',
+        (user_id,),
+    )
+    credential_rows = mithrix.fetchall()
+    username_ids = [row[0] for row in credential_rows]
+    password_ids = [row[1] for row in credential_rows]
+
     # audit first, while user still exists
     log_audit(mithrix, acting_id, "delete_user", "user", user_id)
 
-    # remove auth chain
+    # Preserve shared records without retaining a reference to deleted users.
+    mithrix.execute(
+        'UPDATE "request" SET reviewed_by = NULL WHERE reviewed_by = %s',
+        (user_id,),
+    )
+    mithrix.execute('UPDATE audit SET user_id = NULL WHERE user_id = %s', (user_id,))
+
+    # Remove private reset and authentication data before their parent rows.
+    mithrix.execute("""
+        DELETE FROM password_reset
+        WHERE contact_id IN (
+            SELECT contact_id FROM contact WHERE user_id = %s
+        )
+    """, (user_id,))
     mithrix.execute('DELETE FROM slug WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM login   WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM logOut  WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM signup  WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM contact WHERE user_id = %s', (user_id,))
-
-    # Temporary fix for now, !TODO
-    mithrix.execute('DELETE FROM "audit" WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM "request" WHERE user_id = %s', (user_id,))
 
     # finally the user row itself
     mithrix.execute('DELETE FROM "user"  WHERE user_id = %s', (user_id,))
-    
 
-    conn.commit()
+    if username_ids:
+        mithrix.execute(
+            'DELETE FROM kappa WHERE username_id = ANY(%s)',
+            (username_ids,),
+        )
+    if password_ids:
+        mithrix.execute("""
+            UPDATE ror
+            SET previous_password_id = NULL
+            WHERE previous_password_id = ANY(%s)
+              AND NOT (password_id = ANY(%s))
+        """, (password_ids, password_ids))
+        mithrix.execute(
+            'DELETE FROM ror WHERE password_id = ANY(%s)',
+            (password_ids,),
+        )
 
 
 def delete_user_account(user_id, acting_admin_id):
@@ -265,7 +295,8 @@ def delete_user_account(user_id, acting_admin_id):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
-        _run_delete_cascade(mithrix, conn, user_id, acting_admin_id)
+        _run_delete_cascade(mithrix, user_id, acting_admin_id)
+        conn.commit()
         return True, None
     except Exception as exc:
         conn.rollback()
@@ -317,7 +348,8 @@ def delete_own_account(user_id, password):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
-        _run_delete_cascade(mithrix, conn, user_id, user_id)
+        _run_delete_cascade(mithrix, user_id, user_id)
+        conn.commit()
         return True, None
     except Exception as exc:
         conn.rollback()

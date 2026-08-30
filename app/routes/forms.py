@@ -123,18 +123,6 @@ class CreateCapstoneForm(FlaskForm):
         validators=[DataRequired()]
     )
 
-    citation_count = IntegerField(
-        "Citation Count",
-        default=0,
-        validators=[
-            Optional(),
-            NumberRange(
-                min=0,
-                message="Citation count cannot be negetive."
-            )
-        ]
-    )
-
     capstone_keywords = StringField(
         "Keywords",
         validators=[

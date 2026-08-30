@@ -266,7 +266,8 @@ def get_requests_by_status():
         """)
         return mithrix.fetchall(), None
     except Exception as exc:
-        return [], str(exc)
+        logger.error("Database error: %s", exc)
+        return [], "Request analytics are temporarily unavailable."
     finally:
         mithrix.close()
         conn.close()

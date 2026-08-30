@@ -9,6 +9,7 @@ import psycopg2.extras
 from app.db.connection import db_connect
 
 logger = logging.getLogger(__name__)
+_QUERY_ERROR = "Analytics data is temporarily unavailable."
 
 
 def get_capstones_by_program():
@@ -26,7 +27,8 @@ def get_capstones_by_program():
         """)
         return mithrix.fetchall(), None
     except Exception as exc:
-        return [], str(exc)
+        logger.error("Analytics query failed: %s", exc)
+        return [], _QUERY_ERROR
     finally:
         mithrix.close()
         conn.close()
@@ -54,7 +56,8 @@ def get_capstone_program_summary():
         """)
         return mithrix.fetchall(), None
     except Exception as exc:
-        return [], str(exc)
+        logger.error("Analytics query failed: %s", exc)
+        return [], _QUERY_ERROR
     finally:
         mithrix.close()
         conn.close()
@@ -90,7 +93,8 @@ def get_capstone_trend_by_specialization():
 
         return years, series, None
     except Exception as exc:
-        return [], {}, str(exc)
+        logger.error("Analytics query failed: %s", exc)
+        return [], {}, _QUERY_ERROR
     finally:
         mithrix.close()
         conn.close()
@@ -109,7 +113,8 @@ def get_capstones_by_specialization():
         """)
         return mithrix.fetchall(), None
     except Exception as exc:
-        return [], str(exc)
+        logger.error("Analytics query failed: %s", exc)
+        return [], _QUERY_ERROR
     finally:
         mithrix.close()
         conn.close()
@@ -138,30 +143,10 @@ def get_capstone_status_flags():
         """)
         return mithrix.fetchone(), None
     except Exception as exc:
-        return None, str(exc)
+        logger.error("Analytics query failed: %s", exc)
+        return None, _QUERY_ERROR
     finally:
         mithrix.close()
         conn.close()
-
-def get_top_cited_capstones(limit=5):
-    """Highest citation_count capstones — for the Analytics leaderboard."""
-    conn = db_connect()
-    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
-        mithrix.execute("""
-            SELECT c.capstone_id, c.capstone_title, c.citation_count, p.program_name
-            FROM capstone c
-            JOIN program p ON p.program_id = c.program_id
-            WHERE c.citation_count > 0
-            ORDER BY c.citation_count DESC, c.capstone_title ASC
-            LIMIT %s
-        """, (limit,))
-        return mithrix.fetchall(), None
-    except Exception as exc:
-        return [], str(exc)
-    finally:
-        mithrix.close()
-        conn.close()
-
 
 # FAHHHHH ANG DAMI FUNCTIONSSSSSSSS IM SICK AND TIRED OF THISSSSSSS

@@ -145,8 +145,8 @@ def forgot_password():
 
         try:
             otp, reset_id = create_otp(contact_id)
-        except RuntimeError as e:
-            flash(str(e), "danger")
+        except RuntimeError:
+            flash("Could not start password reset. Please try again.", "danger")
             return render_template("authentication/forgot_password.html", form=form,
                                    hide_nav=True, hide_header=True)
 
@@ -161,7 +161,8 @@ def forgot_password():
                 ),
             ))
         except (SMTPException, OSError) as exc:
-            flash(f"Could not send email: {exc}", "danger")
+            logger.error("Could not send password reset email: %s", exc)
+            flash("Could not send the reset email. Please try again.", "danger")
             return render_template("authentication/forgot_password.html", form=form,
                                    hide_nav=True, hide_header=True)
 

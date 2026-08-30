@@ -3,7 +3,7 @@ import re
 import logging
 from app.db.database import (
 get_archive_capstones, get_archive_years, request_fullview, get_user_requests, get_capstone_details, 
-cancel_manuscript_request, add_citations, get_capstone_authors, get_user_contacts, upsert_user_contact,
+cancel_manuscript_request, get_capstone_authors, get_user_contacts, upsert_user_contact,
 get_capstones_corpus, get_own_profile, change_own_password, delete_own_account,
 get_all_roles, submit_promotion_request, get_own_promotion_requests, cancel_promotion_request,
 get_requestable_capstones,
@@ -424,13 +424,7 @@ def cite_capstone(capstone_id):
         f"[Unpublished capstone project]. "
         f"{capstone['program_name']}."
     )
-    ok, err = add_citations(capstone_id, user_id)
-    if not ok:
-        return jsonify({"error": err}), 500
-    
-    update = get_capstone_details(capstone_id)
-                        
-    return jsonify({"citation": citation, "citation_count": update["citation_count"]})
+    return jsonify({"citation": citation})
 
 
 # ─── Data mining: content-based topic-similarity recommender ───────────

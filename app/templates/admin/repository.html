@@ -83,7 +83,6 @@
                         data-spec="{{ c.specialization_id }}"
                         data-year="{{ c.capstone_year }}"
                         data-semester="{{ c.semester }}"
-                        data-citations="{{ c.citation_count }}"
                         data-file="{{ c.capstone_file }}"
                         data-utilized="{{ 'true' if c.is_utilized else 'false' }}"
                         data-presented="{{ 'true' if c.is_presented else 'false' }}"
@@ -238,11 +237,6 @@
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label for="citation_count">Citation Count</label>
-                        <input type="number" id="citation_count" name="citation_count"
-                               placeholder="0" min="0" value="0">
-                    </div>
                     <div class="form-group">
                         <label for="capstone_keywords">Keywords <span class="req">*</span></label>
                         <input type="text" id="capstone_keywords" name="capstone_keywords"

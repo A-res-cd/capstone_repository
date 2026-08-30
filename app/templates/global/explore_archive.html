@@ -53,7 +53,6 @@
                              data-keywords="{{ project.capstone_keywords }}"
                              data-year="{{ project.capstone_year }}"
                              data-semester="{{ project.semester }}"
-                             data-citations="{{ project.citation_count }}"
                              data-approved="{{ 'true' if project.capstone_id in approved_capstone_ids else 'false' }}">
                             <div class="col-title">
                                 <strong>{{ project.capstone_title }}</strong>
@@ -103,23 +102,19 @@
                                 <div class="sidebar-stat-value" id="sb-term">{{ sidebar_project.semester }}</div>
                                 <div class="sidebar-stat-label">Semester</div>
                             </div>
-                            <div class="sidebar-stat">
-                                <div class="sidebar-stat-value" id="sb-citations">{{ sidebar_project.citation_count }}</div>
-                                <div class="sidebar-stat-label">Citations</div>
-                            </div>
                         </div>
 
                         {% set is_approved = sidebar_project.capstone_id in approved_capstone_ids %}
 
                         <div class="sidebar-actions">
-                            {% if session.get('role_name') in ['Admin', 'Faculty'] %}
+                            {% if session.get('role_name') in ['Admin', 'Faculty', 'Capstone Professor'] %}
                             <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
                                 id="sb-abstract-link" 
                                 class="btn-abstract"
                                 data-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}"
                                 target="_blank"
                                 rel="noopener noreferrer">
-                                View PDF
+                                <i class="bx bx-file"></i> View PDF
                             </a>
                             {% elif session.get('role_name') == 'Student' %}
                             {# Approved students get one link straight to the full manuscript;
@@ -133,7 +128,7 @@
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 {% if not is_approved %}style="display:none"{% endif %}>
-                                View Full Manuscript
+                                 <i class="bx bx-book-open"></i> View Full Manuscript
                             </a>
                             <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
                                 id="sb-abstract-link" 
@@ -142,7 +137,7 @@
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 {% if is_approved %}style="display:none"{% endif %}>
-                                View Abstract
+                                 <i class="bx bx-show"></i> View Abstract
                             </a>
                             {% endif %}
 
@@ -152,11 +147,11 @@
                                href="{{ url_for('pages.request_capstone', capstone_id=sidebar_project.capstone_id) }}"
                                data-base-url="{{ url_for('pages.request_capstone', capstone_id=0) }}"
                                {% if is_approved %}style="display:none"{% endif %}>
-                                Request Full Manuscript
+                                 <i class="bx bx-send"></i> Request Full Manuscript
                             </a>
 
                             <button type="button" id="sb-cite-btn" class="btn-cite">
-                                Cite
+                                <i class="bx bx-copy"></i> <span>Cite</span>
                             </button>
                             {% endif %}
                         </div>
@@ -202,7 +197,7 @@
                     <h3>APA 7 Citation</h3>
                     <p id="cite-modal-text"></p>
                     <div class="sidebar-actions">
-                        <button type="button" id="cite-modal-copy" class="btn-manuscript">Copy</button>
+                        <button type="button" id="cite-modal-copy" class="btn-manuscript"><i class="bx bx-copy"></i> Copy</button>
                     </div>
                     <p id="cite-modal-copied">Copied!</p>
                 </div>

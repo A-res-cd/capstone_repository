@@ -41,7 +41,6 @@
                         <span class="record-card__meta-item"><i class="bx bx-book"></i>{{ c.program_name }}</span>
                         <span class="record-card__meta-item"><i class="bx bx-bookmark"></i>{{ c.specialization_name }}</span>
                         <span class="record-card__meta-item"><i class="bx bx-calendar"></i>{{ c.capstone_year }}{{ (' • Sem ' ~ c.semester) if c.semester else '' }}</span>
-                        <span class="record-card__meta-item"><i class="bx bx-quote-alt-right"></i>{{ c.citation_count or 0 }} citations</span>
                         <span class="record-card__meta-item"><i class="bx bx-archive-in"></i>Archived {{ c.archived_at.strftime('%b %d, %Y %I:%M %p') if c.archived_at else '—' }}</span>
                     </div>
                 </div>

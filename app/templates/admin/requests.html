@@ -102,7 +102,7 @@
                     <div class="sidebar-card__scroll">
                         <div>
                             <p class="sidebar-section-label">Reason</p>
-                            <p id="sd-reason" style="margin: 0; font-size: var(--text-sm);"></p>
+                            <p id="sd-reason" class="sidebar-copy"></p>
                         </div>
                     </div>
 
@@ -110,16 +110,21 @@
                         <div id="sd-action-form">
                             <form method="POST" id="decide-form" action="">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <label for="status_reason">Feedback / Reason (optional)</label>
-                                <textarea name="status_reason" id="status_reason" rows="3"></textarea>
+                                <label for="status_reason" class="sidebar-section-label">Decision feedback</label>
+                                <textarea name="status_reason" id="status_reason" rows="3" class="sidebar-textarea" placeholder="Add an optional note for the requester"></textarea>
                                 <div class="sidebar-actions">
-                                    <button type="submit" name="status" value="approved" class="btn-manuscript">Approve</button>
-                                    <button type="submit" name="status" value="rejected" class="btn-abstract">Reject</button>
+                                    <button type="submit" name="status" value="approved" class="btn-row btn-row--approve sidebar-action">
+                                        <i class="bx bx-check"></i> Approve
+                                    </button>
+                                    <button type="submit" name="status" value="rejected" class="btn-row btn-row--reject sidebar-action">
+                                        <i class="bx bx-x"></i> Reject
+                                    </button>
                                 </div>
                             </form>
                         </div>
 
                         <div id="sd-already-decided" style="display: none;">
+                            <p class="sidebar-section-label">Decision feedback</p>
                             <div class="sidebar-meta-row">
                                 <i class="bx bx-chat"></i>
                                 <span id="sd-feedback"></span>

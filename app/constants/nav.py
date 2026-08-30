@@ -107,14 +107,14 @@ def get_nav_links(role):
         # --- Not a real DFD process — an internal dev tool that mostly
         # trolls, occasionally shows something actually useful. Admin
         # only; see admin.dev_debug for the odds. ---
-        {
-            "name": "Developer Debug Tool",
-            "title": "Developer Debug Tool",
-            "url": "admin.dev_debug",
-            "icon": "bx bx-terminal",
-            "roles": ["Admin"],
-            "section": "Account"
-        },
+        # {
+        #     "name": "Developer Debug Tool",
+        #     "title": "Developer Debug Tool",
+        #     "url": "admin.dev_debug",
+        #     "icon": "bx bx-terminal",
+        #     "roles": ["Admin"],
+        #     "section": "Account"
+        # },
     ]
 
     # Filter links by role

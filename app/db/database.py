@@ -42,7 +42,7 @@ from app.db.capstones import (
     get_specializations, get_used_keyword, update_keyword,
     get_capstone_details, update_capstone_record, get_all_capstones,
     get_capstone_authors, get_capstone_people, set_capstone_people,
-    add_citations, get_capstones_corpus,
+    get_capstones_corpus,
 )
 
 from app.db.archive import (
@@ -68,5 +68,5 @@ from app.db.requests import (
 from app.db.analytics import (
     get_capstones_by_program, get_capstone_program_summary,
     get_capstone_trend_by_specialization, get_capstones_by_specialization,
-    get_capstone_status_flags, get_top_cited_capstones,
+    get_capstone_status_flags,
 )

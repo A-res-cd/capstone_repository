@@ -250,6 +250,7 @@ main:has(.explore-archive-section) {
 .status-badge--pending  { color: var(--status-pending); }
 .status-badge--approved { color: var(--status-approved); }
 .status-badge--rejected { color: var(--status-rejected); }
+.status-badge--cancelled { color: var(--status-cancelled); }
 
 /* Empty state — this page's variant needs flex: 1 to fill the
    remaining column height, so it's kept local rather than reusing

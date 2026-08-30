@@ -78,7 +78,13 @@ class _PooledConnection:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        return self._connection.__exit__(exc_type, exc_value, traceback)
+        connection = self._connection
+        if connection is None:
+            raise psycopg2.InterfaceError("connection already returned to pool")
+        try:
+            return connection.__exit__(exc_type, exc_value, traceback)
+        finally:
+            self.close()
 
 
 def db_connect():

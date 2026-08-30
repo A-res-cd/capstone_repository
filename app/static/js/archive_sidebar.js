@@ -16,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('sb-spec').textContent = card.dataset.spec;
             document.getElementById('sb-year').textContent = card.dataset.year;
             document.getElementById('sb-term').textContent = card.dataset.semester;
-            document.getElementById('sb-citations').textContent = card.dataset.citations;
 
             const tagsContainer = document.getElementById('sb-keywords-tags');
             if (tagsContainer) {
@@ -93,8 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
         citeBtn.addEventListener('click', async () => {
             if (!selectedCapstoneId) return;
 
+            const citeLabel = citeBtn.querySelector('span');
             citeBtn.disabled = true;
-            citeBtn.textContent = 'Citing…';
+            if (citeLabel) citeLabel.textContent = 'Citing…';
 
             try {
                 const res = await fetch(`/cite/${selectedCapstoneId}`, {
@@ -109,12 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     modalText.textContent = data.error || 'Something went wrong.';
                 } else {
                     modalText.textContent = data.citation;
-
-                    const sbCitations = document.getElementById('sb-citations');
-                    if (sbCitations) sbCitations.textContent = data.citation_count;
-
-                    const selectedCard = document.querySelector(`.archive-card[data-id="${selectedCapstoneId}"]`);
-                    if (selectedCard) selectedCard.dataset.citations = data.citation_count;
                 }
 
                 copiedMsg.style.display = 'none';
@@ -125,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 overlay.style.display = 'flex';
             } finally {
                 citeBtn.disabled = false;
-                citeBtn.textContent = 'Cite';
+                if (citeLabel) citeLabel.textContent = 'Cite';
             }
         });
     }

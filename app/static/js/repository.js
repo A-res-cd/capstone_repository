@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const spec = btn.dataset.spec;
         const year = btn.dataset.year;
         const semester = btn.dataset.semester;
-        const citations = btn.dataset.citations;
         const file = btn.dataset.file;
         const utilized = btn.dataset.utilized === 'true';
         const presented = btn.dataset.presented === 'true';
@@ -68,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('capstone_title').value = title;
         document.getElementById('capstone_keywords').value = keywords;
         document.getElementById('capstone_year').value = year;
-        document.getElementById('citation_count').value = citations || 0;
         document.getElementById('is_utilized').checked = utilized;
         document.getElementById('is_presented').checked = presented;
         document.getElementById('is_copyright_registered').checked = copyrightRegistered;

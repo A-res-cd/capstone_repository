@@ -379,11 +379,13 @@ def sign_in(username, password, device_ip=None):
         conn.commit()
 
         return {
-            "user_id":   user_id,
-            "username":  row["username"],
-            "role_id":   row["role_id"],
-            "role_name": row["role_name"],
-            "log_in_id": log_in_id,
+            "user_id":         user_id,
+            "username":        row["username"],
+            "role_id":         row["role_id"],
+            "role_name":       row["role_name"],
+            "user_first_name": row["user_first_name"],
+            "user_last_name":  row["user_last_name"],
+            "log_in_id":       log_in_id,
         }, None
 
     except Exception as exc:
@@ -460,7 +462,7 @@ def create_otp(contact_id):
 
     except Exception as exc:
         logger.error("Error: %s", exc)
-        raise RuntimeError(f"Could not create OTP: {exc}")
+        raise RuntimeError("Could not create OTP.") from exc
 
     finally:
         mithrix.close()
