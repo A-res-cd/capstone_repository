@@ -10,20 +10,27 @@
                     <div class="nav-section">
                         <span class="nav-section-label">{{ section_name }}</span>
                         {% for link in section_links %}
+                            {% set pending_count = nav_pending_counts.get(link._endpoint, 0) %}
                             {% set is_active = (
                                 current_path == link.url or
                                 (link._endpoint in breadcrumb_endpoints)
                             ) %}
                             <a href="{{ link.url }}"
                                class="nav-item {% if is_active %}active{% endif %}">
-                                <i class="{{ link.icon }}"></i>
-                                <span>{{ link.name }}</span>
-                            </a>
+                                 <i class="{{ link.icon }}"></i>
+                                 <span>{{ link.name }}</span>
+                                 {% if pending_count %}
+                                 <span class="nav-alert-dot" role="status"
+                                       aria-label="{{ pending_count }} pending request{{ 's' if pending_count != 1 else '' }}"
+                                       title="{{ pending_count }} pending request{{ 's' if pending_count != 1 else '' }}"></span>
+                                 {% endif %}
+                             </a>
                         {% endfor %}
                     </div>
                 {% endfor %}
             {% else %}
                 {% for link in nav_links %}
+                    {% set pending_count = nav_pending_counts.get(link._endpoint, 0) %}
                     {% set is_active = (
                         current_path == link.url or
                         (link._endpoint in breadcrumb_endpoints)
@@ -32,6 +39,11 @@
                        class="nav-item {% if is_active %}active{% endif %}">
                         <i class="{{ link.icon }}"></i>
                         <span>{{ link.name }}</span>
+                        {% if pending_count %}
+                        <span class="nav-alert-dot" role="status"
+                              aria-label="{{ pending_count }} pending request{{ 's' if pending_count != 1 else '' }}"
+                              title="{{ pending_count }} pending request{{ 's' if pending_count != 1 else '' }}"></span>
+                        {% endif %}
                     </a>
                 {% endfor %}
             {% endif %}

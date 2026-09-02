@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_propose-topic.css') }}">
 {% endblock %}
 
-{% block title %}Propose Topic{% endblock %}
+{% block title %}Propose Topic | CAPRE{% endblock %}
 
 {% block content %}
 <section class="propose-topic-section">
@@ -51,6 +51,48 @@
         </div>
 
     </div>
+
+    <section class="topic-readiness" aria-labelledby="topic-readiness-heading">
+        <div class="topic-readiness__head">
+            <div>
+                <h3 id="topic-readiness-heading">Topic Readiness</h3>
+                <p>Live guidance based on your title, keywords, and archive matches.</p>
+            </div>
+            <span class="topic-readiness__privacy"><i class="bx bx-shield-quarter"></i> Not saved</span>
+        </div>
+
+        <div class="topic-readiness__grid">
+            <article class="topic-readiness__metric" id="pt-metric-title">
+                <span>Title</span>
+                <strong id="pt-readiness-title">Add a working title</strong>
+            </article>
+            <article class="topic-readiness__metric" id="pt-metric-keywords">
+                <span>Keywords</span>
+                <strong id="pt-readiness-keywords">Add 3–5 keywords</strong>
+            </article>
+            <article class="topic-readiness__metric" id="pt-metric-similarity">
+                <span>Similarity</span>
+                <strong id="pt-readiness-similarity">Waiting for a title</strong>
+            </article>
+            <article class="topic-readiness__metric" id="pt-metric-specialization">
+                <span>Possible specialization</span>
+                <strong id="pt-readiness-specialization">No suggestion yet</strong>
+            </article>
+        </div>
+
+        <div class="topic-readiness__details">
+            <div>
+                <span class="topic-readiness__label">Suggested related keywords</span>
+                <div class="topic-readiness__suggestions" id="pt-keyword-suggestions">
+                    <span class="topic-readiness__placeholder">Suggestions appear after archive matches are found.</span>
+                </div>
+            </div>
+            <div>
+                <span class="topic-readiness__label">Next step</span>
+                <p class="topic-readiness__guidance" id="pt-readiness-guidance">Enter a specific working title, then add keywords that describe the problem, users, and technology.</p>
+            </div>
+        </div>
+    </section>
 </section>
 {% endblock %}
 

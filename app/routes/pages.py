@@ -1,4 +1,4 @@
-from flask import Blueprint, abort, render_template, request, flash, session, redirect, url_for, jsonify, send_file, g
+from flask import Blueprint, Response, abort, render_template, request, flash, session, redirect, url_for, jsonify, send_file, g
 import re
 import logging
 from app.db.database import (
@@ -6,12 +6,14 @@ get_archive_capstones, get_archive_years, request_fullview, get_user_requests, g
 cancel_manuscript_request, get_capstone_authors, get_user_contacts, upsert_user_contact,
 get_capstones_corpus, get_own_profile, change_own_password, delete_own_account,
 get_all_roles, submit_promotion_request, get_own_promotion_requests, cancel_promotion_request,
-get_requestable_capstones,
+get_requestable_capstones, get_programs, get_specializations,
+get_saved_capstone_ids, toggle_saved_capstone,
 )
 from app.routes.decorators import login_required, role_required, can_view_full_manuscript
 from app.routes.forms import ChangePasswordForm
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 from app.services.recommender import TopicRecommender
+from app.services.citations import citation_download_metadata, format_citation
 
 pages = Blueprint("pages", __name__)
 logger = logging.getLogger(__name__)
@@ -24,18 +26,36 @@ PHONE_PATTERN = re.compile(r'^[0-9+()\-\s]{7,20}$')
 @pages.route("/archive")
 @login_required
 def browse():
-    search      = request.args.get("search", "").strip()
-    year        = request.args.get("year", "").strip()
-    page        = max(1, request.args.get("page", 1, type=int))
+    search = request.args.get("search", "").strip()
+    year = request.args.get("year", "").strip()
+    adviser = request.args.get("adviser", "").strip()
+    selected_specialization = request.args.get("specialization", type=int)
+    selected_program        = request.args.get("program", type=int)
+    sort = request.args.get("sort", "newest")
+    saved_only = request.args.get("saved") == "1"
+    page = max(1, request.args.get("page", 1, type=int))
+
+    if sort not in {"relevance", "newest", "oldest", "title"}:
+        sort = "newest"
+
+    user_id = session.get("user_id")
+    saved_capstone_ids = get_saved_capstone_ids(user_id) if user_id else set()
 
     projects, total = get_archive_capstones(
         search=search or None,
         year=year   or None,
         page=page,
         page_size=PAGE_SIZE,
+        specialization=selected_specialization,
+        program=selected_program,
+        adviser=adviser or None,
+        sort=sort,
+        saved_by=user_id if saved_only else None,
     )
 
     years       = get_archive_years()
+    programs = sorted(get_programs(), key=lambda row: str(row[1] or ""))
+    specializations = sorted(get_specializations(), key=lambda row: str(row[1] or ""))
     total_pages = max(1, -(-total // PAGE_SIZE))   # ceiling division
 
     # sidebar shows the first result by default (or None when list is empty)
@@ -47,7 +67,6 @@ def browse():
     approved_capstone_ids = []
     current_role = g.user.get("role_name") if g.user else None
     if current_role == "Student":
-        user_id = session.get("user_id")
         if user_id:
             approved_capstone_ids = [
                 r["capstone_id"] for r in get_user_requests(user_id)
@@ -61,12 +80,30 @@ def browse():
         years=years,
         search=search,
         selected_year=year,
+        adviser=adviser,
+        programs=programs,
+        specializations=specializations,
+        selected_program=selected_program,
+        selected_specialization=selected_specialization,
+        selected_sort=sort,
+        saved_only=saved_only,
+        saved_capstone_ids=saved_capstone_ids,
         page=page,
+        page_size=PAGE_SIZE,
         total=total,
         total_pages=total_pages,
         sidebar_project=sidebar_project,
         approved_capstone_ids=approved_capstone_ids,
     )
+
+
+@pages.route("/saved-capstones/<int:capstone_id>", methods=["POST"])
+@login_required
+def toggle_saved_capstone_route(capstone_id):
+    ok, saved, error = toggle_saved_capstone(session.get("user_id"), capstone_id)
+    if not ok:
+        return jsonify({"error": error}), 400
+    return jsonify({"saved": saved})
 
 
 @pages.route("/user-info")
@@ -388,7 +425,7 @@ def manuscript_file(capstone_id):
     return send_file(file_path, mimetype=manuscript_mimetype(file_path))
 
 
-@pages.route("/cite/<int:capstone_id>", methods=["POST"])
+@pages.route("/cite/<int:capstone_id>", methods=["GET", "POST"])
 def cite_capstone(capstone_id):
     user_id = session.get("user_id")
     if not user_id:
@@ -398,33 +435,28 @@ def cite_capstone(capstone_id):
     if not capstone:
         return jsonify({"error": "capstone not found"}), 404
     
-    authors = get_capstone_authors(capstone_id)
+    payload = request.get_json(silent=True) or {}
+    format_name = str(
+        payload.get("format") or request.args.get("format") or "apa"
+    ).lower()
+    authors = list(get_capstone_authors(capstone_id))
 
-    author_parts = []
+    try:
+        citation = format_citation(capstone, authors, format_name)
+        filename, mimetype = citation_download_metadata(capstone, format_name)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
 
-    for a in authors:
-        last = a["aut_last_name"]
-        first_initial = a["aut_first_name"][0] + "." if a ["aut_first_name"] else ""
-        middle_intitial = a["aut_middle_name"][0] + "." if a ["aut_middle_name"] else ""
-        if middle_intitial:
-            author_parts.append(f"{last}, {first_initial} {middle_intitial}")
-        else:
-            author_parts.append(f"{last}, {first_initial}")
+    if request.args.get("download") == "1":
+        response = Response(citation, content_type=f"{mimetype}; charset=utf-8")
+        response.headers.set("Content-Disposition", "attachment", filename=filename)
+        return response
 
-    if len(author_parts) == 0:
-        author_str = "Unknown Author"
-    elif len(author_parts) == 1:
-        author_str = author_parts[0]
-    else:
-        author_str = ", ".join(author_parts[:-1]) + ", &" + author_parts[-1]
-
-    citation = (
-        f"{author_str} ({capstone['capstone_year']}). "
-        f"{capstone['capstone_title']} "
-        f"[Unpublished capstone project]. "
-        f"{capstone['program_name']}."
-    )
-    return jsonify({"citation": citation})
+    return jsonify({
+        "citation": citation,
+        "format": format_name,
+        "filename": filename,
+    })
 
 
 # ─── Data mining: content-based topic-similarity recommender ───────────

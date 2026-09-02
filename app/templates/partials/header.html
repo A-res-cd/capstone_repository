@@ -35,6 +35,44 @@
 
         <!-- USER — moved here from the sidebar to reclaim vertical space -->
         <div class="header-user">
+            <div class="notification-menu" id="notification-menu">
+                <button type="button" id="notification-toggle" class="notification-toggle"
+                        aria-label="Notifications{% if notification_unread_count %}, {{ notification_unread_count }} unread{% endif %}"
+                        aria-expanded="false" aria-controls="notification-panel">
+                    <i class="bx bx-bell"></i>
+                    {% if notification_unread_count %}
+                    <span class="notification-badge">{{ '99+' if notification_unread_count > 99 else notification_unread_count }}</span>
+                    {% endif %}
+                </button>
+                <div class="notification-panel" id="notification-panel" hidden>
+                    <div class="notification-panel__header">
+                        <strong>Notifications</strong>
+                        {% if notification_unread_count %}
+                        <button type="button" id="notifications-mark-read">Mark all read</button>
+                        {% endif %}
+                    </div>
+                    <div class="notification-list">
+                        {% for item in notifications %}
+                        {% set destination = url_for('pages.all_requests') if item.request_type == 'manuscript' else url_for('pages.user_info') %}
+                        <a href="{{ destination }}" class="notification-item{% if not item.notification_seen_at %} is-unread{% endif %}">
+                            <i class="bx {{ 'bx-check-circle' if item.request_status == 'approved' else 'bx-x-circle' }}"></i>
+                            <span>
+                                <strong>
+                                    {% if item.request_type == 'manuscript' %}Manuscript request
+                                    {% elif item.request_type == 'promotion' %}Role request
+                                    {% else %}Account request{% endif %}
+                                    {{ item.request_status }}
+                                </strong>
+                                <small>{{ item.capstone_title or item.target_role_name or (item.status_reason or 'Review completed') }}</small>
+                                <time>{{ item.decision_date.strftime('%b %d, %Y - %I:%M %p') }}</time>
+                            </span>
+                        </a>
+                        {% else %}
+                        <p class="notification-empty">No decisions yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
             <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" aria-pressed="false" title="Toggle dark mode">
                 <i class='bx bx-moon theme-toggle__icon theme-toggle__icon--dark'></i>
                 <i class='bx bx-sun theme-toggle__icon theme-toggle__icon--light'></i>

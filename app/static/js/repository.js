@@ -1,10 +1,26 @@
 document.addEventListener('DOMContentLoaded', () => {
-    function confirmDelete(id, endpoint = '/delete_capstone/', promptText = 'Delete this capstone? This cannot be undone.') {
-        if (!confirm(promptText)) return;
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    const deleteMessage = document.getElementById('delete-confirm-message');
+    const deleteNote = document.getElementById('delete-confirm-note');
+    const deleteClose = document.getElementById('delete-confirm-close');
+    const deleteCancel = document.getElementById('delete-confirm-cancel');
+    const deleteSubmit = document.getElementById('delete-confirm-submit');
+    const deleteSpinner = document.getElementById('delete-confirm-spinner');
+    const deleteLabel = document.getElementById('delete-confirm-label');
+    let deleteEndpoint = '';
+    let deleteTimer = null;
+    let deleteTrigger = null;
+
+    function submitDelete() {
+        if (!deleteEndpoint || deleteSubmit.disabled) return;
+        deleteSubmit.disabled = true;
+        deleteSpinner.hidden = false;
+        deleteLabel.textContent = 'Deleting...';
+
         const token = document.querySelector('meta[name="csrf-token"]')?.content;
         const f = document.createElement('form');
         f.method = 'POST';
-        f.action = endpoint + id;
+        f.action = deleteEndpoint;
         if (token) {
             const input = document.createElement('input');
             input.type = 'hidden';
@@ -15,8 +31,64 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(f);
         f.submit();
     }
-    // exposed on window: repository.html calls this from an inline onclick="" attribute
-    window.confirmDelete = confirmDelete;
+
+    function closeDeleteModal() {
+        if (!deleteModal || deleteModal.hidden) return;
+        window.clearInterval(deleteTimer);
+        deleteTimer = null;
+        deleteModal.hidden = true;
+        document.body.classList.remove('repo-modal-open');
+        deleteTrigger?.focus();
+        deleteTrigger = null;
+        deleteEndpoint = '';
+    }
+
+    function openDeleteModal(trigger) {
+        if (!deleteModal) return;
+        const itemName = trigger.dataset.deleteItem || 'Untitled item';
+        const isPermanent = trigger.dataset.deleteMode === 'permanent';
+        let secondsLeft = 5;
+
+        deleteTrigger = trigger;
+        deleteEndpoint = trigger.dataset.deleteEndpoint || '';
+        deleteMessage.textContent = `Are you sure you want to delete this item: ${itemName}?`;
+        deleteNote.textContent = isPermanent
+            ? 'This action permanently deletes the item and cannot be undone.'
+            : 'This item will be moved to the Recycle Bin and can be restored later.';
+        deleteSubmit.disabled = true;
+        deleteSpinner.hidden = false;
+        deleteLabel.textContent = `Confirm (${secondsLeft})`;
+        deleteModal.hidden = false;
+        document.body.classList.add('repo-modal-open');
+        deleteCancel.focus();
+
+        window.clearInterval(deleteTimer);
+        deleteTimer = window.setInterval(() => {
+            secondsLeft -= 1;
+            if (secondsLeft > 0) {
+                deleteLabel.textContent = `Confirm (${secondsLeft})`;
+                return;
+            }
+            window.clearInterval(deleteTimer);
+            deleteTimer = null;
+            deleteSpinner.hidden = true;
+            deleteSubmit.disabled = false;
+            deleteLabel.textContent = 'Confirm';
+        }, 1000);
+    }
+
+    document.querySelectorAll('[data-delete-trigger]').forEach((trigger) => {
+        trigger.addEventListener('click', () => openDeleteModal(trigger));
+    });
+    deleteClose?.addEventListener('click', closeDeleteModal);
+    deleteCancel?.addEventListener('click', closeDeleteModal);
+    deleteSubmit?.addEventListener('click', submitDelete);
+    deleteModal?.addEventListener('click', (event) => {
+        if (event.target === deleteModal) closeDeleteModal();
+    });
+    deleteModal?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeDeleteModal();
+    });
 
     // ── Panel switching ─────────────────────────────────────
     const panelForm = document.getElementById('panel-form');
@@ -25,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCancel = document.getElementById('btn-cancel');
     let preserveCreateDraft = false;
 
-    // Recycle Bin reuses confirmDelete but has no repository form panel.
+    // Recycle Bin has no repository form panel.
     if (!panelForm || !btnOpenCreate || !btnCloseForm || !btnCancel) return;
 
     function openCreate() {
@@ -204,11 +276,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const extractedFilenameInput = document.getElementById('extracted-filename');
 
     // Builds the status line as real DOM nodes instead of a template
-    // literal + innerHTML — the icon class is always ours (safe), but the
+    // template string; the icon class is always ours, but the
     // message text may contain a filename or server text we don't fully
     // control, so it's inserted as a text node, never as raw HTML.
     function setExtractStatus(iconClass, message, dismissible = false) {
-        extractStatus.innerHTML = '';
+        extractStatus.replaceChildren();
         const icon = document.createElement('i');
         icon.className = iconClass;
         extractStatus.appendChild(icon);
@@ -344,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('keyword-chips-list');
         if (!container || !list) return;
 
-        list.innerHTML = '';
+        list.replaceChildren();
         keywords.forEach(kw => {
             const btn = document.createElement('button');
             btn.type = 'button';

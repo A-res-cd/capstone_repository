@@ -67,6 +67,28 @@ def _parse_abstract_page(pages):
 
 
 
+_MIDDLE_INITIAL_PATTERN = re.compile(r"(?:[A-Za-z]\.){1,3}|[A-Za-z]{1,3}\.")
+_SURNAME_PARTICLES = {
+    "da", "das", "de", "del", "dela", "della", "di", "do", "dos",
+    "du", "la", "las", "los", "san", "santa", "van", "von",
+}
+
+
+def _format_name_token(token: str) -> str:
+    return token.upper() if _MIDDLE_INITIAL_PATTERN.fullmatch(token) else token.title()
+
+
+def _split_given_names(parts: list[str]) -> tuple[str, str]:
+    """Treat trailing dotted initials as middle names; keep other words as first names."""
+    middle_start = len(parts)
+    while middle_start > 0 and _MIDDLE_INITIAL_PATTERN.fullmatch(parts[middle_start - 1]):
+        middle_start -= 1
+
+    first = " ".join(_format_name_token(part) for part in parts[:middle_start])
+    middle = " ".join(_format_name_token(part) for part in parts[middle_start:])
+    return first, middle
+
+
 def _parse_name_string(raw: str) -> dict | None:
     """
     Parse 'LAST, FIRST [MIDDLE_WORDS...]' (all-caps, cover-page format)
@@ -74,20 +96,43 @@ def _parse_name_string(raw: str) -> dict | None:
 
     Examples handled:
       INDIANA, CHRISTONI G.     -> first=Christoni, middle=G.,         last=Indiana
-      MADULID, ADRIAN MILES R.  -> first=Adrian,    middle=Miles R.,   last=Madulid
-      MAGNO, HYUNG JIN KYLE A.  -> first=Hyung,     middle=Jin Kyle A.,last=Magno
-      OLMO, ELMARK JOSH         -> first=Elmark,    middle=Josh,       last=Olmo
+      MADULID, ADRIAN MILES R.  -> first=Adrian Miles, middle=R.,  last=Madulid
+      DELA CRUZ, ALVIN JAMES DC. -> first=Alvin James, middle=DC., last=Dela Cruz
+      OLMO, ELMARK JOSH         -> first=Elmark Josh, middle='',   last=Olmo
     """
     raw = raw.strip()
     if ',' not in raw:
         return None
     last_part, rest = raw.split(',', 1)
     given_parts = rest.strip().split()
+    if not last_part.strip() or not given_parts:
+        return None
+    first, middle = _split_given_names(given_parts)
     logger.debug("Parsing name string: %s -> last='%s', given_parts=%s", raw, last_part, given_parts)
     return {
-        'first':  given_parts[0].title()                              if given_parts else '',
-        'middle': ' '.join(p.title() for p in given_parts[1:])       if len(given_parts) > 1 else '',
-        'last':   last_part.strip().title(),
+        'first': first,
+        'middle': middle,
+        'last': ' '.join(_format_name_token(part) for part in last_part.split()),
+    }
+
+
+def _parse_natural_name(raw: str) -> dict | None:
+    """Parse FIRST [MIDDLE_INITIALS] LAST, including particle surnames."""
+    words = raw.strip().split()
+    if len(words) < 2:
+        return None
+
+    surname_start = len(words) - 1
+    while surname_start > 0 and words[surname_start - 1].lower().rstrip('.') in _SURNAME_PARTICLES:
+        surname_start -= 1
+    if surname_start == 0:
+        return None
+
+    first, middle = _split_given_names(words[:surname_start])
+    return {
+        'first': first,
+        'middle': middle,
+        'last': ' '.join(_format_name_token(part) for part in words[surname_start:]),
     }
 
 
@@ -116,14 +161,10 @@ def _parse_adviser_from_approval(lines: list[str]) -> dict | None:
             parts = re.split(r'\s{2,}', cleaned)
             adviser_raw = parts[-1].strip() if len(parts) >= 2 else ' '.join(cleaned.split()[len(cleaned.split())//2:])
 
-            words = adviser_raw.strip().split()
-            if len(words) >= 2:
-                logger.debug("Parsed adviser name: %s -> %s", adviser_raw, words)
-                return {
-                    'first':  words[0],
-                    'middle': ' '.join(words[1:-1]) if len(words) > 2 else '',
-                    'last':   words[-1],
-                }
+            parsed = _parse_natural_name(adviser_raw)
+            if parsed:
+                logger.debug("Parsed adviser name: %s -> %s", adviser_raw, parsed)
+                return parsed
     logger.debug("No adviser found in approval sheet lines.")
     return None
 

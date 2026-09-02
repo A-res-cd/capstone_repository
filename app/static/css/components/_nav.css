@@ -135,6 +135,20 @@
                 opacity 0.18s ease;
 }
 
+.nav-item .nav-alert-dot {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    max-width: 8px;
+    margin-left: auto;
+    overflow: visible;
+    border: 2px solid var(--surface-paper);
+    border-radius: 50%;
+    background: var(--status-rejected);
+    box-shadow: 0 0 0 1px rgba(192, 57, 43, 0.18);
+    opacity: 1;
+}
+
 .nav-item:hover {
     background: rgba(46,63,146,0.06);
     color: var(--color-primary);
@@ -193,6 +207,18 @@
 .layout.collapsed .nav-item span {
     opacity: 0;
     max-width: 0;
+}
+
+.layout.collapsed .nav-item .nav-alert-dot {
+    position: absolute;
+    top: 4px;
+    right: 7px;
+    width: 8px;
+    min-width: 8px;
+    max-width: 8px;
+    height: 8px;
+    margin: 0;
+    opacity: 1;
 }
 
 .layout.collapsed .nav-section-label {

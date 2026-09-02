@@ -2,6 +2,7 @@ from functools import wraps
 from flask import session, g, redirect, url_for, flash
 
 from app.db.requests import get_user_requests
+from app.utils.navigation import last_page_url
 
 
 FULL_MANUSCRIPT_ROLES = {"Admin", "Faculty", "Capstone Professor"}
@@ -32,7 +33,7 @@ def role_required(*allowed_roles):
                 user_role = g.user.get("role_id")
             if user_role not in allowed_roles:
                 flash("You don't have permission to access that page.", "danger")
-                return redirect(url_for("auth.signin"))
+                return redirect(last_page_url(url_for("main.home"), avoid_current=True))
 
             return f(*args, **kwargs)
         return decorated_function

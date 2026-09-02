@@ -70,3 +70,9 @@ from app.db.analytics import (
     get_capstone_trend_by_specialization, get_capstones_by_specialization,
     get_capstone_status_flags,
 )
+
+from app.db.qol import (
+    get_saved_capstone_ids, toggle_saved_capstone,
+    get_user_notification_summary, mark_all_notifications_read,
+    get_admin_pending_nav_counts,
+)

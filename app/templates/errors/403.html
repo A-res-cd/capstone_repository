@@ -4,14 +4,14 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_error.css') }}">
 {% endblock %}
 
-{% block title %}Something Went Wrong{% endblock %}
+{% block title %}Access Denied{% endblock %}
 
 {% block content %}
 <section class="error-section">
     <div class="error-card">
-        <span class="error-code">500</span>
-        <h1>Something Went Wrong</h1>
-        <p>An unexpected error occurred on our end. It's been logged — try again in a moment.</p>
+        <span class="error-code">403</span>
+        <h1>Access Denied</h1>
+        <p>You don't have permission to open this page.</p>
         <a href="{{ back_url }}" class="btn-pill btn-pill--primary">
             <i class="bx bx-left-arrow-alt"></i> Back to Previous Page
         </a>

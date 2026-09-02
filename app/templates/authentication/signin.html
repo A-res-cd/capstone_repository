@@ -21,15 +21,18 @@
             </li>
         </ul>
         <script>
-            const unlocksAt = new Date("{{ locked_until }}");
+            const unlocksAt = new Date({{ locked_until | tojson }});
             function updateTimer() {
                 const timer = document.getElementById("lockout-timer");
                 if (!timer) return;
                 const now  = new Date();
                 const diff = Math.max(0, Math.floor((unlocksAt - now) / 1000));
                 if (diff === 0) {
-                    document.getElementById("lockout-banner").innerHTML =
-                        "<li class='flash-success'>&#128275; Account unlocked. You may try again.</li>";
+                    const banner = document.getElementById("lockout-banner");
+                    const message = document.createElement("li");
+                    message.className = "flash-success";
+                    message.textContent = "Account unlocked. You may try again.";
+                    banner.replaceChildren(message);
                     return;
                 }
                 const mins = String(Math.floor(diff / 60)).padStart(2, "0");

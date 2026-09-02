@@ -634,6 +634,44 @@ main:has(.landing-page) {
     flex-wrap: wrap;
 }
 
+/* Dark surfaces need a lighter brand blue than header/background elements. */
+[data-theme="dark"] .hero-title__accent,
+[data-theme="dark"] .role-card h3,
+[data-theme="dark"] .cta-content h2 {
+    color: #9AA7FF;
+}
+
+[data-theme="dark"] .home-btn--outline:hover {
+    color: var(--text-dark);
+    background: #262A35;
+    border-color: #9AA7FF;
+}
+
+[data-theme="dark"] .doc-card--3 {
+    background: #272B35;
+    border-color: #3B404D;
+}
+
+[data-theme="dark"] .doc-card--2 {
+    background: #20242D;
+    border-color: #353A46;
+}
+
+[data-theme="dark"] .doc-card--1::before,
+[data-theme="dark"] .doc-card--1::after,
+[data-theme="dark"] .role-card::before,
+[data-theme="dark"] .role-card::after,
+[data-theme="dark"] .cta-content::before,
+[data-theme="dark"] .cta-content::after {
+    background: var(--surface-page);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="dark"] .doc-card__status {
+    color: #8FE3A7;
+    background: #193426;
+}
+
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */

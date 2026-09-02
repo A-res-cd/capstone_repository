@@ -1,6 +1,6 @@
 (function () {
     const CONTENT_SELECTOR = '#page-content';
-    const CORE_SCRIPTS = ['theme.js', 'index.js', 'navigation.js'];
+    const CORE_SCRIPTS = ['theme.js', 'index.js', 'navigation.js', 'notifications.js'];
     const MOTION = {
         refresh: 360,
         leave: 220,
@@ -146,7 +146,11 @@
     function updateShell(doc, url) {
         const nextBreadcrumb = doc.querySelector('.header-breadcrumb');
         const breadcrumb = document.querySelector('.header-breadcrumb');
-        if (nextBreadcrumb && breadcrumb) breadcrumb.innerHTML = nextBreadcrumb.innerHTML;
+        if (nextBreadcrumb && breadcrumb) {
+            breadcrumb.replaceChildren(
+                ...Array.from(nextBreadcrumb.childNodes, (node) => document.importNode(node, true))
+            );
+        }
 
         document.querySelectorAll('.nav-item').forEach((link) => {
             if (link.classList.contains('logout')) return;
@@ -173,7 +177,10 @@
 
     function runInlineScript(script) {
         return withDOMContentLoadedShim(() => {
-            new Function(script.textContent)();
+            const fresh = document.createElement('script');
+            fresh.textContent = script.textContent;
+            document.body.appendChild(fresh);
+            fresh.remove();
         });
     }
 
@@ -224,7 +231,9 @@
         removeOldStylesheets();
         updateHead(doc);
         updateShell(doc, url);
-        current.innerHTML = next.innerHTML;
+        current.replaceChildren(
+            ...Array.from(next.childNodes, (node) => document.importNode(node, true))
+        );
         current.scrollTop = 0;
 
         await animateEnter(current);

@@ -55,6 +55,15 @@
     justify-content: center;
 }
 
+[data-theme="dark"] .error-code,
+[data-theme="dark"] .error-card h1 {
+    color: #9AA7FF;
+}
+
+[data-theme="dark"] .error-card .btn-pill--primary {
+    background: var(--color-primary-light);
+}
+
 @media (max-width: 480px) {
     .error-section { padding: var(--space-md); }
     .error-code { font-size: 48px; }

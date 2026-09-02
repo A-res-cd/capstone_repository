@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Browse Capstones{% endblock %}
+{% block title %}Browse Capstones | CAPRE{% endblock %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_archive.css') }}">
@@ -16,7 +16,7 @@
                 <div class="filter-group">
                     <span>Search:</span>
                     <input type="text" name="search" class="filter-input"
-                           placeholder="Title or keyword…" value="{{ search }}">
+                           placeholder="Title, keyword, or author…" value="{{ search }}">
                 </div>
                 <div class="filter-group">
                     <span>Year:</span>
@@ -29,8 +29,44 @@
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="btn-filter">Search</button>
-                {% if search or selected_year %}
+                <div class="filter-group">
+                    <span>Program:</span>
+                    <select name="program" class="filter-select">
+                        <option value="">All</option>
+                        {% for program_id, program_name in programs %}
+                            <option value="{{ program_id }}" {% if selected_program == program_id %}selected{% endif %}>{{ program_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <span>Specialization:</span>
+                    <select name="specialization" class="filter-select">
+                        <option value="">All</option>
+                        {% for specialization_id, specialization_name in specializations %}
+                            <option value="{{ specialization_id }}" {% if selected_specialization == specialization_id %}selected{% endif %}>{{ specialization_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <span>Adviser:</span>
+                    <input type="text" name="adviser" class="filter-input filter-input--compact"
+                           placeholder="Adviser name" value="{{ adviser }}">
+                </div>
+                <div class="filter-group">
+                    <span>Sort:</span>
+                    <select name="sort" class="filter-select">
+                        <option value="relevance" {% if selected_sort == 'relevance' %}selected{% endif %}>Relevance</option>
+                        <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Newest</option>
+                        <option value="oldest" {% if selected_sort == 'oldest' %}selected{% endif %}>Oldest</option>
+                        <option value="title" {% if selected_sort == 'title' %}selected{% endif %}>Title A-Z</option>
+                    </select>
+                </div>
+                <label class="filter-saved">
+                    <input type="checkbox" name="saved" value="1" {% if saved_only %}checked{% endif %}>
+                    <i class="bx bx-bookmark"></i> Saved only
+                </label>
+                <button type="submit" class="btn-filter">Apply</button>
+                {% if search or selected_year or selected_program or selected_specialization or adviser or saved_only or selected_sort != 'newest' %}
                     <a href="{{ url_for('pages.browse') }}" class="btn-clear">Clear</a>
                 {% endif %}
             </form>
@@ -42,7 +78,9 @@
             <div class="archive-main-content">
 
                 {% if projects %}
-                    <p class="archive-results-count">{{ projects|length }} capstone{{ 's' if projects|length != 1 else '' }} found</p>
+                    <p class="archive-results-count">
+                        Showing {{ ((page - 1) * page_size) + 1 }}-{{ ((page - 1) * page_size) + (projects|length) }} of {{ total }} capstones
+                    </p>
                     <div class="archive-grid" id="archive-grid">
                         {% for project in projects %}
                         <div class="archive-card"
@@ -53,23 +91,57 @@
                              data-keywords="{{ project.capstone_keywords }}"
                              data-year="{{ project.capstone_year }}"
                              data-semester="{{ project.semester }}"
-                             data-approved="{{ 'true' if project.capstone_id in approved_capstone_ids else 'false' }}">
+                             data-approved="{{ 'true' if project.capstone_id in approved_capstone_ids else 'false' }}"
+                             data-saved="{{ 'true' if project.capstone_id in saved_capstone_ids else 'false' }}">
+                            <div class="archive-card__icon" aria-hidden="true">
+                                <i class="bx bxs-file-pdf"></i>
+                            </div>
                             <div class="col-title">
                                 <strong>{{ project.capstone_title }}</strong>
                             </div>
                             <span class="col-program"><i class="bx bx-book"></i> {{ project.program_name }}</span>
-                            <span class="col-spec"><i class="bx bx-bookmark"></i> {{ project.specialization_name }}</span>
+                            <span class="col-spec"><i class="bx bx-shapes"></i> {{ project.specialization_name }}</span>
                             <span class="col-year"><i class="bx bx-calendar"></i> {{ project.capstone_year }}</span>
                             <span class="col-term">{{ project.semester }}</span>
+                            <button type="button"
+                                    class="save-capstone-btn{% if project.capstone_id in saved_capstone_ids %} is-saved{% endif %}"
+                                    data-capstone-id="{{ project.capstone_id }}"
+                                    aria-label="{{ 'Remove from saved capstones' if project.capstone_id in saved_capstone_ids else 'Save capstone' }}"
+                                    aria-pressed="{{ 'true' if project.capstone_id in saved_capstone_ids else 'false' }}">
+                                <i class="bx {{ 'bxs-bookmark' if project.capstone_id in saved_capstone_ids else 'bx-bookmark' }}"></i>
+                            </button>
+                            <button type="button" class="compare-capstone-btn"
+                                    aria-label="Add capstone to comparison" aria-pressed="false"
+                                    title="Compare capstone">
+                                <i class="bx bx-git-compare"></i>
+                            </button>
                         </div>
                         {% endfor %}
                     </div>
+
+                    {% if total_pages > 1 %}
+                    <nav class="archive-pagination-bar" aria-label="Archive pages">
+                        <span>Page {{ page }} of {{ total_pages }}</span>
+                        <div class="pagination-controls">
+                            {% if page > 1 %}
+                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page-1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort, saved='1' if saved_only else None) }}">
+                                <i class="bx bx-chevron-left"></i> Previous
+                            </a>
+                            {% endif %}
+                            {% if page < total_pages %}
+                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page+1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort, saved='1' if saved_only else None) }}">
+                                Next <i class="bx bx-chevron-right"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </nav>
+                    {% endif %}
 
                 {% else %}
                     <div class="archive-empty">
                         <i class="bx bx-folder-open"></i>
                         <p>
-                            {% if search or selected_year %}
+                            {% if search or selected_year or selected_program or selected_specialization or adviser or saved_only %}
                                 No capstones match your filters.
                                 <a href="{{ url_for('pages.browse') }}">Clear filters</a>
                             {% else %}
@@ -154,6 +226,14 @@
                                 <i class="bx bx-copy"></i> <span>Cite</span>
                             </button>
                             {% endif %}
+                            <button type="button"
+                                    id="sb-save-btn"
+                                    class="btn-cite{% if sidebar_project.capstone_id in saved_capstone_ids %} is-saved{% endif %}"
+                                    data-base-url="{{ url_for('pages.toggle_saved_capstone_route', capstone_id=0) }}"
+                                    aria-pressed="{{ 'true' if sidebar_project.capstone_id in saved_capstone_ids else 'false' }}">
+                                <i class="bx {{ 'bxs-bookmark' if sidebar_project.capstone_id in saved_capstone_ids else 'bx-bookmark' }}"></i>
+                                <span>{{ 'Saved' if sidebar_project.capstone_id in saved_capstone_ids else 'Save' }}</span>
+                            </button>
                         </div>
                     </div>
 
@@ -194,13 +274,49 @@
             <div id="cite-modal-overlay">
                 <div id="cite-modal">
                     <button type="button" id="cite-modal-close" aria-label="Close">&times;</button>
-                    <h3>APA 7 Citation</h3>
-                    <p id="cite-modal-text"></p>
+                    <h3 id="cite-modal-heading">APA 7 Citation</h3>
+                    <label class="cite-format-label" for="cite-format">Format</label>
+                    <select id="cite-format" class="filter-select">
+                        <option value="apa">APA 7</option>
+                        <option value="bibtex">BibTeX</option>
+                        <option value="ris">RIS</option>
+                    </select>
+                    <pre id="cite-modal-text"></pre>
                     <div class="sidebar-actions">
                         <button type="button" id="cite-modal-copy" class="btn-manuscript"><i class="bx bx-copy"></i> Copy</button>
+                        <a id="cite-modal-download" class="btn-cite" href="#">
+                            <i class="bx bx-download"></i> <span>Download .txt</span>
+                        </a>
                     </div>
                     <p id="cite-modal-copied">Copied!</p>
                 </div>
+            </div>
+
+            <div id="compare-tray" class="compare-tray" hidden>
+                <div>
+                    <strong>Compare capstones</strong>
+                    <div id="compare-selected" class="compare-selected"></div>
+                    <small id="compare-status" aria-live="polite">Select one more capstone.</small>
+                </div>
+                <div class="compare-tray__actions">
+                    <button type="button" id="compare-clear" class="btn-clear">Clear</button>
+                    <button type="button" id="compare-open" class="btn-filter" disabled>
+                        Compare <span id="compare-count">0/3</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="compare-modal-overlay" class="compare-modal-overlay" hidden>
+                <section class="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-modal-title">
+                    <header class="compare-modal__header">
+                        <div>
+                            <h3 id="compare-modal-title">Capstone comparison</h3>
+                            <p>Review selected archive metadata side by side.</p>
+                        </div>
+                        <button type="button" id="compare-close" class="compare-modal__close" aria-label="Close comparison">&times;</button>
+                    </header>
+                    <div id="compare-table-wrap" class="compare-table-wrap"></div>
+                </section>
             </div>
 
         </div>{# end archive-layout-wrapper #}
@@ -211,4 +327,5 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/archive_sidebar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/compare_capstones.js') }}"></script>
 {% endblock %}

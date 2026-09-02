@@ -4,7 +4,28 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_all-requests.css') }}">
 {% endblock %}
 
-{% block title %}{% if capstone %}Request Manuscript{% else %}My Requests{% endif %}{% endblock %}
+{% block title %}{% if capstone %}Request Manuscript | CAPRE{% else %}My Requests | CAPRE{% endif %}{% endblock %}
+
+{% macro request_timeline(req) %}
+{% set decided = req.request_status in ['approved', 'rejected'] %}
+<div class="request-timeline" aria-label="Request timeline">
+    <div class="request-timeline__step request-timeline__step--complete">
+        <span class="request-timeline__marker"><i class="bx bx-send"></i></span>
+        <strong>Submitted</strong>
+        <small>{{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'Date unavailable' }}</small>
+    </div>
+    <div class="request-timeline__step {{ 'request-timeline__step--complete' if decided else 'request-timeline__step--current' }}">
+        <span class="request-timeline__marker"><i class="bx bx-search-alt"></i></span>
+        <strong>Review</strong>
+        <small>{{ 'Review completed' if decided else 'Awaiting admin review' }}</small>
+    </div>
+    <div class="request-timeline__step {% if req.request_status == 'approved' %}request-timeline__step--approved{% elif req.request_status == 'rejected' %}request-timeline__step--rejected{% else %}request-timeline__step--upcoming{% endif %}">
+        <span class="request-timeline__marker"><i class="bx {{ 'bx-check' if req.request_status == 'approved' else 'bx-x' if req.request_status == 'rejected' else 'bx-time-five' }}"></i></span>
+        <strong>{{ req.request_status | capitalize if decided else 'Decision' }}</strong>
+        <small>{{ req.decision_date.strftime('%b %d, %Y') if req.decision_date else 'Not decided yet' }}</small>
+    </div>
+</div>
+{% endmacro %}
 
 {% block content %}
 <section class="manuscript-request-section">
@@ -101,6 +122,7 @@
                                 <span class="record-card__meta-item"><i class="bx bx-bookmark"></i>{{ req.specialization_name }}</span>
                                 <span class="record-card__meta-item"><i class="bx bx-time-five"></i>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</span>
                             </div>
+                            {{ request_timeline(req) }}
                             <p class="record-card__note"><strong>Reason:</strong> {{ req.request_reason }}</p>
                         </div>
                         <span class="status-badge status-badge--pending">Pending</span>
@@ -138,6 +160,7 @@
                                 <span class="record-card__meta-item"><i class="bx bx-time-five"></i>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</span>
                                 <span class="record-card__meta-item"><i class="bx bx-check-circle"></i>{{ req.decision_date.strftime('%b %d, %Y · %I:%M %p') if req.decision_date else '—' }}</span>
                             </div>
+                            {{ request_timeline(req) }}
                             {% if req.status_reason %}
                             <p class="record-card__note"><strong>Admin Feedback:</strong> {{ req.status_reason }}</p>
                             {% endif %}
@@ -174,6 +197,7 @@
                                 <span class="record-card__meta-item"><i class="bx bx-time-five"></i>{{ req.request_date.strftime('%b %d, %Y · %I:%M %p') if req.request_date else 'N/A' }}</span>
                                 <span class="record-card__meta-item"><i class="bx bx-x-circle"></i>{{ req.decision_date.strftime('%b %d, %Y · %I:%M %p') if req.decision_date else '—' }}</span>
                             </div>
+                            {{ request_timeline(req) }}
                             {% if req.status_reason %}
                             <p class="record-card__note"><strong>Rejection Reason:</strong> {{ req.status_reason }}</p>
                             {% endif %}

@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 -- =========================================
 CREATE TABLE IF NOT EXISTS kappa (
     username_id SERIAL PRIMARY KEY,
-    username VARCHAR(100)
+    username VARCHAR(100) UNIQUE NOT NULL
 );
 
 -- =========================================
@@ -274,6 +274,8 @@ CREATE TABLE IF NOT EXISTS request (
     decision_date TIMESTAMP,
     reviewed_by INT,
     status_reason TEXT,
+    request_type VARCHAR(50) DEFAULT 'manuscript',
+    notification_seen_at TIMESTAMP,
 
     target_role_id INT,
 
@@ -290,7 +292,24 @@ CREATE TABLE IF NOT EXISTS request (
         FOREIGN KEY (reviewed_by)
         REFERENCES "user"(user_id),
 
-    CONSTRAINT fk_request_target_role,
+    CONSTRAINT fk_request_target_role
         FOREIGN KEY (target_role_id)
         REFERENCES role(role_id)
 );
+
+-- =========================================
+-- SAVED CAPSTONE TABLE
+-- =========================================
+CREATE TABLE IF NOT EXISTS saved_capstone (
+    user_id INT NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    capstone_id INT NOT NULL REFERENCES capstone(capstone_id) ON DELETE CASCADE,
+    saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, capstone_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_capstone_capstone
+    ON saved_capstone(capstone_id);
+
+CREATE INDEX IF NOT EXISTS idx_request_user_decision
+    ON request(user_id, decision_date DESC)
+    WHERE decision_date IS NOT NULL;

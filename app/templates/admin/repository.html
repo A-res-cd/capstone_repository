@@ -67,6 +67,9 @@
         <div class="record-list">
             {% for c in capstones %}
             <div class="archive-card repo-archive-card">
+                <div class="repo-archive-card__icon" aria-hidden="true">
+                    <i class="bx bxs-file-pdf"></i>
+                </div>
                 <div class="col-title">
                     <strong>{{ c.capstone_title }}</strong>
                 </div>
@@ -90,8 +93,11 @@
                         <i class="bx bx-edit-alt"></i> Edit
                     </button>
                     {% if session.get('role_name') in ['Admin'] %}
-                    <button class="btn-row btn-row--delete"
-                        onclick="confirmDelete('{{ c.capstone_id }}', '/repository/archive/', 'Move this capstone to the recycle bin?')">
+                    <button type="button" class="btn-row btn-row--delete"
+                        data-delete-trigger
+                        data-delete-mode="recycle"
+                        data-delete-item="{{ c.capstone_title }}"
+                        data-delete-endpoint="{{ url_for('admin.archive_capstone', capstone_id=c.capstone_id) }}">
                         <i class="bx bx-trash"></i> Recycle Bin
                     </button>
                     {% endif %}
@@ -346,6 +352,7 @@
         </div>
     </div>
 
+    {% include 'partials/delete_confirmation_modal.html' %}
 </section>
 {% endblock %}
 

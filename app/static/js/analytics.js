@@ -79,11 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const wrap = canvas.closest('.analytics-panel__chart-wrap');
 
         if (wrap) {
-            wrap.innerHTML = `
-                <p class="analytics-widget__empty-msg">
-                    ${message}
-                </p>
-            `;
+            const emptyMessage = document.createElement('p');
+            emptyMessage.className = 'analytics-widget__empty-msg';
+            emptyMessage.textContent = message;
+            wrap.replaceChildren(emptyMessage);
         }
     }
 

@@ -1,0 +1,24 @@
+<div class="delete-confirm-modal" id="delete-confirm-modal" hidden>
+    <div class="delete-confirm-modal__dialog"
+         role="alertdialog"
+         aria-modal="true"
+         aria-labelledby="delete-confirm-title"
+         aria-describedby="delete-confirm-message delete-confirm-note">
+        <button type="button" class="delete-confirm-modal__close" id="delete-confirm-close" aria-label="Close confirmation">
+            <i class="bx bx-x"></i>
+        </button>
+        <div class="delete-confirm-modal__icon" aria-hidden="true">
+            <i class="bx bx-trash"></i>
+        </div>
+        <h3 id="delete-confirm-title">Confirm deletion</h3>
+        <p id="delete-confirm-message"></p>
+        <p class="delete-confirm-modal__note" id="delete-confirm-note"></p>
+        <div class="delete-confirm-modal__actions">
+            <button type="button" class="btn-pill btn-pill--ghost" id="delete-confirm-cancel">Cancel</button>
+            <button type="button" class="btn-pill btn-pill--danger delete-confirm-modal__confirm" id="delete-confirm-submit" disabled>
+                <span class="delete-confirm-modal__spinner" id="delete-confirm-spinner" aria-hidden="true"></span>
+                <span id="delete-confirm-label" aria-live="polite">Confirm (5)</span>
+            </button>
+        </div>
+    </div>
+</div>

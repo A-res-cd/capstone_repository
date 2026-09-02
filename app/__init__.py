@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, abort, render_template, request
+from flask import Flask, abort, render_template, request, session, url_for
 from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect, CSRFError
@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask_debugtoolbar import DebugToolbarExtension
 
 from .auth_utils import load_current_user
+from .utils.navigation import LAST_PAGE_SESSION_KEY, last_page_url
 
 mail = Mail()
 
@@ -45,6 +46,29 @@ def create_app():
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; "
+            "font-src 'self' data: https://unpkg.com https://fonts.gstatic.com; "
+            "img-src 'self' data: blob:; "
+            "connect-src 'self'; "
+            "worker-src 'self' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
+            "frame-src 'self' blob:; "
+            "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'",
+        )
+        if (
+            request.method == "GET"
+            and response.status_code == 200
+            and response.mimetype == "text/html"
+            and request.endpoint != "static"
+        ):
+            page_url = request.full_path.removesuffix("?")
+            if len(page_url) <= 1024:
+                session[LAST_PAGE_SESSION_KEY] = page_url
         return response
 
     from .routes import blueprints
@@ -54,7 +78,10 @@ def create_app():
     # ── Error pages ──────────────────────────────────────────────
     @app.errorhandler(400)
     def bad_request(e):
-        return render_template("errors/400.html", hide_nav=True, hide_header=True), 400
+        return render_template(
+            "errors/400.html", hide_nav=True, hide_header=True,
+            back_url=last_page_url(url_for("main.home")),
+        ), 400
 
     @app.errorhandler(CSRFError)
     def csrf_error(e):
@@ -62,16 +89,32 @@ def create_app():
         # a 400 here (form left open too long, or opened in two tabs) —
         # same page as the generic 400 handler, just a clearer log line.
         logger.info("CSRF validation failed: %s", e.description)
-        return render_template("errors/400.html", hide_nav=True, hide_header=True), 400
+        return render_template(
+            "errors/400.html", hide_nav=True, hide_header=True,
+            back_url=last_page_url(url_for("main.home")),
+        ), 400
+
+    @app.errorhandler(403)
+    def forbidden(e):
+        return render_template(
+            "errors/403.html", hide_nav=True, hide_header=True,
+            back_url=last_page_url(url_for("main.home")),
+        ), 403
 
     @app.errorhandler(404)
     def not_found(e):
-        return render_template("errors/404.html", hide_nav=True, hide_header=True), 404
+        return render_template(
+            "errors/404.html", hide_nav=True, hide_header=True,
+            back_url=last_page_url(url_for("main.home")),
+        ), 404
 
     @app.errorhandler(500)
     def internal_error(e):
         logger.error("Unhandled server error: %s", e)
-        return render_template("errors/500.html", hide_nav=True, hide_header=True), 500
+        return render_template(
+            "errors/500.html", hide_nav=True, hide_header=True,
+            back_url=last_page_url(url_for("main.home")),
+        ), 500
 
     # Run once on startup, then every 24h. WERKZEUG_RUN_MAIN check avoids
     # starting the job twice under the Flask dev server's reloader.

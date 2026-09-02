@@ -314,7 +314,9 @@ def restore_capstone(capstone_id, acting_user_id=None):
 
 # ______________________________Explore Archive — public browse___________________________
 
-def get_archive_capstones(search=None, year=None, page=1, page_size=12):
+def get_archive_capstones(search=None, year=None, page=1, page_size=12,
+                          specialization=None, program=None, adviser=None,
+                          sort="newest", saved_by=None):
     """
     Fetch capstone records for the public archive list view.
     Joins keyword, specialization, and program for display.
@@ -329,16 +331,63 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12):
 
         if search:
             conditions.append(
-                "(c.capstone_title ILIKE %s OR k.capstone_keywords ILIKE %s)"
+                """(
+                    c.capstone_title ILIKE %s
+                    OR k.capstone_keywords ILIKE %s
+                    OR EXISTS (
+                        SELECT 1
+                        FROM capauth search_ca
+                        JOIN author search_author
+                          ON search_author.author_id = search_ca.author_id
+                        WHERE search_ca.capstone_id = c.capstone_id
+                          AND CONCAT_WS(' ', search_author.aut_first_name,
+                                             search_author.aut_middle_name,
+                                             search_author.aut_last_name) ILIKE %s
+                    )
+                )"""
             )
             like = f"%{search}%"
-            params += [like, like]
+            params += [like, like, like]
 
         if year:
             conditions.append("c.capstone_year = %s")
             params.append(year)
 
-        where_clauses = ["is_archived = FALSE"]
+        if specialization:
+            conditions.append("c.specialization_id = %s")
+            params.append(specialization)
+
+        if program:
+            conditions.append("c.program_id = %s")
+            params.append(program)
+
+        if adviser:
+            conditions.append("""
+                EXISTS (
+                    SELECT 1
+                    FROM capauth adviser_ca
+                    JOIN author adviser_author
+                      ON adviser_author.author_id = adviser_ca.author_id
+                    WHERE adviser_ca.capstone_id = c.capstone_id
+                      AND LOWER(adviser_ca.role) = 'adviser'
+                      AND CONCAT_WS(' ', adviser_author.aut_first_name,
+                                         adviser_author.aut_middle_name,
+                                         adviser_author.aut_last_name) ILIKE %s
+                )
+            """)
+            params.append(f"%{adviser}%")
+
+        if saved_by:
+            conditions.append("""
+                EXISTS (
+                    SELECT 1 FROM saved_capstone saved
+                    WHERE saved.user_id = %s
+                      AND saved.capstone_id = c.capstone_id
+                )
+            """)
+            params.append(saved_by)
+
+        where_clauses = ["c.is_archived IS NOT TRUE"]
         where_clauses.extend(conditions)
 
         where = "WHERE " + " AND ".join(where_clauses)
@@ -356,6 +405,25 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12):
 
         offset = (page - 1) * page_size
 
+        order_options = {
+            "newest": "c.capstone_year DESC, c.capstone_title ASC",
+            "oldest": "c.capstone_year ASC, c.capstone_title ASC",
+            "title": "c.capstone_title ASC, c.capstone_year DESC",
+        }
+        order_sql = order_options.get(sort, order_options["newest"])
+        order_params = []
+        if sort == "relevance" and search:
+            order_sql = """
+                CASE
+                    WHEN LOWER(c.capstone_title) = LOWER(%s) THEN 0
+                    WHEN c.capstone_title ILIKE %s THEN 1
+                    ELSE 2
+                END,
+                c.capstone_year DESC,
+                c.capstone_title ASC
+            """
+            order_params = [search, f"{search}%"]
+
         mithrix.execute(f"""
             SELECT
                 c.capstone_id,
@@ -372,9 +440,9 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12):
             JOIN specialization s ON s.specialization_id = c.specialization_id
             JOIN program p        ON p.program_id        = c.program_id
             {where}
-            ORDER BY c.capstone_year DESC, c.capstone_title ASC
+            ORDER BY {order_sql}
             LIMIT %s OFFSET %s
-        """, params + [page_size, offset])
+        """, params + order_params + [page_size, offset])
 
         rows = mithrix.fetchall()
         return list(rows), total

@@ -115,6 +115,8 @@ class TopicRecommender:
                 scored.append({
                     "capstone_id": record.get("capstone_id"),
                     "capstone_title": record.get("capstone_title"),
+                    "capstone_keywords": record.get("capstone_keywords") or "",
+                    "specialization_name": record.get("specialization_name") or "",
                     "similarity": round(score, 3),
                 })
 

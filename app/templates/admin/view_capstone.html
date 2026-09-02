@@ -318,11 +318,24 @@
 
       // Update page-info display
       const pageInfoElem = document.getElementById('page-info');
-      if (minPage === maxAllowed) {
-        // Replace content with 'Abstract Page <current>' but keep an updatable span
-        if (pageInfoElem) pageInfoElem.innerHTML = 'Abstract Page <span id="current-page">' + currentPage + '</span>';
-      } else {
-        if (pageInfoElem) pageInfoElem.innerHTML = 'Page <span id="current-page">' + currentPage + '</span> / <span id="total-pages">' + docNumPages + '</span>';
+      if (pageInfoElem) {
+        const currentPageElem = document.createElement('span');
+        currentPageElem.id = 'current-page';
+        currentPageElem.textContent = currentPage;
+
+        if (minPage === maxAllowed) {
+          pageInfoElem.replaceChildren(document.createTextNode('Abstract Page '), currentPageElem);
+        } else {
+          const totalPagesElem = document.createElement('span');
+          totalPagesElem.id = 'total-pages';
+          totalPagesElem.textContent = docNumPages;
+          pageInfoElem.replaceChildren(
+            document.createTextNode('Page '),
+            currentPageElem,
+            document.createTextNode(' / '),
+            totalPagesElem
+          );
+        }
       }
 
       renderPage(currentPage);
