@@ -1,23 +1,23 @@
 """
 app/services/recommender.py
 
-Content-based topic-similarity recommender.
+Title-only topic-similarity recommender.
 
 Purpose: when a student proposes a new capstone title/topic, check it
-against every existing (non-archived) capstone's title + keywords and
+against every existing (non-archived) capstone's title and
 surface the closest matches — so duplicate or near-duplicate proposals
 get caught before they reach an adviser.
 
-Approach: classic TF-IDF vectorization + cosine similarity, implemented
+Approach: TF-IDF vectorization + cosine similarity, implemented
 in pure Python (no numpy/scikit-learn dependency — the corpus size for a
 single department's repository is small enough that this stays fast).
 
 Usage:
     from app.services.recommender import TopicRecommender
 
-    corpus = get_capstones_corpus()   # [{capstone_id, capstone_title, capstone_keywords}, ...]
+    corpus = get_capstones_corpus()   # [{capstone_id, capstone_title}, ...]
     engine = TopicRecommender(corpus)
-    matches = engine.find_similar("AI-powered attendance tracker", "facial recognition, attendance")
+    matches = engine.find_similar("AI-powered attendance tracker")
     # -> [{"capstone_id": 12, "capstone_title": "...", "similarity": 0.62}, ...]
 """
 
@@ -45,24 +45,14 @@ def _tokenize(text):
     return [t for t in tokens if t not in _STOPWORDS and len(t) > 2]
 
 
-def _text_for_record(record):
-    """Combine title + keywords into one bag-of-words source string."""
-    title = record.get("capstone_title") or ""
-    keywords = record.get("capstone_keywords") or ""
-    # Title words count once; keyword words are repeated so they carry a
-    # bit more weight (keywords are hand-picked, so a match there is a
-    # stronger topical signal than an incidental title word).
-    return f"{title} {keywords} {keywords}"
-
-
 class TopicRecommender:
     def __init__(self, corpus):
         """
         corpus: list of dicts, each with at least
-                capstone_id, capstone_title, capstone_keywords
+                capstone_id, capstone_title
         """
         self.records = corpus
-        self.doc_tokens = [_tokenize(_text_for_record(r)) for r in corpus]
+        self.doc_tokens = [_tokenize(r.get("capstone_title") or "") for r in corpus]
         self._df = self._build_document_frequencies()
         self._doc_vectors = [
             self._vectorize(tokens) for tokens in self.doc_tokens
@@ -99,13 +89,13 @@ class TopicRecommender:
             vec_a, vec_b = vec_b, vec_a
         return sum(w * vec_b.get(term, 0.0) for term, w in vec_a.items())
 
-    def find_similar(self, query_title, query_keywords="", top_n=5, min_score=0.12):
+    def find_similar(self, query_title, top_n=5, min_score=0.12):
         """
         Returns the top_n most similar existing capstones to the given
-        proposed title/keywords, sorted highest similarity first.
+        proposed title, sorted highest similarity first.
         Scores below min_score are dropped as noise.
         """
-        query_tokens = _tokenize(f"{query_title} {query_keywords} {query_keywords}")
+        query_tokens = _tokenize(query_title)
         query_vec = self._vectorize(query_tokens)
 
         scored = []
@@ -115,7 +105,6 @@ class TopicRecommender:
                 scored.append({
                     "capstone_id": record.get("capstone_id"),
                     "capstone_title": record.get("capstone_title"),
-                    "capstone_keywords": record.get("capstone_keywords") or "",
                     "specialization_name": record.get("specialization_name") or "",
                     "similarity": round(score, 3),
                 })

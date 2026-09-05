@@ -1,6 +1,6 @@
 /* ============================================================
-   PAGE: Propose Topic
-   Content-based similarity check (TF-IDF + cosine) — form on
+   PAGE: Title Similarity
+   Title similarity check (TF-IDF + cosine) — form on
    the left, live results list on the right. Paper/index-card
    theme, matching Analytics and Explore Archive.
 ============================================================ */
@@ -13,16 +13,9 @@
     gap: var(--space-md);
 }
 
-.propose-topic-header h2 {
-    font-family: var(--font-display);
-    font-size: var(--text-xl);
-    font-weight: 600;
-    color: var(--color-primary);
-    margin: 0 0 3px;
-}
-
-.propose-topic-header p {
+.propose-topic-description {
     font-size: var(--text-sm);
+    line-height: 1.6;
     color: var(--color-gray-dark);
     margin: 0;
 }
@@ -58,8 +51,7 @@
     color: var(--color-gray-dark);
 }
 
-.propose-topic-form input,
-.propose-topic-form textarea {
+.propose-topic-form input {
     font: inherit;
     width: 100%;
     padding: 0.8rem;
@@ -69,17 +61,14 @@
     background: var(--surface-input);
     color: var(--text-dark);
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-    resize: vertical;
     transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 
-.propose-topic-form input::placeholder,
-.propose-topic-form textarea::placeholder {
+.propose-topic-form input::placeholder {
     color: var(--color-gray);
 }
 
-.propose-topic-form input:focus,
-.propose-topic-form textarea:focus {
+.propose-topic-form input:focus {
     outline: none;
     border-color: var(--color-primary);
     background-color: var(--bg-card-neutral);
@@ -227,8 +216,18 @@
 }
 
 @media (min-width: 901px) {
+    .propose-topic-section {
+        display: grid;
+        grid-template-rows: minmax(min-content, 1fr) max-content;
+        height: 100%;
+    }
+
+    .propose-topic-layout {
+        align-items: stretch;
+        min-height: 0;
+    }
+
     .propose-topic-results {
-        height: var(--propose-form-height);
         min-height: 0;
     }
 
@@ -402,7 +401,7 @@ a.pt-match__link:hover {
 
 .topic-readiness__grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-sm);
 }
 
@@ -438,42 +437,9 @@ a.pt-match__link:hover {
 }
 
 .topic-readiness__details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-lg);
     margin-top: var(--space-md);
     padding-top: var(--space-md);
     border-top: 1px dashed var(--border-color);
-}
-
-.topic-readiness__suggestions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-}
-
-.topic-readiness__keyword {
-    padding: 4px 9px;
-    border: 1px solid var(--border-tag);
-    border-radius: var(--radius-pill);
-    background: var(--surface-input);
-    color: var(--color-primary);
-    font: inherit;
-    font-size: var(--text-xs);
-    cursor: pointer;
-}
-
-.topic-readiness__keyword:hover,
-.topic-readiness__keyword:focus-visible {
-    border-color: var(--color-primary-light);
-    background: var(--surface-selected);
-    outline: none;
-}
-
-.topic-readiness__placeholder {
-    color: var(--color-gray-dark);
-    font-size: var(--text-sm);
-    font-style: italic;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -484,15 +450,13 @@ a.pt-match__link:hover {
         grid-template-columns: 1fr;
     }
 
-    .topic-readiness__grid,
-    .topic-readiness__details {
+    .topic-readiness__grid {
         grid-template-columns: 1fr 1fr;
     }
 }
 
 @media (max-width: 560px) {
-    .topic-readiness__grid,
-    .topic-readiness__details {
+    .topic-readiness__grid {
         grid-template-columns: 1fr;
     }
 }

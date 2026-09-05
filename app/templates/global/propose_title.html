@@ -4,35 +4,31 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_propose-topic.css') }}">
 {% endblock %}
 
-{% block title %}Propose Topic | CAPRE{% endblock %}
+{% block title %}Title Similarity | CAPRE{% endblock %}
 
 {% block content %}
 <section class="propose-topic-section">
 
-    <div class="propose-topic-header">
-        <h2>Propose a Topic</h2>
-        <p>Type a working title and keywords — we'll check it against the existing archive as you go.</p>
-    </div>
-
     <div class="propose-topic-layout" id="pt-layout" data-abstract-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}">
 
         <form class="propose-topic-form" id="propose-topic-form" autocomplete="off">
+            
+
             <label for="pt-title">Proposed Title</label>
-            <input type="text" id="pt-title" name="title" placeholder="e.g. AI-Powered Attendance Tracking System" maxlength="255">
-
-            <label for="pt-keywords">Keywords <span>(comma-separated)</span></label>
-            <textarea id="pt-keywords" name="keywords" rows="3" maxlength="500" placeholder="e.g. facial recognition, attendance, machine learning"></textarea>
-
+            <input type="text" id="pt-title" name="title" placeholder="e.g. AI-Powered Attendance Tracking System" maxlength="255" aria-describedby="pt-description">
+            
             <p class="propose-topic-hint" id="pt-status" role="status" aria-live="polite">Start typing to check for similar existing capstones.</p>
+
+            <p class="propose-topic-description" id="pt-description">Enter your proposed capstone title to find existing titles with similar wording. The comparison counts how often words appear in each title (term frequency) and gives more weight to words that are less common across the archive (TF-IDF). Higher scores mean closer wording; use the matches to review related work.</p>
         </form>
 
         <div class="propose-topic-results" id="pt-results">
             <div class="propose-topic-results__head">
-                <span>Similar Capstones</span>
+                <span id="pt-results-label">Similar titles</span>
                 <span class="pt-legend" tabindex="0">
                     <i class="bx bx-info-circle"></i>
                     <span class="pt-legend__tooltip">
-                        <strong>Overlap score</strong> is a text-similarity match against existing titles/keywords, not a guarantee of duplication.<br><br>
+                        <strong>Title similarity</strong> compares title words only. These overlap bands are guidance; they do not establish duplication or originality.<br><br>
                         <span class="pt-badge pt-badge--low">Slight</span> 12–24% ·
                         <span class="pt-badge pt-badge--medium">Some</span> 25–44% ·
                         <span class="pt-badge pt-badge--high">High</span> 45%+
@@ -55,8 +51,8 @@
     <section class="topic-readiness" aria-labelledby="topic-readiness-heading">
         <div class="topic-readiness__head">
             <div>
-                <h3 id="topic-readiness-heading">Topic Readiness</h3>
-                <p>Live guidance based on your title, keywords, and archive matches.</p>
+                <h3 id="topic-readiness-heading">Title Feedback</h3>
+                <p>Live guidance based on your title and matching archive titles.</p>
             </div>
             <span class="topic-readiness__privacy"><i class="bx bx-shield-quarter"></i> Not saved</span>
         </div>
@@ -65,10 +61,6 @@
             <article class="topic-readiness__metric" id="pt-metric-title">
                 <span>Title</span>
                 <strong id="pt-readiness-title">Add a working title</strong>
-            </article>
-            <article class="topic-readiness__metric" id="pt-metric-keywords">
-                <span>Keywords</span>
-                <strong id="pt-readiness-keywords">Add 3–5 keywords</strong>
             </article>
             <article class="topic-readiness__metric" id="pt-metric-similarity">
                 <span>Similarity</span>
@@ -82,14 +74,8 @@
 
         <div class="topic-readiness__details">
             <div>
-                <span class="topic-readiness__label">Suggested related keywords</span>
-                <div class="topic-readiness__suggestions" id="pt-keyword-suggestions">
-                    <span class="topic-readiness__placeholder">Suggestions appear after archive matches are found.</span>
-                </div>
-            </div>
-            <div>
                 <span class="topic-readiness__label">Next step</span>
-                <p class="topic-readiness__guidance" id="pt-readiness-guidance">Enter a specific working title, then add keywords that describe the problem, users, and technology.</p>
+                <p class="topic-readiness__guidance" id="pt-readiness-guidance">Enter a working title that describes the problem, users, and technology.</p>
             </div>
         </div>
     </section>
