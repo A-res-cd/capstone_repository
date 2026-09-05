@@ -273,18 +273,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ============================================================
-       TOTAL CAPSTONE BY PROGRAM
+       TOTAL CAPSTONE BY SPECIALIZATION
     ============================================================ */
     const programCanvas =
         document.getElementById('program-chart');
     if (programCanvas) {
         const labels =
-            window.chartData.program_labels || [];
+            window.chartData.specialization_labels || [];
 
         if (!labels.length) {
             showEmpty(
                 programCanvas,
-                'No program data available.'
+                'No specialization data available.'
             );
         } else {
             charts.program = new Chart(programCanvas, {
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     labels,
                     datasets: [{
                         data:
-                            window.chartData.program_totals,
+                            window.chartData.specialization_totals,
                         backgroundColor:
                             labels.map(
                                 (_, i) => colorFor(i)

@@ -524,6 +524,11 @@ body.compare-modal-open { overflow: hidden; }
         max-height: 60vh;
     }
 
+    #requests-grid {
+        max-height: none;
+        overflow-y: visible;
+    }
+
     /* Metadata dots wrap onto their own line instead of getting
        squeezed into an unreadable single row */
     .archive-card {

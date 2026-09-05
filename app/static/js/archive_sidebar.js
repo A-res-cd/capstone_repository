@@ -1,9 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    let selectedCapstoneId = document.getElementById('sidebar-card')?.dataset.capstoneId || null;
+    let selectedCapstoneId = null;
     const MOBILE_QUERY = '(max-width: 900px)';
     const isMobile = () => window.matchMedia(MOBILE_QUERY).matches;
     const sidebarEl = document.querySelector('.archive-sidebar');
+    const sidebarCard = document.getElementById('sidebar-card');
+    const sidebarEmpty = document.getElementById('sidebar-empty');
     const sidebarSaveBtn = document.getElementById('sb-save-btn');
     const saveBaseUrl = sidebarSaveBtn?.dataset.baseUrl;
 
@@ -53,9 +55,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.archive-card').forEach(card => {
         card.addEventListener('click', () => {
+            const id = card.dataset.id;
+
+            if (String(selectedCapstoneId) === String(id)) {
+                card.classList.remove('active');
+                selectedCapstoneId = null;
+                sidebarCard.hidden = true;
+                sidebarEmpty.hidden = false;
+                sidebarEl?.classList.remove('archive-sidebar--mobile-open');
+                document.body.classList.remove('archive-mobile-detail-open');
+                return;
+            }
 
             document.querySelectorAll('.archive-card').forEach(c => c.classList.remove('active'));
             card.classList.add('active');
+            sidebarCard.hidden = false;
+            sidebarEmpty.hidden = true;
 
             document.getElementById('sb-title').textContent = card.dataset.title;
             document.getElementById('sb-program').textContent = card.dataset.program;
@@ -76,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            const id = card.dataset.id;
             selectedCapstoneId = id;
             const isApproved = card.dataset.approved === 'true';
             setSaveButton(sidebarSaveBtn, card.dataset.saved === 'true');

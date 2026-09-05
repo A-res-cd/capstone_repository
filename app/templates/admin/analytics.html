@@ -99,13 +99,13 @@
         </div>
     </div>
 
-    {# ── Row 3 — Program donut + Summary table, matching the reference
+    {# ── Row 3 — Specialization donut + Summary table, matching the reference
        dashboard's bottom section ── #}
     <div class="analytics-bottom-grid">
 
         <div class="analytics-panel analytics-panel--donut">
             <div class="analytics-panel__header">
-                <h3>Total Capstone by Program</h3>
+                <h3>Total Capstone by Specialization</h3>
             </div>
             <div class="analytics-panel__chart-wrap analytics-panel__chart-wrap--program-large">
                 <canvas id="program-chart"></canvas>
@@ -114,40 +114,53 @@
 
         <div class="analytics-panel analytics-panel--table">
             <div class="analytics-panel__header">
-                <h3>Summary by Program</h3>
+                <h3>Summary by Specialization</h3>
             </div>
             <div class="analytics-table-wrap">
                 <table class="analytics-table">
                     <thead>
                         <tr>
-                            <th>Program</th>
+                            <th>Specialization</th>
                             <th>Total Capstone</th>
                             <th>Published</th>
                             <th>Utilized</th>
                             <th>Presented</th>
                             <th>Copyright Registered</th>
+                            <th>Export Report</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in summary_rows %}
-                        <tr>
-                            <td><span class="analytics-table__dot" style="background: var(--chart-color-{{ loop.index0 % 6 }});"></span>{{ row.name }}</td>
-                            <td>{{ row.total }} <span class="analytics-table__pct">({{ row.total_pct }}%)</span></td>
-                            <td>{{ row.published }} <span class="analytics-table__pct">({{ row.published_pct }}%)</span></td>
-                            <td>{{ row.utilized }} <span class="analytics-table__pct">({{ row.utilized_pct }}%)</span></td>
-                            <td>{{ row.presented }} <span class="analytics-table__pct">({{ row.presented_pct }}%)</span></td>
-                            <td>{{ row.copyright_registered }} <span class="analytics-table__pct">({{ row.copyright_pct }}%)</span></td>
+                        <tr data-report-row>
+                            <td data-report-field="Specialization"><span class="analytics-table__dot" style="background: var(--chart-color-{{ loop.index0 % 6 }});"></span>{{ row.name }}</td>
+                            <td data-report-field="Total Capstone">{{ row.total }} <span class="analytics-table__pct">({{ row.total_pct }}%)</span></td>
+                            <td data-report-field="Published">{{ row.published }} <span class="analytics-table__pct">({{ row.published_pct }}%)</span></td>
+                            <td data-report-field="Utilized">{{ row.utilized }} <span class="analytics-table__pct">({{ row.utilized_pct }}%)</span></td>
+                            <td data-report-field="Presented">{{ row.presented }} <span class="analytics-table__pct">({{ row.presented_pct }}%)</span></td>
+                            <td data-report-field="Copyright Registered">{{ row.copyright_registered }} <span class="analytics-table__pct">({{ row.copyright_pct }}%)</span></td>
+                            <td>
+                                <button type="button" class="analytics-export-btn" data-export-report data-report-scope="row" data-report-url="{{ url_for('admin.analytics_specialization_report', specialization_id=row.id) }}" data-workbook-url="{{ url_for('admin.analytics_specialization_workbook', specialization_id=row.id) }}" aria-label="Export {{ row.name }} report">
+                                    <i class="bx bx-download" aria-hidden="true"></i>
+                                    Export
+                                </button>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
-                        <tr>
-                            <td>Total</td>
-                            <td>{{ summary_totals.total }} <span class="analytics-table__pct">(100%)</span></td>
-                            <td>{{ summary_totals.published }} <span class="analytics-table__pct">(100%)</span></td>
-                            <td>{{ summary_totals.utilized }}</td>
-                            <td>{{ summary_totals.presented }}</td>
-                            <td>{{ summary_totals.copyright_registered }}</td>
+                        <tr data-report-row>
+                            <td data-report-field="Specialization">Total</td>
+                            <td data-report-field="Total Capstone">{{ summary_totals.total }} <span class="analytics-table__pct">(100%)</span></td>
+                            <td data-report-field="Published">{{ summary_totals.published }} <span class="analytics-table__pct">(100%)</span></td>
+                            <td data-report-field="Utilized">{{ summary_totals.utilized }}</td>
+                            <td data-report-field="Presented">{{ summary_totals.presented }}</td>
+                            <td data-report-field="Copyright Registered">{{ summary_totals.copyright_registered }}</td>
+                            <td>
+                                <button type="button" class="analytics-export-btn" data-export-report data-report-scope="all" data-report-url="{{ url_for('admin.analytics_all_specializations_report') }}" data-workbook-url="{{ url_for('admin.analytics_all_specializations_workbook') }}" aria-label="Export all specialization reports">
+                                    <i class="bx bx-download" aria-hidden="true"></i>
+                                    Export All
+                                </button>
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
@@ -156,6 +169,39 @@
 
     </div>
 </section>
+
+<div class="analytics-export-modal" id="analytics-export-modal" role="dialog" aria-modal="true" aria-labelledby="analytics-export-title" hidden>
+    <div class="analytics-export-modal__dialog">
+        <button type="button" class="analytics-export-modal__close" id="analytics-export-close" aria-label="Close export dialog">
+            <i class="bx bx-x" aria-hidden="true"></i>
+        </button>
+        <span class="analytics-export-modal__icon"><i class="bx bx-export" aria-hidden="true"></i></span>
+        <h3 id="analytics-export-title">Export Report</h3>
+        <p id="analytics-export-context">Choose a file type for this report.</p>
+
+        <form id="analytics-export-form">
+            <fieldset class="analytics-export-formats">
+                <legend>File type</legend>
+                <label class="analytics-export-format">
+                    <input type="radio" name="export-format" value="csv">
+                    <span><i class="bx bx-spreadsheet" aria-hidden="true"></i><strong>CSV</strong><small>Spreadsheet data</small></span>
+                </label>
+                <label class="analytics-export-format">
+                    <input type="radio" name="export-format" value="pdf">
+                    <span><i class="bx bxs-file-pdf" aria-hidden="true"></i><strong>PDF</strong><small>Ready-to-share report</small></span>
+                </label>
+                <label class="analytics-export-format" id="analytics-export-excel" hidden>
+                    <input type="radio" name="export-format" value="xlsx">
+                    <span><i class="bx bx-grid-alt" aria-hidden="true"></i><strong>Excel</strong><small>Formatted workbook sheets</small></span>
+                </label>
+            </fieldset>
+            <div class="analytics-export-modal__actions">
+                <button type="button" class="btn-pill btn-pill--ghost" id="analytics-export-cancel">Cancel</button>
+                <button type="submit" class="btn-pill btn-pill--primary" id="analytics-export-submit" disabled><i class="bx bx-download" aria-hidden="true"></i>Export</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
     window.chartData = {
@@ -180,4 +226,5 @@
 {% block extra_js %}
     <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/analytics_export.js') }}"></script>
 {% endblock %}

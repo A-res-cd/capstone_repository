@@ -100,15 +100,19 @@ def get_capstone_trend_by_specialization():
         conn.close()
 
 def get_capstones_by_specialization():
-    """Capstone count grouped by specialization — for the Analytics bar chart."""
+    """Capstone counts and status flags grouped by specialization."""
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         mithrix.execute("""
-            SELECT s.specialization_name, COUNT(c.capstone_id) AS total
-            FROM capstone c
-            JOIN specialization s ON s.specialization_id = c.specialization_id
-            GROUP BY s.specialization_name
+            SELECT s.specialization_id, s.specialization_name,
+                   COUNT(c.capstone_id) AS total,
+                   COUNT(c.capstone_id) FILTER (WHERE c.is_utilized) AS utilized,
+                   COUNT(c.capstone_id) FILTER (WHERE c.is_presented) AS presented,
+                   COUNT(c.capstone_id) FILTER (WHERE c.is_copyright_registered) AS copyright_registered
+            FROM specialization s
+            LEFT JOIN capstone c ON c.specialization_id = s.specialization_id AND c.is_archived IS NOT TRUE
+            GROUP BY s.specialization_id, s.specialization_name
             ORDER BY total DESC
         """)
         return mithrix.fetchall(), None
@@ -118,6 +122,133 @@ def get_capstones_by_specialization():
     finally:
         mithrix.close()
         conn.close()
+
+
+def get_specialization_report(specialization_id):
+    """Return export-ready capstone records for one specialization."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT specialization_name
+            FROM specialization
+            WHERE specialization_id = %s
+        """, (specialization_id,))
+        specialization = mithrix.fetchone()
+        if not specialization:
+            return [], None, None
+
+        mithrix.execute("""
+            SELECT
+                c.capstone_id AS id,
+                c.capstone_title,
+                COALESCE(
+                    STRING_AGG(
+                        CONCAT_WS(' ', a.aut_first_name,
+                                  NULLIF(BTRIM(a.aut_middle_name), ''),
+                                  a.aut_last_name),
+                        ', ' ORDER BY ca.author_order
+                    ) FILTER (WHERE LOWER(ca.role) = 'author'),
+                    ''
+                ) AS authors,
+                COALESCE(
+                    MAX(CONCAT_WS(' ', a.aut_first_name,
+                                  NULLIF(BTRIM(a.aut_middle_name), ''),
+                                  a.aut_last_name))
+                    FILTER (WHERE LOWER(ca.role) = 'adviser'),
+                    ''
+                ) AS adviser,
+                c.capstone_year AS year,
+                s.specialization_name AS specialization,
+                TRUE AS published,
+                COALESCE(c.is_utilized, FALSE) AS utilized,
+                COALESCE(c.is_presented, FALSE) AS presented,
+                COALESCE(c.is_copyright_registered, FALSE) AS copyright_registered
+            FROM capstone c
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            LEFT JOIN capAuth ca ON ca.capstone_id = c.capstone_id
+            LEFT JOIN Author a ON a.author_id = ca.author_id
+            WHERE c.specialization_id = %s
+              AND c.is_archived IS NOT TRUE
+            GROUP BY c.capstone_id, s.specialization_name
+            ORDER BY c.capstone_year DESC, c.capstone_id DESC
+        """, (specialization_id,))
+        return list(mithrix.fetchall()), specialization["specialization_name"], None
+    except Exception as exc:
+        logger.error("Specialization report query failed: %s", exc)
+        return [], None, _QUERY_ERROR
+    finally:
+        mithrix.close()
+        conn.close()
+
+
+def get_all_specialization_reports():
+    """Return every specialization and its export-ready capstone records."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT specialization_id, specialization_name
+            FROM specialization
+            ORDER BY specialization_name
+        """)
+        specializations = [dict(row) for row in mithrix.fetchall()]
+
+        mithrix.execute("""
+            SELECT
+                c.capstone_id AS id,
+                c.capstone_title,
+                COALESCE(
+                    STRING_AGG(
+                        CONCAT_WS(' ', a.aut_first_name,
+                                  NULLIF(BTRIM(a.aut_middle_name), ''),
+                                  a.aut_last_name),
+                        ', ' ORDER BY ca.author_order
+                    ) FILTER (WHERE LOWER(ca.role) = 'author'),
+                    ''
+                ) AS authors,
+                COALESCE(
+                    MAX(CONCAT_WS(' ', a.aut_first_name,
+                                  NULLIF(BTRIM(a.aut_middle_name), ''),
+                                  a.aut_last_name))
+                    FILTER (WHERE LOWER(ca.role) = 'adviser'),
+                    ''
+                ) AS adviser,
+                c.capstone_year AS year,
+                s.specialization_id,
+                s.specialization_name AS specialization,
+                TRUE AS published,
+                COALESCE(c.is_utilized, FALSE) AS utilized,
+                COALESCE(c.is_presented, FALSE) AS presented,
+                COALESCE(c.is_copyright_registered, FALSE) AS copyright_registered
+            FROM capstone c
+            JOIN specialization s ON s.specialization_id = c.specialization_id
+            LEFT JOIN capAuth ca ON ca.capstone_id = c.capstone_id
+            LEFT JOIN Author a ON a.author_id = ca.author_id
+            WHERE c.is_archived IS NOT TRUE
+            GROUP BY c.capstone_id, s.specialization_id, s.specialization_name
+            ORDER BY s.specialization_name, c.capstone_year DESC, c.capstone_id DESC
+        """)
+        records_by_specialization = {
+            specialization["specialization_id"]: []
+            for specialization in specializations
+        }
+        for row in mithrix.fetchall():
+            record = dict(row)
+            specialization_id = record.pop("specialization_id")
+            records_by_specialization[specialization_id].append(record)
+
+        for specialization in specializations:
+            specialization["records"] = records_by_specialization[specialization["specialization_id"]]
+
+        return specializations, None
+    except Exception as exc:
+        logger.error("All-specializations report query failed: %s", exc)
+        return [], _QUERY_ERROR
+    finally:
+        mithrix.close()
+        conn.close()
+
 
 def get_capstone_status_flags():
     """

@@ -5,6 +5,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.request-row').forEach(row => {
         row.addEventListener('click', () => {
+            if (row.classList.contains('active')) {
+                row.classList.remove('active');
+                document.getElementById('sidebar-empty').style.display = 'flex';
+                document.getElementById('sidebar-detail').style.display = 'none';
+                sidebarEl?.classList.remove('archive-sidebar--mobile-open');
+                document.body.classList.remove('archive-mobile-detail-open');
+                return;
+            }
 
             document.querySelectorAll('.request-row').forEach(r => r.classList.remove('active'));
             row.classList.add('active');

@@ -1,9 +1,10 @@
 <header class="header">
     <div class="header-container">
-
-        <button type="button" id="nav-toggle" aria-label="Toggle navigation">
-            <i class='bx bx-menu'></i>
-        </button>
+        {% if not hide_nav %}
+            <button type="button" id="nav-toggle" aria-label="Toggle navigation">
+                <i class='bx bx-menu'></i>
+            </button>
+        {% endif %}
 
         <img src="{{ url_for('static', filename='images/capre-logo.png') }}" alt="CAPRE" class="header-logo">
 
@@ -34,6 +35,15 @@
         </div>
 
         <!-- USER — moved here from the sidebar to reclaim vertical space -->
+        <div class="header-page-actions">
+            {% if request.endpoint == 'admin.analytics' %}
+            <button type="button" class="analytics-header-export" data-export-report data-report-scope="dashboard" data-workbook-url="{{ url_for('admin.analytics_workbook') }}" aria-label="Export full analytics report">
+                <i class="bx bx-download" aria-hidden="true"></i>
+                <span>Export Analytics Report</span>
+            </button>
+            {% endif %}
+        </div>
+
         <div class="header-user">
             <div class="notification-menu" id="notification-menu">
                 <button type="button" id="notification-toggle" class="notification-toggle"

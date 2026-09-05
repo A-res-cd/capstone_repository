@@ -7,7 +7,7 @@ from flask_wtf.csrf import CSRFProtect, CSRFError
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask_debugtoolbar import DebugToolbarExtension
 
-from .auth_utils import load_current_user
+from .utils.auth_utils import load_current_user
 from .utils.navigation import LAST_PAGE_SESSION_KEY, last_page_url
 
 mail = Mail()

@@ -66,6 +66,17 @@ def _parse_abstract_page(pages):
     return None, ""
 
 
+def extract_abstract_text(pdf_path: str) -> str:
+    """Extract only the manuscript's abstract body."""
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            _, abstract_text = _parse_abstract_page(pdf.pages)
+        return abstract_text
+    except Exception as exc:
+        logger.error("Could not extract abstract text: %s", exc)
+        return ""
+
+
 
 _MIDDLE_INITIAL_PATTERN = re.compile(r"(?:[A-Za-z]\.){1,3}|[A-Za-z]{1,3}\.")
 _SURNAME_PARTICLES = {

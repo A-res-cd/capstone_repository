@@ -10,17 +10,18 @@ from app.db.database import (
     get_used_keyword, insert_keywords, create_capstone_project,
     get_capstone_details, update_capstone_record, update_keyword,
     delete_capstone, get_users, update_user_role, get_all_roles, set_account_status,
-    get_all_requests, review_request, set_capstone_people, get_capstone_people,
+    get_all_requests, review_request, set_capstone_people, get_capstone_people, get_capstone_authors,
     get_capstones_by_specialization, get_requests_by_status, add_to_bin,
     restore_capstone, ARCHIVE_RETENTION_DAYS,
     get_pending_verifications, review_verification_request,
     get_pending_promotion_requests, review_promotion_request,
-    get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags,
-    get_capstone_program_summary
+    get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags
 )
 from app.routes.decorators import role_required, can_view_full_manuscript
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
-from app.utils.pdf_extractor import extract_capstone_data
+from app.db.analytics import get_all_specialization_reports, get_specialization_report
+from app.utils.pdf_extractor import extract_abstract_text, extract_capstone_data
+from app.utils.xlsx_export import build_specialization_workbook, build_table_workbook
 from app.utils.uploads import (
     allowed_manuscript,
     manuscript_mimetype,
@@ -30,7 +31,6 @@ from app.utils.uploads import (
     stored_manuscript_path,
     unique_manuscript_filename,
 )
-
 admin = Blueprint("admin", __name__)
 logger = logging.getLogger(__name__)
 
@@ -210,10 +210,6 @@ def analytics():
     if err:
         db_errors.append(f"Capstone status flags: {err}")
 
-    program_summary, err = get_capstone_program_summary()
-    if err:
-        db_errors.append(f"Capstone program summary: {err}")
-
     if db_errors:
         for msg in db_errors:
             flash(f"Analytics query failed — {msg}", "danger")
@@ -253,15 +249,16 @@ def analytics():
             "pct": pct,
         })
 
-    # ── Summary-by-program table rows, with per-metric percentages ──
+    # ── Summary-by-specialization table rows, with per-metric percentages ──
     def _pct(part, whole):
         return round((part / whole) * 100, 1) if whole else 0
 
     summary_rows = []
-    for row in (program_summary or []):
+    for row in (by_specialization or []):
         total = row["total"]
         summary_rows.append({
-            "name": row["program_name"],
+            "id": row["specialization_id"],
+            "name": row["specialization_name"],
             "total": total,
             "total_pct": _pct(total, total_capstones),
             "published": total,
@@ -307,6 +304,174 @@ def analytics():
 
 
 # ── User management ───────────────────────────────────────────────────────────
+
+@admin.route("/analytics/specialization/<int:specialization_id>/report")
+@role_required(3)
+def analytics_specialization_report(specialization_id):
+    rows, specialization, err = get_specialization_report(specialization_id)
+    if err:
+        return jsonify({"success": False, "error": err}), 500
+    if specialization is None:
+        return jsonify({"success": False, "error": "Specialization not found."}), 404
+
+    return jsonify({
+        "success": True,
+        "specialization": specialization,
+        "records": rows,
+    })
+
+
+@admin.route("/analytics/specialization/<int:specialization_id>/report.xlsx")
+@role_required(3)
+def analytics_specialization_workbook(specialization_id):
+    rows, specialization, err = get_specialization_report(specialization_id)
+    if err:
+        return jsonify({"success": False, "error": err}), 500
+    if specialization is None:
+        return jsonify({"success": False, "error": "Specialization not found."}), 404
+
+    workbook = build_specialization_workbook([{
+        "specialization_id": specialization_id,
+        "specialization_name": specialization,
+        "records": rows,
+    }])
+    filename = secure_filename(specialization).lower() or "specialization"
+    return send_file(
+        workbook,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=f"capre-{filename}-capstones.xlsx",
+    )
+
+
+@admin.route("/analytics/report.xlsx")
+@role_required(3)
+def analytics_workbook():
+    by_specialization, specialization_err = get_capstones_by_specialization()
+    by_program, program_err = get_capstones_by_program()
+    trend_years, trend_series, trend_err = get_capstone_trend_by_specialization()
+    status_flags, status_err = get_capstone_status_flags()
+    if any((specialization_err, program_err, trend_err, status_err)):
+        return jsonify({
+            "success": False,
+            "error": "Analytics data is temporarily unavailable.",
+        }), 500
+
+    total = sum(row["total"] for row in by_program)
+    status_flags = status_flags or {}
+
+    def share(value, whole=total):
+        return f"{((value / whole) * 100) if whole else 0:.1f}%"
+
+    status_groups = (
+        ("Publication", (("Published", total), ("Not Published", 0))),
+        ("Utilization", (("Utilized", status_flags.get("utilized", 0)),
+                         ("Not Utilized", status_flags.get("not_utilized", 0)))),
+        ("Presentation", (("Presented", status_flags.get("presented", 0)),
+                          ("Not Presented", status_flags.get("not_presented", 0)))),
+        ("Copyright", (("Registered", status_flags.get("copyright_registered", 0)),
+                       ("Not Registered", status_flags.get("not_copyright_registered", 0)))),
+    )
+    status_rows = [
+        (metric, label, value, share(value))
+        for metric, values in status_groups
+        for label, value in values
+    ]
+    trend_names = list(trend_series)
+    tables = [
+        {
+            "title": "Overview",
+            "headers": ("Metric", "Value"),
+            "rows": (("Total Capstones", total),),
+            "widths": (32, 18),
+        },
+        {
+            "title": "Programs",
+            "headers": ("Program", "Capstones", "Share of Total"),
+            "rows": tuple(
+                (row["program_name"], row["total"], share(row["total"]))
+                for row in by_program
+            ),
+            "widths": (30, 15, 18),
+        },
+        {
+            "title": "Status",
+            "headers": ("Metric", "Status", "Count", "Share"),
+            "rows": tuple(status_rows),
+            "widths": (20, 24, 14, 14),
+        },
+        {
+            "title": "Yearly Trend",
+            "headers": ("Year", *trend_names),
+            "rows": tuple(
+                (year, *(trend_series[name][index] for name in trend_names))
+                for index, year in enumerate(trend_years)
+            ),
+            "widths": (12, *(16 for _ in trend_names)),
+        },
+        {
+            "title": "Specializations",
+            "headers": ("Specialization", "Capstones", "Share of Total"),
+            "rows": tuple(
+                (row["specialization_name"], row["total"], share(row["total"]))
+                for row in by_specialization
+            ),
+            "widths": (28, 15, 18),
+        },
+        {
+            "title": "Summary",
+            "headers": ("Specialization", "Total Capstone", "Published", "Utilized",
+                        "Presented", "Copyright Registered"),
+            "rows": tuple(
+                (
+                    row["specialization_name"],
+                    f'{row["total"]} ({share(row["total"])})',
+                    f'{row["total"]} ({share(row["total"], row["total"])})',
+                    f'{row["utilized"]} ({share(row["utilized"], row["total"])})',
+                    f'{row["presented"]} ({share(row["presented"], row["total"])})',
+                    f'{row["copyright_registered"]} '
+                    f'({share(row["copyright_registered"], row["total"])})',
+                )
+                for row in by_specialization
+            ),
+            "widths": (28, 18, 18, 18, 18, 25),
+        },
+    ]
+    return send_file(
+        build_table_workbook(tables),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="capre-analytics-report.xlsx",
+    )
+
+
+@admin.route("/analytics/specializations/report")
+@role_required(3)
+def analytics_all_specializations_report():
+    specializations, err = get_all_specialization_reports()
+    if err:
+        return jsonify({"success": False, "error": err}), 500
+
+    return jsonify({
+        "success": True,
+        "specializations": specializations,
+    })
+
+
+@admin.route("/analytics/specializations/report.xlsx")
+@role_required(3)
+def analytics_all_specializations_workbook():
+    specializations, err = get_all_specialization_reports()
+    if err:
+        return jsonify({"success": False, "error": err}), 500
+
+    return send_file(
+        build_specialization_workbook(specializations),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name="capre-all-specializations.xlsx",
+    )
+
 
 @admin.route("/manage_users")
 @role_required(3)
@@ -727,6 +892,7 @@ def delete_capstone_route(capstone_id):
 @role_required(3)
 def view_capstone(capstone_id):
     capstone = get_capstone_details(capstone_id)
+    authors = get_capstone_authors(capstone_id)
     # g.user is reloaded from the DB on every request (see load_current_user),
     # so this reflects the caller's current role even if it changed mid-session.
     is_admin = bool(g.user) and g.user.get("role_id") == 3
@@ -743,6 +909,7 @@ def view_capstone(capstone_id):
     return render_template(
         "admin/view_capstone.html",
         capstone=capstone,
+        authors=authors,
         max_pages=max_pages,
         start_page=1,
         pdf_url=pdf_url,
@@ -762,66 +929,37 @@ def view_capstone_pdf(capstone_id):
     # than on next login.
     role_name = g.user.get("role_name") if g.user else None
 
-    # Default values
-    max_pages = None
-    start_page = 1
-    abstract_text = None
     has_full_access = can_view_full_manuscript(capstone_id)
     if not has_full_access and role_name != 'Student':
         abort(403)
 
-    # If user is Student, restrict to abstract page only. Attempt to determine
-    # the actual abstract page number from stored capstone data or by parsing
-    # the PDF on disk (fall back to page 1).
-    if role_name == 'Student' and not has_full_access:
-        max_pages = 1
-
-        # try to read abstract_page from capstone record (dict-like)
-        abstract_page = None
-        try:
-            abstract_page = capstone.get('abstract_page') if isinstance(capstone, dict) else None
-        except Exception:
-            abstract_page = None
-
-        # If not present, try parsing the PDF to find abstract page
-        if not abstract_page:
-            file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
-            if file_rel:
-                pdf_path = resolve_manuscript_file(file_rel)
-                try:
-                    if pdf_path and pdf_path.lower().endswith('.pdf'):
-                        data = extract_capstone_data(pdf_path)
-                        abstract_page = data.get('abstract_page')
-                except Exception as e:
-                    logger.error("Error parsing PDF for abstract page: %s", e)
-
-        if abstract_page:
-            start_page = int(abstract_page)
-
-    # Normalize capstone file path for use with url_for('static')
+    abstract_only = role_name == 'Student' and not has_full_access
+    authors = get_capstone_authors(capstone_id) if abstract_only else []
+    max_pages = 1 if abstract_only else None
     pdf_url = None
+    abstract_text = None
     file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
     if file_rel and has_full_access:
         pdf_url = url_for('admin.manuscript_file', capstone_id=capstone_id)
     elif file_rel:
         pdf_path = resolve_manuscript_file(file_rel)
         if pdf_path and pdf_path.lower().endswith('.pdf'):
-            try:
-                abstract_text = extract_capstone_data(pdf_path).get('abstract_text') or ''
-            except Exception as e:
-                logger.error("Error extracting abstract preview: %s", e)
-        if not abstract_text:
-            abstract_text = "Abstract preview is not available for this manuscript."
+            abstract_text = extract_abstract_text(pdf_path)
+
+    if abstract_only and not abstract_text:
+        abstract_text = "Abstract is not available for this manuscript."
 
     return render_template(
-        "admin/native_pdf_viewer.html",
+        "admin/view_capstone.html" if abstract_only else "admin/native_pdf_viewer.html",
         capstone=capstone,
+        authors=authors,
         max_pages=max_pages,
-        start_page=start_page,
+        start_page=1,
         pdf_url=pdf_url,
         abstract_text=abstract_text,
+        abstract_only=abstract_only,
         hide_nav=True,
-        hide_header=True,
+        hide_header=not abstract_only,
     )
 
 

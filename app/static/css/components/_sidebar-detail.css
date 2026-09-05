@@ -26,6 +26,10 @@
     flex-direction: column;
 }
 
+.sidebar-card[hidden] {
+    display: none;
+}
+
 /* Folder tab, matching auth-form-card / doc-card / role-card */
 .sidebar-card__tab {
     position: absolute;

@@ -6,13 +6,7 @@
 
 {% block content %}
 <div class="native-pdf-page">
-  {% if abstract_text is defined and abstract_text %}
-  <article class="native-abstract-page">
-    <p class="native-abstract-kicker">Abstract Preview</p>
-    <h1>{{ capstone.capstone_title }}</h1>
-    <div class="native-abstract-text">{{ abstract_text }}</div>
-  </article>
-  {% elif pdf_url %}
+  {% if pdf_url %}
   <iframe
     class="native-pdf-frame"
     src="{{ pdf_url }}{% if start_page %}#page={{ start_page }}{% endif %}"

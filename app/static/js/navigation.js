@@ -152,6 +152,14 @@
             );
         }
 
+        const nextHeaderActions = doc.querySelector('.header-page-actions');
+        const headerActions = document.querySelector('.header-page-actions');
+        if (nextHeaderActions && headerActions) {
+            headerActions.replaceChildren(
+                ...Array.from(nextHeaderActions.childNodes, (node) => document.importNode(node, true))
+            );
+        }
+
         document.querySelectorAll('.nav-item').forEach((link) => {
             if (link.classList.contains('logout')) return;
             link.classList.toggle('active', toUrl(link.href).pathname === url.pathname);

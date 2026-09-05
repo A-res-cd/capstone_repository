@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block content %}
+{% set show_abstract = abstract_only | default(false) %}
 
 <div class="view-capstone-container">
 
@@ -15,19 +16,36 @@
     {% set role = session.get('role_name') %}
     {% if role == 'Admin' or role == 'Capstone Professor' %}
     <a href="{{ url_for('admin.view_capstone_repository') }}" class="back-link">← Back to Repository</a>
-    {% elif role == 'Faculty' %}
-    <a href="{{ url_for('pages.browse') }}" class="back-link">← Back to Archive</a>
     {% else %}
-    <a href="{{ url_for('pages.all_requests') }}" class="back-link">← Back to My Requests</a>
+    <a href="{{ url_for('pages.browse') }}" class="back-link">← Back to Archive</a>
     {% endif %}
 
     <h1 class="capstone-title">{{ capstone.capstone_title }}</h1>
 
     <div class="meta-item">
-      <span class="meta-label">Year</span>
-      <span class="meta-value">{{ capstone.capstone_year }}</span>
+      <span class="meta-label">Authors</span>
+      {% if authors %}
+      <div class="meta-value meta-authors">
+        {% for author in authors %}
+        <span>{{ author.aut_first_name or '' }}{% if author.aut_middle_name %} {{ author.aut_middle_name }}{% endif %}{% if author.aut_last_name %} {{ author.aut_last_name }}{% endif %}</span>
+        {% endfor %}
+      </div>
+      {% else %}
+      <span class="meta-value">N/A</span>
+      {% endif %}
     </div>
 
+    <div class="meta-item">
+      <span class="meta-label">Specialization</span>
+      <span class="meta-value">{{ capstone.specialization_name or 'N/A' }}</span>
+    </div>
+
+    <div class="meta-item">
+      <span class="meta-label">Year Completed</span>
+      <span class="meta-value">{{ capstone.capstone_year or 'N/A' }}</span>
+    </div>
+
+    {% if not show_abstract %}
     <div class="meta-item">
       <span class="meta-label">Semester</span>
       <span class="meta-value">{{ capstone.semester or 'N/A' }}</span>
@@ -37,29 +55,42 @@
       <span class="meta-label">Program</span>
       <span class="meta-value">{{ capstone.program_name or 'N/A' }}</span>
     </div>
+    {% endif %}
 
-    <div class="meta-item">
-      <span class="meta-label">Specialization</span>
-      <span class="meta-value">{{ capstone.specialization_name or 'N/A' }}</span>
-    </div>
-
-    {% if capstone.capstone_keywords %}
     <div class="keywords-section">
       <span class="meta-label">Keywords</span>
+      {% if capstone.capstone_keywords %}
       <div class="keyword-tags">
         {% for kw in capstone.capstone_keywords.split(',') %}
-          <span class="keyword-tag">{{ kw.strip() }}</span>
+          {% if kw.strip() %}<span class="keyword-tag">{{ kw.strip() }}</span>{% endif %}
         {% endfor %}
       </div>
+      {% else %}
+      <span class="meta-value">N/A</span>
+      {% endif %}
     </div>
-    {% endif %}
     </div>
   </div>
 
-  <!-- Right: PDF viewer -->
+  <!-- Right: abstract or PDF viewer -->
+  {% if show_abstract %}
+  <section class="abstract-section" aria-labelledby="abstract-title">
+    <header class="abstract-section__header">
+      <h2 id="abstract-title">Abstract</h2>
+    </header>
+    <div class="abstract-section__body">
+      {% for paragraph in abstract_text.split('\n\n') %}
+        {% set paragraph_text = paragraph | trim %}
+        {% if paragraph_text %}
+          <p>{{ paragraph_text | replace('\r', '') | replace('\n', ' ') }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+  {% elif pdf_url %}
   <div class="pdf-panel">
     <div class="pdf-toolbar">
-      <span class="pdf-label">{% if max_pages == 1 %}Abstract Preview{% else %}Full Document{% endif %}</span>
+      <span class="pdf-label">Full Document</span>
       <div class="pdf-controls">
         {% if max_pages is none %}
         <div class="pdf-search">
@@ -83,9 +114,18 @@
     </div>
     <div id="pdf-loading">Loading PDF...</div>
   </div>
+  {% else %}
+  <div class="pdf-panel">
+    <div class="native-pdf-empty">
+      <h1>No PDF available</h1>
+      <p>This capstone does not have a manuscript file.</p>
+    </div>
+  </div>
+  {% endif %}
 
 </div>
 
+{% if pdf_url %}
 <script>
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -345,5 +385,6 @@
     });
   });
 </script>
+{% endif %}
 
 {% endblock %}

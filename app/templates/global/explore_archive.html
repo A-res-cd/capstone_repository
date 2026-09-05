@@ -156,7 +156,7 @@
             {# ── Sidebar ── #}
             <aside class="archive-sidebar archive-sidebar--collapsible">
                 {% if sidebar_project %}
-                <div class="sidebar-card" id="sidebar-card" data-capstone-id="{{ sidebar_project.capstone_id }}">
+                <div class="sidebar-card" id="sidebar-card" data-capstone-id="{{ sidebar_project.capstone_id }}" hidden>
                     <span class="sidebar-card__tab">Record</span>
                     <button type="button" id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Back to list">
                         <i class="bx bx-arrow-back"></i> Back to list
@@ -262,12 +262,11 @@
                         </div>
                     </div>
                 </div>
-                {% else %}
-                <div class="sidebar-card sidebar-empty">
+                {% endif %}
+                <div class="sidebar-card sidebar-empty" id="sidebar-empty">
                     <i class="bx bx-book-open"></i>
                     <p>Select a capstone to see details.</p>
                 </div>
-                {% endif %}
             </aside>
 
             {# ── pop up citation ── #}

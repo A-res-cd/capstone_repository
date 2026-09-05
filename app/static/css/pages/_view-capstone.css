@@ -51,42 +51,6 @@ main:has(.native-pdf-page) {
     color: var(--color-gray-dark);
 }
 
-.native-abstract-page {
-    width: min(860px, calc(100% - 32px));
-    max-height: calc(100dvh - 32px);
-    margin: auto;
-    padding: var(--space-xl);
-    overflow-y: auto;
-    color: var(--text-dark);
-    background: var(--bg-card-neutral);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-}
-
-.native-abstract-kicker {
-    margin: 0 0 var(--space-xs);
-    color: var(--color-primary);
-    font-size: var(--text-xs);
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.native-abstract-page h1 {
-    margin: 0 0 var(--space-lg);
-    color: var(--color-primary);
-    font-family: var(--font-display);
-    font-size: var(--text-2xl);
-    line-height: 1.25;
-}
-
-.native-abstract-text {
-    white-space: pre-wrap;
-    line-height: 1.7;
-    font-size: var(--text-md);
-}
-
 main:has(.view-capstone-container) {
     padding: 0;
     overflow: hidden;
@@ -200,6 +164,12 @@ main:has(.view-capstone-container) {
     color: var(--text-dark);
 }
 
+.meta-authors {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
 .keywords-section {
     display: flex;
     flex-direction: column;
@@ -224,6 +194,52 @@ main:has(.view-capstone-container) {
 }
 
 /* ── Right: PDF viewer panel ── */
+.abstract-section {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    padding: clamp(24px, 4vw, 56px);
+    overflow-y: auto;
+    color: var(--text-dark);
+    background: var(--bg-card-neutral);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.abstract-section__header {
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.abstract-section__header h2 {
+    margin: 0;
+    color: var(--color-primary-light);
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+}
+
+.abstract-section__body {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: break-word;
+    color: var(--text-dark);
+    font-family: var(--font-primary);
+    font-size: clamp(16px, 1.15vw, 18px);
+    line-height: 1.8;
+    letter-spacing: 0.01em;
+}
+
+.abstract-section__body p {
+    margin: 0 0 1.25em;
+}
+
+.abstract-section__body p:last-child {
+    margin-bottom: 0;
+}
+
 .pdf-panel {
     flex: 1;
     display: flex;
@@ -357,6 +373,10 @@ main:has(.view-capstone-container) {
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
+    main:has(.view-capstone-container) {
+        overflow-y: auto;
+    }
+
     .view-capstone-container {
         flex-direction: column;
         height: auto;
@@ -368,6 +388,11 @@ main:has(.view-capstone-container) {
 
     .pdf-panel {
         min-height: 70vh;
+    }
+
+    .abstract-section {
+        min-height: 70vh;
+        padding: var(--space-lg);
     }
 
     .pdf-toolbar {
