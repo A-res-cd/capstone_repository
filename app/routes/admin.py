@@ -1,4 +1,5 @@
 from flask import Blueprint, abort, render_template, request, redirect, session, url_for, flash, jsonify, current_app, send_file, g
+from flask_mail import Message
 from werkzeug.utils import secure_filename
 import os
 import sys
@@ -13,7 +14,7 @@ from app.db.database import (
     get_all_requests, review_request, set_capstone_people, get_capstone_people, get_capstone_authors,
     get_capstones_by_specialization, get_requests_by_status, add_to_bin,
     restore_capstone, ARCHIVE_RETENTION_DAYS,
-    get_pending_verifications, review_verification_request,
+    get_pending_verifications, get_verification_request_recipient, review_verification_request,
     get_pending_promotion_requests, review_promotion_request,
     get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags
 )
@@ -31,11 +32,43 @@ from app.utils.uploads import (
     stored_manuscript_path,
     unique_manuscript_filename,
 )
+from app import mail
 admin = Blueprint("admin", __name__)
 logger = logging.getLogger(__name__)
 
 def _allowed(filename):
     return allowed_manuscript(filename)
+
+
+def _send_verification_email(recipient, decision, status_reason):
+    """Send the verification result without affecting the saved decision."""
+    if not recipient or not recipient.get("email"):
+        return False
+
+    name = recipient.get("full_name") or "there"
+    if decision == "approved":
+        subject = "Your CAPRE account has been verified"
+        body = (
+            f"Hello {name},\n\n"
+            "Your CAPRE account has been verified. You may now sign in.\n\n"
+            "Thank you,\nCAPRE"
+        )
+    else:
+        subject = "Update on your CAPRE account verification"
+        body = (
+            f"Hello {name},\n\n"
+            "Your CAPRE account verification was rejected.\n"
+            f"Reason: {status_reason or 'No reason was provided.'}\n\n"
+            "Please contact support if you need help.\n\n"
+            "Thank you,\nCAPRE"
+        )
+
+    try:
+        mail.send(Message(subject=subject, recipients=[recipient["email"]], body=body))
+        return True
+    except Exception as exc:
+        logger.error("Could not send verification email: %s", exc)
+        return False
 
 
 def _populate_capstone_choices(form):
@@ -541,13 +574,19 @@ def decide_verification(request_id):
         flash("Invalid decision.", "danger")
         return redirect(url_for("admin.manage_users"))
 
+    recipient = get_verification_request_recipient(request_id)
     ok, err = review_verification_request(request_id, decision, status_reason, reviewed_by)
-    flash(
-        "Account activated." if (ok and decision == "approved")
-        else "Account verification rejected." if ok
-        else f"Error: {err}",
-        "success" if ok else "danger",
-    )
+    if ok:
+        email_sent = _send_verification_email(recipient, decision, status_reason)
+        message = (
+            "Account activated." if decision == "approved"
+            else "Account verification rejected."
+        )
+        if not email_sent:
+            message += " Email notification could not be sent."
+        flash(message, "success" if email_sent else "warning")
+    else:
+        flash(f"Error: {err}", "danger")
     return redirect(url_for("admin.manage_users"))
 
 

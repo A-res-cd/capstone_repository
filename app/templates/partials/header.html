@@ -63,17 +63,27 @@
                     </div>
                     <div class="notification-list">
                         {% for item in notifications %}
+                        {% set is_verification = item.request_type and item.request_type.startswith('verification_') %}
                         {% set destination = url_for('pages.all_requests') if item.request_type == 'manuscript' else url_for('pages.user_info') %}
                         <a href="{{ destination }}" class="notification-item{% if not item.notification_seen_at %} is-unread{% endif %}">
                             <i class="bx {{ 'bx-check-circle' if item.request_status == 'approved' else 'bx-x-circle' }}"></i>
                             <span>
                                 <strong>
-                                    {% if item.request_type == 'manuscript' %}Manuscript request
+                                    {% if is_verification %}
+                                        {% if item.request_status == 'approved' %}Account verified{% else %}Account verification rejected{% endif %}
+                                    {% elif item.request_type == 'manuscript' %}Manuscript request
                                     {% elif item.request_type == 'promotion' %}Role request
-                                    {% else %}Account request{% endif %}
-                                    {{ item.request_status }}
+                                    {% else %}Account request {{ item.request_status }}{% endif %}
                                 </strong>
-                                <small>{{ item.capstone_title or item.target_role_name or (item.status_reason or 'Review completed') }}</small>
+                                <small>
+                                    {% if is_verification and item.request_status == 'approved' %}
+                                        Your account has been verified.
+                                    {% elif is_verification %}
+                                        Your account verification was rejected. {{ item.status_reason or 'Contact support for help.' }}
+                                    {% else %}
+                                        {{ item.capstone_title or item.target_role_name or (item.status_reason or 'Review completed') }}
+                                    {% endif %}
+                                </small>
                                 <time>{{ item.decision_date.strftime('%b %d, %Y - %I:%M %p') }}</time>
                             </span>
                         </a>

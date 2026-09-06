@@ -99,7 +99,7 @@ def signup():
         )
 
         if success:
-            flash("Account created successfully! Please wait for approval.", "success")
+            flash("Account created successfully. Your account is waiting for verification.", "success")
             return redirect(url_for("auth.signin"))
         else:
             flash(message, "danger")

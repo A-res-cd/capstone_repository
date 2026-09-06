@@ -360,9 +360,9 @@ def sign_in(username, password, device_ip=None):
         # would let anyone probe account status without knowing the password.
         if row["account_status"] != "active":
             if row["account_status"] == "pending":
-                return None, "Account is pending verification. Please wait for approval."
+                return None, "Your account is waiting for verification. Please wait for approval."
             if row["account_status"] == "rejected":
-                return None, "Account registration was rejected. Contact support for help."
+                return None, "Your account verification was rejected. Contact support for help."
             return None, "Account is not allowed to sign in."
 
         user_id = row["user_id"]
@@ -679,6 +679,30 @@ def get_pending_verifications():
         mithrix.close()
         conn.close()
 
+def get_verification_request_recipient(request_id):
+    """Get the name and email for a pending verification notification."""
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
+                   c.contact_value AS email
+            FROM request r
+            JOIN "user" u ON u.user_id = r.user_id
+            LEFT JOIN contact c ON c.user_id = u.user_id
+                AND c.contact_type = 'email' AND c.is_primary = TRUE
+            WHERE r.request_id = %s
+              AND r.request_type LIKE 'verification_%%'
+              AND r.request_status = 'pending'
+        """, (request_id,))
+        return mithrix.fetchone()
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return None
+    finally:
+        mithrix.close()
+        conn.close()
+
 def review_verification_request(request_id, decision, status_reason, reviewed_by):
     """
     Approve/reject an account-verification request. Unlike review_request()
@@ -711,7 +735,8 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
                 request_status = %s,
                 status_reason = %s,
                 reviewed_by = %s,
-                decision_date = %s
+                decision_date = %s,
+                notification_seen_at = NULL
             WHERE request_id = %s
         """, (decision, status_reason, reviewed_by, now, request_id))
 
