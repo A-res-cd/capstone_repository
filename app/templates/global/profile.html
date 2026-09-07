@@ -36,6 +36,14 @@
         {% endif %}
     </div>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flash-list profile-registration-flashes" role="status">
+        {% for category, message in messages %}<li class="flash-{{ category }}">{{ message }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
     <div class="profile-body">
         <section class="profile-works" aria-labelledby="my-works-heading">
             <div class="profile-section-heading">
@@ -43,9 +51,6 @@
                     <span class="profile-eyebrow">Capstone archive</span>
                     <h2 id="my-works-heading">My Works</h2>
                 </div>
-                {% if preview_data %}
-                <span class="profile-preview-badge">Preview data</span>
-                {% endif %}
             </div>
 
             <div class="profile-work-list">
@@ -53,7 +58,7 @@
                 <article class="profile-work">
                     <span class="profile-work__number">{{ '%02d' | format(loop.index) }}</span>
                     <div class="profile-work__body">
-                        <h3>{{ work.title }}</h3>
+                        <h3><a href="{{ url_for('pages.browse', search=work.title) }}">{{ work.title }}</a></h3>
                         <div class="profile-work__meta">
                             <span>{{ work.year }}</span>
                             <span>{{ work.specialization }}</span>
@@ -63,16 +68,46 @@
                     <span class="profile-work__status">{{ work.status }}</span>
                 </article>
                 {% else %}
-                <div class="profile-empty-state">No works to display yet.</div>
+                <div class="profile-empty-state">No capstones linked to your account yet. A capstone professor must verify and link your specific author credits.</div>
                 {% endfor %}
             </div>
         </section>
 
         <aside class="profile-sidebar">
+            <section class="profile-panel" id="capstoner-registration" aria-labelledby="capstoner-heading">
+                {% set capstoner_status = capstoner_registration.request_status if capstoner_registration else 'unregistered' %}
+                <div class="profile-panel__heading">
+                    <h2 id="capstoner-heading">Capstoner</h2>
+                    <span>{{ 'Not registered' if capstoner_status == 'unregistered' else capstoner_status | capitalize }}</span>
+                </div>
+                {% if capstoner_status == 'approved' %}
+                <p class="helper-text">You are an approved capstoner. Only author credits explicitly linked to you appear in My Works.</p>
+                {% elif capstoner_status == 'pending' %}
+                <p class="helper-text">Your capstoner registration is waiting for a capstone professor's review. Your login verification and account role stay unchanged.</p>
+                {% else %}
+                <p class="helper-text">Register if you are a capstone author. A capstone professor will verify your details. Approval does not automatically claim any work.</p>
+                {% endif %}
+                {% if capstoner_registration and capstoner_registration.status_reason %}
+                <p class="helper-text capstoner-note"><strong>Professor feedback:</strong> {{ capstoner_registration.status_reason }}</p>
+                {% endif %}
+                {% if capstoner_status in ['unregistered', 'rejected'] and profile.account_status == 'active' %}
+                <form class="capstoner-form" method="POST" action="{{ url_for('pages.register_capstoner') }}">
+                    {{ capstoner_form.hidden_tag() }}
+                    <div class="form-group">
+                        {{ capstoner_form.reason.label }}
+                        {{ capstoner_form.reason(rows=4, maxlength=2000, required=true, aria_describedby="capstoner-reason-help", placeholder="Capstone title, program, coauthors or adviser...") }}
+                        <span class="helper-text" id="capstoner-reason-help">Give enough detail for your professor to verify your authorship. Maximum 2000 characters.</span>
+                    </div>
+                    <button type="submit" class="btn-pill btn-pill--primary">{{ 'Reapply as Capstoner' if capstoner_status == 'rejected' else 'Register as Capstoner' }}</button>
+                </form>
+                {% elif capstoner_status in ['unregistered', 'rejected'] %}
+                <p class="helper-text">Your user account must be verified and active before registering.</p>
+                {% endif %}
+            </section>
+
             <section class="profile-panel">
                 <div class="profile-panel__heading">
                     <h2>At a glance</h2>
-                    {% if preview_data %}<span>Sample</span>{% endif %}
                 </div>
                 <div class="profile-metrics">
                     {% for metric in profile_metrics %}
@@ -82,6 +117,7 @@
                     </div>
                     {% endfor %}
                 </div>
+                <p class="helper-text">Activity counts will appear when tracking is available.</p>
             </section>
 
             <section class="profile-panel">
@@ -101,7 +137,6 @@
             <section class="profile-panel">
                 <div class="profile-panel__heading">
                     <h2>Recent activity</h2>
-                    {% if preview_data %}<span>Sample</span>{% endif %}
                 </div>
                 <div class="profile-activity-list">
                     {% for activity in recent_activity %}
@@ -109,6 +144,8 @@
                         <i class="bx bx-check-circle"></i>
                         <span><strong>{{ activity.label }}</strong><small>{{ activity.date }}</small></span>
                     </div>
+                    {% else %}
+                    <p class="helper-text">Author activity tracking is coming next.</p>
                     {% endfor %}
                 </div>
             </section>

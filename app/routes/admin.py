@@ -19,8 +19,13 @@ from app.db.database import (
     get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags
 )
 from app.routes.decorators import role_required, can_view_full_manuscript
-from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
+from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm, CapstonerReviewForm, CapstonerAssignmentForm
 from app.db.analytics import get_all_specialization_reports, get_specialization_report
+from app.db.capstones import get_author_account_choices
+from app.db.capstoners import (
+    get_pending_capstoners, review_capstoner_registration,
+    get_capstoner_assignment_choices, assign_capstoner_credit,
+)
 from app.utils.pdf_extractor import extract_abstract_text, extract_capstone_data
 from app.utils.xlsx_export import build_specialization_workbook, build_table_workbook
 from app.utils.uploads import (
@@ -76,6 +81,14 @@ def _populate_capstone_choices(form):
     pulled fresh from the DB each request rather than hardcoded."""
     form.program_id.choices = [(p[0], p[1]) for p in get_programs()]
     form.specialization_id.choices = [(s[0], s[1]) for s in get_specializations()]
+    accounts = [(0, "No linked account")]
+    author_accounts = get_author_account_choices() if getattr(g, "user", None) and g.user.get("role_id") in (3, 4) else []
+    for account in author_accounts:
+        name = " ".join(account[key] for key in ("user_first_name", "user_middle_name", "user_last_name") if account[key])
+        university_no = f" · {account['university_no']}" if account["university_no"] else ""
+        accounts.append((account["user_id"], f"{name or 'Unnamed user'}{university_no} · Account #{account['user_id']}"))
+    for author in form.authors:
+        author.user_id.choices = accounts
 
 
 def _first_form_error(form):
@@ -103,10 +116,12 @@ def _people_for_db(form):
     (first_name/middle_name/last_name) to the shape set_capstone_people()
     already expects (first/middle/last)."""
     authors = [
-        {"first": a.first_name.data, "middle": a.middle_name.data, "last": a.last_name.data}
+        {"first": a.first_name.data, "middle": a.middle_name.data, "last": a.last_name.data,
+         "author_id": a.author_id.data, "user_id": a.user_id.data}
         for a in form.authors
     ]
     adviser = {
+        "author_id": form.adviser.author_id.data,
         "first": form.adviser.first_name.data,
         "middle": form.adviser.middle_name.data,
         "last": form.adviser.last_name.data,
@@ -670,6 +685,65 @@ def view_requests():
 
 # ── Repository ────────────────────────────────────────────────────────────────
 
+def _capstoner_assignment_form():
+    form = CapstonerAssignmentForm()
+    accounts, credits = get_capstoner_assignment_choices()
+    form.user_id.choices = [(0, "Choose an account")]
+    for account in accounts:
+        if account["user_id"] != session["user_id"]:
+            label = f"{account['full_name']} · {account['university_no'] or 'No university ID'} · Account #{account['user_id']}"
+            form.user_id.choices.append((account["user_id"], label))
+    form.credit.choices = [("", "Choose an unlinked author credit")] + [
+        (f"{credit['capstone_id']}:{credit['author_id']}",
+         f"{credit['author_name']} — {credit['capstone_title']} ({credit['capstone_year']}) · Credit #{credit['author_id']}")
+        for credit in credits
+    ]
+    return form
+
+
+def _render_capstoner_review(assignment_form=None):
+    return render_template(
+        "admin/capstoners.html", pending_capstoners=get_pending_capstoners(),
+        review_form=CapstonerReviewForm(),
+        assignment_form=assignment_form or _capstoner_assignment_form(),
+    )
+
+
+@admin.route("/capstoners")
+@role_required(4)
+def capstoner_review():
+    return _render_capstoner_review()
+
+
+@admin.route("/capstoners/review/<int:request_id>", methods=["POST"])
+@role_required(4)
+def decide_capstoner(request_id):
+    form = CapstonerReviewForm()
+    if not form.validate_on_submit():
+        flash(_first_form_error(form), "danger")
+        return _render_capstoner_review(), 400
+    ok, error = review_capstoner_registration(request_id, form.decision.data, form.status_reason.data, session["user_id"])
+    flash("Capstoner request reviewed. No capstone was linked automatically." if ok else error, "success" if ok else "danger")
+    if not ok:
+        return _render_capstoner_review(), 400
+    return redirect(url_for("admin.capstoner_review"))
+
+
+@admin.route("/capstoners/assign", methods=["POST"])
+@role_required(4)
+def assign_capstoner():
+    form = _capstoner_assignment_form()
+    if not form.validate_on_submit():
+        flash(_first_form_error(form), "danger")
+        return _render_capstoner_review(form), 400
+    capstone_id, author_id = (int(value) for value in form.credit.data.split(":"))
+    ok, error = assign_capstoner_credit(capstone_id, author_id, form.user_id.data, session["user_id"])
+    flash("Author credit linked. The user is an approved capstoner." if ok else error, "success" if ok else "danger")
+    if not ok:
+        return _render_capstoner_review(form), 400
+    return redirect(url_for("admin.capstoner_review"))
+
+
 @admin.route("/repository")
 @role_required(2, 3, 4)
 def view_capstone_repository():
@@ -710,16 +784,21 @@ def get_capstone_people_json(capstone_id):
     """Feeds the Edit-panel wizard's Authors/Adviser step — capstone
     people were previously only fetchable server-side, so editing an
     existing capstone silently dropped its authors/adviser."""
-    rows = get_capstone_people(capstone_id)
+    try:
+        rows = get_capstone_people(capstone_id)
+    except Exception:
+        return jsonify({"success": False, "error": "Could not load author links."}), 503
 
     authors = [
-        {"first": r["aut_first_name"], "middle": r["aut_middle_name"] or "", "last": r["aut_last_name"]}
+        {"first": r["aut_first_name"], "middle": r["aut_middle_name"] or "", "last": r["aut_last_name"],
+         "author_id": r["author_id"], "user_id": r["user_id"]}
         for r in rows if r["role"] == "Author"
     ][:4]
 
     adviser_row = next((r for r in rows if r["role"] == "Adviser"), None)
     adviser = (
-        {"first": adviser_row["aut_first_name"], "middle": adviser_row["aut_middle_name"] or "", "last": adviser_row["aut_last_name"]}
+        {"first": adviser_row["aut_first_name"], "middle": adviser_row["aut_middle_name"] or "", "last": adviser_row["aut_last_name"],
+         "author_id": adviser_row["author_id"]}
         if adviser_row else {"first": "", "middle": "", "last": ""}
     )
 

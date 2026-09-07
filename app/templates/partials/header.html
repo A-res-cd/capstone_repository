@@ -64,7 +64,7 @@
                     <div class="notification-list">
                         {% for item in notifications %}
                         {% set is_verification = item.request_type and item.request_type.startswith('verification_') %}
-                        {% set destination = url_for('pages.all_requests') if item.request_type == 'manuscript' else url_for('pages.profile_overview') if is_verification else url_for('pages.user_info') %}
+                        {% set destination = url_for('pages.all_requests') if item.request_type == 'manuscript' else url_for('pages.profile_overview') if is_verification or item.request_type == 'capstoner' else url_for('pages.user_info') %}
                         <a href="{{ destination }}" class="notification-item{% if not item.notification_seen_at %} is-unread{% endif %}">
                             <i class="bx {{ 'bx-check-circle' if item.request_status == 'approved' else 'bx-x-circle' }}"></i>
                             <span>
@@ -73,6 +73,7 @@
                                         {% if item.request_status == 'approved' %}Account verified{% else %}Account verification rejected{% endif %}
                                     {% elif item.request_type == 'manuscript' %}Manuscript request
                                     {% elif item.request_type == 'promotion' %}Role request
+                                    {% elif item.request_type == 'capstoner' %}Capstoner registration {{ item.request_status }}
                                     {% else %}Account request {{ item.request_status }}{% endif %}
                                 </strong>
                                 <small>

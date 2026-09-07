@@ -293,21 +293,28 @@
                 ══════════════════════════════════════════════ #}
                 <div class="form-step form-step--hidden" data-step="2">
 
+                <p id="people-load-status" class="helper-text" role="status" hidden></p>
                 <fieldset class="form-group form-group--full people-section">
                     <legend>Authors <span class="label-note">Up to 4</span></legend>
+                    <p class="helper-text" id="author-account-help">Link approved capstoners to their author credits. Leave authors without accounts unlinked. A capstone professor can verify other users through Capstoner Review. Names are never matched automatically; existing links cannot be overwritten.</p>
                     {% for i in range(4) %}
                     <div class="form-row person-name-row">
+                        {{ form.authors[i].author_id() }}
                         <div class="form-group">
                             <label for="authors-{{ i }}-first_name">Author {{ i + 1 }} — First</label>
-                            <input type="text" id="authors-{{ i }}-first_name" name="authors-{{ i }}-first_name" placeholder="First name">
+                            {{ form.authors[i].first_name(placeholder="First name") }}
                         </div>
                         <div class="form-group">
                             <label for="authors-{{ i }}-middle_name">Middle</label>
-                            <input type="text" id="authors-{{ i }}-middle_name" name="authors-{{ i }}-middle_name" placeholder="Middle name">
+                            {{ form.authors[i].middle_name(placeholder="Middle name") }}
                         </div>
                         <div class="form-group">
                             <label for="authors-{{ i }}-last_name">Last</label>
-                            <input type="text" id="authors-{{ i }}-last_name" name="authors-{{ i }}-last_name" placeholder="Last name">
+                            {{ form.authors[i].last_name(placeholder="Last name") }}
+                        </div>
+                        <div class="form-group form-group--full">
+                            <label for="authors-{{ i }}-user_id">Author {{ i + 1 }} — Linked account <span class="label-note">Optional</span></label>
+                            {{ form.authors[i].user_id(aria_describedby="author-account-help") }}
                         </div>
                     </div>
                     {% endfor %}
@@ -315,18 +322,19 @@
 
                 <fieldset class="form-group form-group--full people-section">
                     <legend>Adviser <span class="req">*</span></legend>
+                    {{ form.adviser.author_id() }}
                     <div class="form-row person-name-row">
                         <div class="form-group">
                             <label for="adviser-first_name">First <span class="req">*</span></label>
-                            <input type="text" id="adviser-first_name" name="adviser-first_name" placeholder="First name" required>
+                            {{ form.adviser.first_name(placeholder="First name", required=true) }}
                         </div>
                         <div class="form-group">
                             <label for="adviser-middle_name">Middle</label>
-                            <input type="text" id="adviser-middle_name" name="adviser-middle_name" placeholder="Middle name">
+                            {{ form.adviser.middle_name(placeholder="Middle name") }}
                         </div>
                         <div class="form-group">
                             <label for="adviser-last_name">Last <span class="req">*</span></label>
-                            <input type="text" id="adviser-last_name" name="adviser-last_name" placeholder="Last name" required>
+                            {{ form.adviser.last_name(placeholder="Last name", required=true) }}
                         </div>
                     </div>
                 </fieldset>

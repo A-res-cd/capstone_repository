@@ -96,6 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseForm = document.getElementById('btn-close-form');
     const btnCancel = document.getElementById('btn-cancel');
     let preserveCreateDraft = false;
+    let peopleLoadVersion = 0;
+    let peopleReady = true;
+    let editTrigger = null;
 
     // Recycle Bin has no repository form panel.
     if (!panelForm || !btnOpenCreate || !btnCloseForm || !btnCancel) return;
@@ -122,6 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEdit(btn) {
         preserveCreateDraft = false;
         resetForm();
+        editTrigger = btn;
+        const loadVersion = peopleLoadVersion;
+        peopleReady = false;
+        document.getElementById('btn-submit').disabled = true;
+        document.querySelectorAll('.people-section').forEach(section => { section.disabled = true; });
+        setText('people-load-status', 'Loading author account links...');
+        document.getElementById('people-load-status').hidden = false;
 
         const id = btn.dataset.id;
         const title = btn.dataset.title;
@@ -163,21 +173,35 @@ document.addEventListener('DOMContentLoaded', () => {
         // (would bloat every row's HTML) — fetched separately and filled
         // in once they arrive, without blocking the panel from opening.
         fetch(`/repository/${id}/people`)
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) throw new Error('People request failed');
+                return r.json();
+            })
             .then(data => {
-                if (!data.success) return;
+                if (loadVersion !== peopleLoadVersion) return;
+                if (!data.success) throw new Error('People request failed');
                 data.authors.forEach((author, i) => {
+                    setField(`authors-${i}-author_id`, author.author_id || '');
+                    setField(`authors-${i}-user_id`, author.user_id || 0);
                     setField(`authors-${i}-first_name`, author.first || '');
                     setField(`authors-${i}-middle_name`, author.middle || '');
                     setField(`authors-${i}-last_name`, author.last || '');
                 });
                 if (data.adviser) {
+                    setField('adviser-author_id', data.adviser.author_id || '');
                     setField('adviser-first_name', data.adviser.first || '');
                     setField('adviser-middle_name', data.adviser.middle || '');
                     setField('adviser-last_name', data.adviser.last || '');
                 }
+                peopleReady = true;
+                document.getElementById('btn-submit').disabled = false;
+                document.querySelectorAll('.people-section').forEach(section => { section.disabled = false; });
+                document.getElementById('people-load-status').hidden = true;
             })
-            .catch(err => console.error('Failed to load capstone authors/adviser:', err));
+            .catch(() => {
+                if (loadVersion !== peopleLoadVersion) return;
+                setText('people-load-status', 'Could not load author links. Close and reopen this capstone before saving.');
+            });
 
         showForm();
     }
@@ -190,7 +214,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetForm() {
+        peopleLoadVersion += 1;
+        peopleReady = true;
+        editTrigger = null;
         document.getElementById('capstone-form').reset();
+        document.getElementById('btn-submit').disabled = false;
+        document.querySelectorAll('.people-section').forEach(section => { section.disabled = false; });
+        document.getElementById('people-load-status').hidden = true;
+        for (let i = 0; i < 4; i += 1) {
+            setField(`authors-${i}-author_id`, '');
+            setField(`authors-${i}-user_id`, 0);
+        }
+        setField('adviser-author_id', '');
         document.getElementById('field-capstone-id').value = '';
         setField('extracted-filename', '');
         setDisplay('keyword-chips', 'none');
@@ -230,6 +265,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (validateStep1()) goToStep(2);
     });
     document.getElementById('btn-step-back').addEventListener('click', () => goToStep(1));
+    document.getElementById('capstone-form').addEventListener('submit', event => {
+        if (!peopleReady) {
+            event.preventDefault();
+            goToStep(2);
+        }
+    });
+    document.getElementById('btn-reset').addEventListener('click', event => {
+        event.preventDefault();
+        if (editTrigger) openEdit(editTrigger);
+        else resetForm();
+    });
 
     function setText(id, value) {
         const el = document.getElementById(id);
@@ -350,6 +396,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function fillForm(d) {
+        // A late create-upload response must not overwrite an opened edit.
+        if (document.getElementById('field-capstone-id').value) return;
+        // A replacement extraction supplies names, never account identities.
+        for (let i = 0; i < 4; i += 1) {
+            setField(`authors-${i}-author_id`, '');
+            setField(`authors-${i}-user_id`, 0);
+            setField(`authors-${i}-first_name`, '');
+            setField(`authors-${i}-middle_name`, '');
+            setField(`authors-${i}-last_name`, '');
+        }
+        setField('adviser-author_id', '');
         if (d.title)
             setField('capstone_title', toTitleCase(d.title));
 

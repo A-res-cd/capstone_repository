@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Capstoner Review | CAPRE{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_capstoners.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="profile-page capstoner-review">
+    <div class="profile-paper">
+        <section class="capstoner-review__section" aria-labelledby="pending-capstoners-heading">
+            <div class="profile-section-heading">
+                <div><span class="profile-eyebrow">Professor verification</span><h2 id="pending-capstoners-heading">Pending registrations</h2></div>
+                <span class="helper-text">{{ pending_capstoners | length }} pending</span>
+            </div>
+            <p class="helper-text">Verify each person's authorship before approving. Registration changes neither their account role nor login verification, and links no capstone automatically.</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <ul class="flash-list" role="status">
+                {% for category, message in messages %}<li class="flash-{{ category }}">{{ message }}</li>{% endfor %}
+            </ul>
+            {% endif %}
+            {% endwith %}
+            <div class="capstoner-review__requests">
+                {% for registration in pending_capstoners %}
+                <article class="detail-card">
+                    <div class="detail-card__header">
+                        <div>
+                            <h3>{{ registration.full_name }}</h3>
+                            <p>{{ registration.university_no or 'No university ID' }} · Account #{{ registration.user_id }}</p>
+                            <p>Requested {{ registration.request_date.strftime('%b %d, %Y') if registration.request_date else 'Unknown date' }} · Account {{ registration.account_status }}</p>
+                        </div>
+                    </div>
+                    <div class="detail-card__body">
+                        <p class="capstoner-note">{{ registration.request_reason }}</p>
+                        {% if registration.user_id == session.get('user_id') %}
+                        <p class="helper-text">Another capstone professor must review your own registration.</p>
+                        {% else %}
+                        <form class="capstoner-form" method="POST" action="{{ url_for('admin.decide_capstoner', request_id=registration.request_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="form-group">
+                                <label for="capstoner-feedback-{{ registration.request_id }}">Professor feedback <span class="label-note">Required when rejecting</span></label>
+                                {{ review_form.status_reason(id='capstoner-feedback-' ~ registration.request_id, rows=2, maxlength=1000) }}
+                            </div>
+                            <div class="capstoner-actions">
+                                <button type="submit" name="decision" value="approved" class="btn-pill btn-pill--primary">Approve registration</button>
+                                <button type="submit" name="decision" value="rejected" class="btn-pill btn-pill--ghost">Reject</button>
+                            </div>
+                        </form>
+                        {% endif %}
+                    </div>
+                </article>
+                {% else %}
+                <p class="profile-empty-state">No capstoner registrations waiting for review.</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="capstoner-review__section" aria-labelledby="assign-capstoner-heading">
+            <div class="profile-section-heading">
+                <div><span class="profile-eyebrow">Explicit author assignment</span><h2 id="assign-capstoner-heading">Link an author credit</h2></div>
+            </div>
+            <p class="helper-text">Select the exact account and author credit you have verified. If needed, this also approves their capstoner registration. Authors without accounts remain valid; existing links cannot be overwritten.</p>
+            <form class="capstoner-form" method="POST" action="{{ url_for('admin.assign_capstoner') }}">
+                {{ assignment_form.hidden_tag() }}
+                <div class="form-group">
+                    {{ assignment_form.user_id.label }}
+                    {{ assignment_form.user_id(required=true) }}
+                </div>
+                <div class="form-group">
+                    {{ assignment_form.credit.label }}
+                    {{ assignment_form.credit(required=true, aria_describedby="capstoner-credit-help") }}
+                    <span class="helper-text" id="capstoner-credit-help">Only unlinked author credits on non-archived capstones appear here. Add the capstone and its author names to the repository first.</span>
+                </div>
+                <label class="capstoner-confirm">
+                    {{ assignment_form.confirmed(required=true) }}
+                    <span>{{ assignment_form.confirmed.label.text }}</span>
+                </label>
+                <button type="submit" class="btn-pill btn-pill--primary">Verify capstoner &amp; link author</button>
+            </form>
+        </section>
+    </div>
+</section>
+{% endblock %}

@@ -10,7 +10,9 @@ get_requestable_capstones, get_programs, get_specializations,
 get_saved_capstone_ids, toggle_saved_capstone,
 )
 from app.routes.decorators import login_required, role_required, can_view_full_manuscript
-from app.routes.forms import ChangePasswordForm
+from app.routes.forms import ChangePasswordForm, CapstonerRegistrationForm
+from app.db.capstones import get_user_authored_capstones
+from app.db.capstoners import get_capstoner_registration, submit_capstoner_registration
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 from app.services.recommender import TopicRecommender
 from app.services.citations import citation_download_metadata, format_citation
@@ -21,46 +23,6 @@ logger = logging.getLogger(__name__)
 PAGE_SIZE = 12
 EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 PHONE_PATTERN = re.compile(r'^[0-9+()\-\s]{7,20}$')
-
-# Temporary profile-preview data. Replace with repository metrics and user
-# activity queries after the page layout is approved.
-PROFILE_PREVIEW_WORKS = [
-    {
-        "title": "Fraud Detection in Financial Transactions Using Deep Learning",
-        "year": 2024,
-        "specialization": "Data Science and Technology",
-        "role": "Author",
-        "status": "Published",
-    },
-    {
-        "title": "An Intrusion Detection System for IoT Networks in Smart Homes",
-        "year": 2024,
-        "specialization": "Network Systems Technology",
-        "role": "Author",
-        "status": "Published",
-    },
-    {
-        "title": "Accessible E-Commerce Platform Design for Visually Impaired Users",
-        "year": 2023,
-        "specialization": "Web Systems Technology",
-        "role": "Author",
-        "status": "Published",
-    },
-]
-
-PROFILE_PREVIEW_METRICS = [
-    {"label": "Works", "value": 3},
-    {"label": "Citations", "value": 12},
-    {"label": "Views", "value": 48},
-    {"label": "Requests", "value": 2},
-]
-
-PROFILE_PREVIEW_ACTIVITY = [
-    {"label": "Profile updated", "date": "Sep 06, 2025"},
-    {"label": "Capstone added to archive", "date": "Aug 21, 2025"},
-    {"label": "Manuscript request approved", "date": "Aug 18, 2025"},
-]
-
 
 @pages.route("/archive")
 @login_required
@@ -181,20 +143,46 @@ def user_info():
 @pages.route("/profile")
 @login_required
 def profile_overview():
+    return _render_profile()
+
+
+def _render_profile(capstoner_form=None):
     user_id = session.get("user_id")
     profile = get_own_profile(user_id)
     contacts = get_user_contacts(user_id)
+    my_works = get_user_authored_capstones(user_id)
 
     return render_template(
         "global/profile.html",
         hide_nav=False,
         profile=profile,
         contacts=contacts,
-        my_works=PROFILE_PREVIEW_WORKS,
-        profile_metrics=PROFILE_PREVIEW_METRICS,
-        recent_activity=PROFILE_PREVIEW_ACTIVITY,
-        preview_data=True,
+        capstoner_registration=get_capstoner_registration(user_id),
+        capstoner_form=capstoner_form or CapstonerRegistrationForm(),
+        my_works=my_works,
+        profile_metrics=[
+            {"label": "Works", "value": len(my_works)},
+            {"label": "Citations", "value": "—"},
+            {"label": "Views", "value": "—"},
+            {"label": "Requests", "value": "—"},
+        ],
+        recent_activity=[],
     )
+
+
+@pages.route("/profile/capstoner", methods=["POST"])
+@login_required
+def register_capstoner():
+    form = CapstonerRegistrationForm()
+    if not form.validate_on_submit():
+        flash("Enter capstone details using up to 2000 characters.", "danger")
+        return _render_profile(form), 400
+    ok, error = submit_capstoner_registration(session["user_id"], form.reason.data)
+    if not ok:
+        flash(error, "danger")
+        return _render_profile(form), 400
+    flash("Capstoner request sent. A capstone professor will review your details.", "success")
+    return redirect(url_for("pages.profile_overview"))
 
 
 @pages.route("/user-info/promotion", methods=["POST"])

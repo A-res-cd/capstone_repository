@@ -108,6 +108,7 @@ def review_request(request_id, request_status, status_reason, reviewed_by):
             SELECT request_status
             FROM request
             WHERE request_id = %s
+              AND (request_type = 'manuscript' OR (request_type IS NULL AND capstone_id IS NOT NULL))
             FOR UPDATE NOWAIT
         """, (request_id,))
         row = mithrix.fetchone()
@@ -124,7 +125,8 @@ def review_request(request_id, request_status, status_reason, reviewed_by):
             status_reason = %s,
             reviewed_by = %s,
             decision_date = %s
-            WHERE request_id = %s         
+            WHERE request_id = %s
+              AND (request_type = 'manuscript' OR (request_type IS NULL AND capstone_id IS NOT NULL))
         """, (request_status, status_reason, reviewed_by, now, request_id))
 
         log_audit(mithrix, reviewed_by, "review_request", "request", request_id,
@@ -215,6 +217,7 @@ def cancel_manuscript_request(request_id, user_id):
             SELECT request_status
             FROM request
             WHERE request_id = %s AND user_id = %s
+              AND (request_type = 'manuscript' OR (request_type IS NULL AND capstone_id IS NOT NULL))
             FOR UPDATE NOWAIT
         """, (request_id, user_id))
         row = mithrix.fetchone()
@@ -230,6 +233,7 @@ def cancel_manuscript_request(request_id, user_id):
             SET request_status = 'cancelled'
             WHERE request_id = %s AND user_id = %s
             AND request_status = 'pending'
+            AND (request_type = 'manuscript' OR (request_type IS NULL AND capstone_id IS NOT NULL))
         """, (request_id, user_id))
 
         if mithrix.rowcount == 0:

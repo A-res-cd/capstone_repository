@@ -78,6 +78,15 @@ def get_nav_links(role):
             "section": "Management"
         },
 
+        {
+            "name": "Capstoner Review",
+            "title": "Capstoner Review",
+            "url": "admin.capstoner_review",
+            "icon": "bx bx-user-check",
+            "roles": ["Capstone Professor"],
+            "section": "Management"
+        },
+
         # --- Data mining: content-based topic-similarity check — Student only ---
         # Not tied to an existing DFD process number yet (new feature).
         # Lets a student check a proposed title against archived titles

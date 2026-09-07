@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     user_middle_name VARCHAR(100),
     user_last_name VARCHAR(100),
     university_no VARCHAR(50),
+    account_status VARCHAR(50) DEFAULT 'pending',
     locked_until TIMESTAMP,
 
     CONSTRAINT fk_user_role
@@ -238,8 +239,13 @@ CREATE TABLE IF NOT EXISTS author (
     author_id SERIAL PRIMARY KEY,
     aut_first_name VARCHAR(100),
     aut_middle_name VARCHAR(100),
-    aut_last_name VARCHAR(100)
+    aut_last_name VARCHAR(100),
+    user_id INT,
+    CONSTRAINT fk_author_user
+        FOREIGN KEY (user_id) REFERENCES "user"(user_id) ON DELETE SET NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_author_user ON author(user_id);
 
 -- =========================================
 -- CAPSTONE AUTHOR TABLE
@@ -313,3 +319,7 @@ CREATE INDEX IF NOT EXISTS idx_saved_capstone_capstone
 CREATE INDEX IF NOT EXISTS idx_request_user_decision
     ON request(user_id, decision_date DESC)
     WHERE decision_date IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_request_capstoner_open
+    ON request(user_id)
+    WHERE request_type = 'capstoner' AND request_status IN ('pending', 'approved');

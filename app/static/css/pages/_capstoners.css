@@ -1,0 +1,49 @@
+@import url('./_profile.css');
+@import url('../components/_detail-card.css');
+
+.capstoner-review__section {
+    padding: var(--profile-inset);
+}
+
+.capstoner-review__section + .capstoner-review__section {
+    border-top: 1px dashed var(--border-tag);
+    background: var(--bg-card-header);
+}
+
+.capstoner-review__requests {
+    display: grid;
+    gap: var(--space-lg);
+    margin-top: var(--space-lg);
+}
+
+.capstoner-review .detail-card__header,
+.capstoner-review .detail-card__body {
+    padding: var(--space-lg);
+    min-width: 0;
+}
+
+.capstoner-review .detail-card__header h3,
+.capstoner-review .detail-card__header p {
+    overflow-wrap: anywhere;
+}
+
+.capstoner-actions,
+.capstoner-confirm {
+    display: flex;
+    gap: var(--space-md);
+    align-items: center;
+}
+
+.capstoner-actions {
+    flex-wrap: wrap;
+}
+
+.capstoner-confirm {
+    align-items: flex-start;
+    font-size: var(--text-sm);
+}
+
+.capstoner-confirm input {
+    margin-top: 3px;
+    accent-color: var(--color-primary);
+}

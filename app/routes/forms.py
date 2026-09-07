@@ -2,9 +2,9 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import (
     StringField, PasswordField, HiddenField, IntegerField, SelectField,
-    BooleanField, FieldList, FormField,
+    BooleanField, FieldList, FormField, TextAreaField,
 )
-from wtforms.validators import DataRequired, Email, Length, Regexp, EqualTo, Optional, NumberRange
+from wtforms.validators import DataRequired, Email, Length, Regexp, EqualTo, Optional, NumberRange, ValidationError
 
 class SigninForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired(message = "Username is required.")])
@@ -50,6 +50,21 @@ class VerifyOTPForm(FlaskForm):
 # previously all raw request.form.get(...) parsing in admin.py with only
 # ad-hoc checks (e.g. the adviser first/last "if not X: flash(...)" pattern).
 
+class CapstonerRegistrationForm(FlaskForm):
+    reason = TextAreaField("Capstone details", validators=[DataRequired(), Length(max=2000)])
+
+
+class CapstonerReviewForm(FlaskForm):
+    decision = SelectField(choices=[("approved", "Approve"), ("rejected", "Reject")], validators=[DataRequired()])
+    status_reason = TextAreaField("Feedback", validators=[Optional(), Length(max=1000)])
+
+
+class CapstonerAssignmentForm(FlaskForm):
+    user_id = SelectField("User account", coerce=int, validators=[DataRequired()])
+    credit = SelectField("Unlinked author credit", validators=[DataRequired()])
+    confirmed = BooleanField("I verified that this person authored the selected capstone.", validators=[DataRequired()])
+
+
 class AuthorForm(FlaskForm):
     """One author row. Base form is intentionally lenient — only 1 of the
     4 author slots is actually required by the app, so a blank row must
@@ -61,6 +76,8 @@ class AuthorForm(FlaskForm):
     class Meta:
         csrf = False
 
+    author_id = HiddenField(validators=[Optional(), Regexp(r'^[1-9][0-9]*$', message="Invalid author ID.")])
+    user_id = SelectField("Linked account", coerce=int, default=0, choices=[(0, "No linked account")])
     first_name = StringField("First", validators=[Optional(), Length(max=100)])
     middle_name = StringField("Middle", validators=[Optional(), Length(max=100)])
     last_name = StringField("Last", validators=[Optional(), Length(max=100)])
@@ -145,6 +162,18 @@ class CreateCapstoneForm(FlaskForm):
     )
 
     adviser = FormField(AdviserForm)
+
+    def validate_authors(self, field):
+        linked_users = set()
+        for author in field:
+            user_id = author.user_id.data
+            if not user_id:
+                continue
+            if not (author.first_name.data or "").strip() and not (author.last_name.data or "").strip():
+                raise ValidationError("Enter the author name before linking an account.")
+            if user_id in linked_users:
+                raise ValidationError("Link each account to only one author per capstone.")
+            linked_users.add(user_id)
 
 
 class UpdateCapstoneForm(CreateCapstoneForm):
