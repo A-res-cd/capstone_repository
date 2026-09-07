@@ -64,7 +64,7 @@
                     <div class="notification-list">
                         {% for item in notifications %}
                         {% set is_verification = item.request_type and item.request_type.startswith('verification_') %}
-                        {% set destination = url_for('pages.all_requests') if item.request_type == 'manuscript' else url_for('pages.user_info') %}
+                        {% set destination = url_for('pages.all_requests') if item.request_type == 'manuscript' else url_for('pages.profile_overview') if is_verification else url_for('pages.user_info') %}
                         <a href="{{ destination }}" class="notification-item{% if not item.notification_seen_at %} is-unread{% endif %}">
                             <i class="bx {{ 'bx-check-circle' if item.request_status == 'approved' else 'bx-x-circle' }}"></i>
                             <span>
@@ -97,7 +97,7 @@
                 <i class='bx bx-moon theme-toggle__icon theme-toggle__icon--dark'></i>
                 <i class='bx bx-sun theme-toggle__icon theme-toggle__icon--light'></i>
             </button>
-            <a href="{{ url_for('pages.user_info') }}" class="header-user__profile" aria-label="Open user profile">
+            <a href="{{ url_for('pages.profile_overview') }}" class="header-user__profile" aria-label="Open user profile">
                 <span class="header-user__avatar" aria-hidden="true">
                     <span>{{ current_user.initials }}</span>
                 </span>

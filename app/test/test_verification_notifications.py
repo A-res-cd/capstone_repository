@@ -165,6 +165,7 @@ def test_verification_notification_uses_clear_status_copy():
     app = Flask(__name__, template_folder=str(ROOT / "app/templates"))
     app.config.update(TESTING=True, SECRET_KEY="verification-template-test")
     app.add_url_rule("/user-info", "pages.user_info", lambda: "")
+    app.add_url_rule("/profile", "pages.profile_overview", lambda: "")
     app.add_url_rule("/my-requests", "pages.all_requests", lambda: "")
     app.add_url_rule("/header", "test.header", lambda: render_template(
         "partials/header.html",

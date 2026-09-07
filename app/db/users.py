@@ -26,7 +26,7 @@ def get_own_profile(user_id):
     try:
         mithrix.execute("""
             SELECT u.user_first_name, u.user_middle_name, u.user_last_name,
-                   u.university_no, k.username, r.role_name
+                   u.university_no, u.account_status, k.username, r.role_name
             FROM "user" u
             JOIN role r ON r.role_id = u.role_id
             LEFT JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE

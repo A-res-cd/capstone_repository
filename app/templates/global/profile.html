@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/pages/_profile.css') }}">
+{% endblock %}
+
+{% block title %} Profile Overview | CAPRE{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="profile-paper">
+    <div class="profile-hero">
+        <div class="profile-avatar" aria-hidden="true">
+            {{ (profile.user_first_name or '?')[0] | upper }}{{ (profile.user_last_name or '')[0] | upper }}
+        </div>
+
+        <div class="profile-hero__details">
+            <div class="profile-detail-line">
+                <span>Name</span>
+                <strong>{{ profile.user_first_name }} {{ profile.user_middle_name or '' }} {{ profile.user_last_name }}</strong>
+            </div>
+            <div class="profile-detail-line">
+                <span>Other details</span>
+                <div class="profile-detail-line__values">
+                    <strong>{{ profile.role_name or 'User' }}</strong>
+                    <span>{{ profile.username or 'Username not set' }}</span>
+                    <span>{{ profile.university_no or 'University ID not set' }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if profile.account_status %}
+        <span class="profile-status profile-status--{{ 'active' if profile.account_status == 'active' else profile.account_status }}">
+            {{ 'Verified' if profile.account_status == 'active' else profile.account_status | capitalize }}
+        </span>
+        {% endif %}
+    </div>
+
+    <div class="profile-body">
+        <section class="profile-works" aria-labelledby="my-works-heading">
+            <div class="profile-section-heading">
+                <div>
+                    <span class="profile-eyebrow">Capstone archive</span>
+                    <h2 id="my-works-heading">My Works</h2>
+                </div>
+                {% if preview_data %}
+                <span class="profile-preview-badge">Preview data</span>
+                {% endif %}
+            </div>
+
+            <div class="profile-work-list">
+                {% for work in my_works %}
+                <article class="profile-work">
+                    <span class="profile-work__number">{{ '%02d' | format(loop.index) }}</span>
+                    <div class="profile-work__body">
+                        <h3>{{ work.title }}</h3>
+                        <div class="profile-work__meta">
+                            <span>{{ work.year }}</span>
+                            <span>{{ work.specialization }}</span>
+                            <span>{{ work.role }}</span>
+                        </div>
+                    </div>
+                    <span class="profile-work__status">{{ work.status }}</span>
+                </article>
+                {% else %}
+                <div class="profile-empty-state">No works to display yet.</div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <aside class="profile-sidebar">
+            <section class="profile-panel">
+                <div class="profile-panel__heading">
+                    <h2>At a glance</h2>
+                    {% if preview_data %}<span>Sample</span>{% endif %}
+                </div>
+                <div class="profile-metrics">
+                    {% for metric in profile_metrics %}
+                    <div class="profile-metric">
+                        <strong>{{ metric.value }}</strong>
+                        <span>{{ metric.label }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="profile-panel">
+                <div class="profile-panel__heading">
+                    <h2>Profile details</h2>
+                </div>
+                {% set primary_email = (contacts | selectattr('contact_type', 'equalto', 'email') | map(attribute='contact_value') | list | first) %}
+                <dl class="profile-info-list">
+                    <div><dt>Email</dt><dd>{{ primary_email or 'Not provided' }}</dd></div>
+                    <div><dt>Account</dt><dd>{{ 'Verified' if profile.account_status == 'active' else (profile.account_status | capitalize if profile.account_status else 'Unknown') }}</dd></div>
+                </dl>
+                <a href="{{ url_for('pages.user_info') }}" class="profile-action profile-action--primary">
+                    <i class="bx bx-edit-alt"></i> Edit user information
+                </a>
+            </section>
+
+            <section class="profile-panel">
+                <div class="profile-panel__heading">
+                    <h2>Recent activity</h2>
+                    {% if preview_data %}<span>Sample</span>{% endif %}
+                </div>
+                <div class="profile-activity-list">
+                    {% for activity in recent_activity %}
+                    <div class="profile-activity">
+                        <i class="bx bx-check-circle"></i>
+                        <span><strong>{{ activity.label }}</strong><small>{{ activity.date }}</small></span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </aside>
+    </div>
+    </div>
+</section>
+{% endblock %}

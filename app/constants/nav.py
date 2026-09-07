@@ -96,6 +96,15 @@ def get_nav_links(role):
         # (Admin, Capstone Professor, Student, Faculty) with flows
         # to 'view information' and 'update information'.
         {
+            "name": "Profile Overview",
+            "title": "Profile Overview",
+            "url": "pages.profile_overview",
+            "icon": "bx bx-user",
+            "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
+            "section": "Account"
+        },
+
+        {
             "name": "User Information",
             "title": "User Settings",
             "url": "pages.user_info",

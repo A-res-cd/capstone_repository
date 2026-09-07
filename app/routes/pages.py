@@ -22,6 +22,45 @@ PAGE_SIZE = 12
 EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 PHONE_PATTERN = re.compile(r'^[0-9+()\-\s]{7,20}$')
 
+# Temporary profile-preview data. Replace with repository metrics and user
+# activity queries after the page layout is approved.
+PROFILE_PREVIEW_WORKS = [
+    {
+        "title": "Fraud Detection in Financial Transactions Using Deep Learning",
+        "year": 2024,
+        "specialization": "Data Science and Technology",
+        "role": "Author",
+        "status": "Published",
+    },
+    {
+        "title": "An Intrusion Detection System for IoT Networks in Smart Homes",
+        "year": 2024,
+        "specialization": "Network Systems Technology",
+        "role": "Author",
+        "status": "Published",
+    },
+    {
+        "title": "Accessible E-Commerce Platform Design for Visually Impaired Users",
+        "year": 2023,
+        "specialization": "Web Systems Technology",
+        "role": "Author",
+        "status": "Published",
+    },
+]
+
+PROFILE_PREVIEW_METRICS = [
+    {"label": "Works", "value": 3},
+    {"label": "Citations", "value": 12},
+    {"label": "Views", "value": 48},
+    {"label": "Requests", "value": 2},
+]
+
+PROFILE_PREVIEW_ACTIVITY = [
+    {"label": "Profile updated", "date": "Sep 06, 2025"},
+    {"label": "Capstone added to archive", "date": "Aug 21, 2025"},
+    {"label": "Manuscript request approved", "date": "Aug 18, 2025"},
+]
+
 
 @pages.route("/archive")
 @login_required
@@ -136,6 +175,25 @@ def user_info():
         roles=roles,
         promotion_requests=promotion_requests,
         has_pending_promotion=has_pending_promotion,
+    )
+
+
+@pages.route("/profile")
+@login_required
+def profile_overview():
+    user_id = session.get("user_id")
+    profile = get_own_profile(user_id)
+    contacts = get_user_contacts(user_id)
+
+    return render_template(
+        "global/profile.html",
+        hide_nav=False,
+        profile=profile,
+        contacts=contacts,
+        my_works=PROFILE_PREVIEW_WORKS,
+        profile_metrics=PROFILE_PREVIEW_METRICS,
+        recent_activity=PROFILE_PREVIEW_ACTIVITY,
+        preview_data=True,
     )
 
 
