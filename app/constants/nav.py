@@ -87,6 +87,15 @@ def get_nav_links(role):
             "section": "Management"
         },
 
+        {
+            "name": "Advisory Students",
+            "title": "Advisory Students",
+            "url": "faculty.manage_capstone_users",
+            "icon": "bx bx-group",
+            "roles": ["Capstone Professor"],
+            "section": "Management"
+        },
+
         # --- Data mining: content-based topic-similarity check — Student only ---
         # Not tied to an existing DFD process number yet (new feature).
         # Lets a student check a proposed title against archived titles
@@ -164,6 +173,7 @@ def get_nav_links(role):
 #   page_name  — this page's own label, shown last and not a link.
 # ─────────────────────────────────────────────────────────────────────────────
 _BRANCH_MAP = [
+    ("/faculty/advisory-students/", [("faculty.manage_capstone_users", "Advisory Students")], "Update roster"),
     # Capstone detail / PDF viewer  →  parent is whichever list page makes sense
     ("/abstract/",          [("pages.browse",                   "Explore Archive")], "View Abstract"),
     ("/manuscript/view/",   [("pages.all_requests",              "My Requests")],     "View Manuscript"),

@@ -65,6 +65,21 @@ class CapstonerAssignmentForm(FlaskForm):
     confirmed = BooleanField("I verified that this person authored the selected capstone.", validators=[DataRequired()])
 
 
+class AdvisoryGroupForm(FlaskForm):
+    group_name = StringField("Group name", validators=[DataRequired(), Length(max=100)],
+                             filters=[lambda value: value.strip() if value else value])
+
+
+class AddAdvisoryStudentForm(FlaskForm):
+    group_id = SelectField("Advisory group", coerce=int, validators=[DataRequired()])
+    student_id = SelectField("Student account", coerce=int, validators=[DataRequired()])
+    confirmed = BooleanField("I am assigned to advise this student.", validators=[DataRequired()])
+
+
+class RemoveAdvisoryStudentForm(FlaskForm):
+    confirmed = BooleanField("Remove from my roster only.", validators=[DataRequired()])
+
+
 class AuthorForm(FlaskForm):
     """One author row. Base form is intentionally lenient — only 1 of the
     4 author slots is actually required by the app, so a blank row must

@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block title %}Advisory Students | CAPRE{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_advisory-students.css') }}">
+{% endblock %}
+
+{% block content %}
+{% set status_labels = {'unregistered': 'Not registered', 'pending': 'Pending', 'approved': 'Approved', 'rejected': 'Rejected'} %}
+<section class="profile-page advisory-page">
+        <div class="profile-hero">
+            <div class="profile-avatar" aria-hidden="true">
+                {{ (professor.user_first_name or '?')[0] | upper }}{{ (professor.user_last_name or '')[0] | upper }}
+            </div>
+            <div class="profile-hero__details">
+                <div class="profile-detail-line">
+                    <span>Adviser</span>
+                    <strong>{{ professor.user_first_name or 'Capstone' }} {{ professor.user_last_name or 'Professor' }}</strong>
+                </div>
+                <div class="profile-detail-line">
+                    <span>Capstone Professor</span>
+                    <p class="helper-text">Create a group of up to {{ group_limit }} students and see each student's capstoner status and linked works. Rename groups anytime. Group membership does not approve registration or assign author credits.</p>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <ul class="flash-list profile-registration-flashes" role="status">
+            {% for category, message in messages %}<li class="flash-{{ category }}">{{ message }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+
+        <div class="profile-body">
+            <section class="profile-works" aria-labelledby="advisory-roster-heading">
+                <div class="profile-section-heading">
+                    <div><span class="profile-eyebrow">Your advisory groups</span><h2 id="advisory-roster-heading">Student roster</h2></div>
+                    <span class="helper-text">{{ students | length }} of {{ total_students }} students</span>
+                </div>
+                <form class="advisory-filters" method="GET" action="{{ url_for('faculty.manage_capstone_users') }}" role="search">
+                    <div class="form-group">
+                        <label for="advisory-search">Find a student</label>
+                        <input id="advisory-search" name="search" value="{{ search }}" maxlength="100" type="search" placeholder="Name, university ID or account #">
+                    </div>
+                    <div class="form-group">
+                        <label for="advisory-status">Capstoner status</label>
+                        <select id="advisory-status" name="status">
+                            <option value="">All statuses</option>
+                            {% for value, label in status_labels.items() %}
+                            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="advisory-filter-actions">
+                        <button class="btn-pill btn-pill--ghost" type="submit">Apply filters</button>
+                        {% if search or selected_status %}<a class="profile-action" href="{{ url_for('faculty.manage_capstone_users') }}">Clear</a>{% endif %}
+                    </div>
+                </form>
+
+                <div class="advisory-students">
+                    {% for group in visible_groups %}
+                    <section class="advisory-group" id="advisory-group-{{ group.group_id }}" aria-labelledby="group-heading-{{ group.group_id }}">
+                        <div class="advisory-group__heading">
+                            <div class="advisory-group__title">
+                                <h3 id="group-heading-{{ group.group_id }}">{{ group.group_name }}</h3>
+                                <span class="helper-text advisory-group__capacity">{{ group.student_count }} / {{ group_limit }} students{% if group.student_count > group_limit %} · Over limit{% elif group.student_count == group_limit %} · Full{% endif %}{% if search or selected_status %} · {{ group.students | length }} shown{% endif %}</span>
+                            </div>
+                            {% if group.student_count > group_limit %}
+                            <p class="helper-text">This existing group exceeds the {{ group_limit }}-student limit. Remove students from this group before adding more; no one has been removed automatically.</p>
+                            {% endif %}
+                            <details class="advisory-details advisory-group-rename" {% if rename_group_id == group.group_id %}open{% endif %}>
+                                <summary>Rename group</summary>
+                                <form class="advisory-group-form" method="POST" action="{{ url_for('faculty.rename_group', group_id=group.group_id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="form-group">
+                                        <label for="rename-group-name-{{ group.group_id }}">New group name</label>
+                                        <input id="rename-group-name-{{ group.group_id }}" name="group_name" value="{{ rename_form.group_name.data if rename_group_id == group.group_id else group.group_name }}" maxlength="100" required>
+                                        {% if rename_group_id == group.group_id %}
+                                        {% for error in rename_form.group_name.errors %}<span class="advisory-error">{{ error }}</span>{% endfor %}
+                                        {% endif %}
+                                    </div>
+                                    <button type="submit" class="btn-pill btn-pill--ghost">Save group name</button>
+                                </form>
+                            </details>
+                        </div>
+                    {% for student in group.students %}
+                    <article class="profile-work advisory-student" aria-labelledby="student-{{ student.user_id }}">
+                        <span class="profile-work__number" aria-hidden="true">{{ '%02d' | format(loop.index) }}</span>
+                        <div class="profile-work__body">
+                            <h4 id="student-{{ student.user_id }}">{{ student.full_name }}</h4>
+                            <div class="profile-work__meta">
+                                <span>{{ student.university_no or 'No university ID' }}</span>
+                                <span>Account #{{ student.user_id }}</span>
+                                <span>Account {{ 'verified' if student.account_status == 'active' else student.account_status }}</span>
+                            </div>
+                            <p class="helper-text advisory-student__date">Added {{ student.added_at.strftime('%b %d, %Y') }}</p>
+                            <span class="profile-status profile-status--{{ 'active' if student.capstoner_status == 'approved' else student.capstoner_status }}">Capstoner: {{ status_labels[student.capstoner_status] }}</span>
+                            <details class="advisory-details">
+                                <summary>{{ student.works | length }} linked {{ 'work' if student.works | length == 1 else 'works' }} &amp; roster options</summary>
+                                {% if student.works %}
+                                <ul class="advisory-works">
+                                    {% for work in student.works %}
+                                    <li><a href="{{ url_for('pages.browse', search=work.capstone_title) }}">{{ work.capstone_title }}</a> <small>{{ work.capstone_year or 'Year not set' }}</small></li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                <p class="helper-text">No linked works. Author credits must be verified and linked separately in Capstoner Review.</p>
+                                {% endif %}
+                                <form class="advisory-remove" method="POST" action="{{ url_for('faculty.remove_student', student_id=student.user_id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <label class="advisory-confirm" for="remove-confirm-{{ student.user_id }}">
+                                        {{ remove_form.confirmed(id='remove-confirm-' ~ student.user_id) }}
+                                        <span>Remove from my roster only.</span>
+                                    </label>
+                                    <p class="helper-text">Account, capstoner status and author credits stay unchanged. You can add this student again.</p>
+                                    <button type="submit" class="btn-pill btn-pill--danger">Remove student</button>
+                                </form>
+                            </details>
+                        </div>
+                    </article>
+                    {% else %}
+                    <p class="helper-text advisory-group__empty">No students in this group yet. Select this group in the Add a student form.</p>
+                    {% endfor %}
+                    </section>
+                    {% else %}
+                    <div class="profile-empty-state">
+                        {% if search or selected_status %}
+                        No students match these filters. Clear the filters to see your full roster.
+                        {% else %}
+                        No advisory groups yet. Create a group first, then add your students. Existing capstoner approvals do not automatically add students here.
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <aside class="profile-sidebar" aria-label="Advisory tools">
+                <section class="profile-panel">
+                    <div class="profile-panel__heading"><h2>Roster overview</h2></div>
+                    <div class="profile-metrics">
+                        {% for metric in metrics %}
+                        <div class="profile-metric"><strong>{{ metric.value }}</strong><span>{{ metric.label }}</span></div>
+                        {% endfor %}
+                    </div>
+                    <p class="helper-text">{{ groups | length }} {{ 'group' if groups | length == 1 else 'groups' }}. Totals reflect your full roster, including students hidden by filters.</p>
+                </section>
+                <section class="profile-panel" id="create-advisory-group">
+                    <div class="profile-panel__heading"><h2>Create a group</h2></div>
+                    <p class="helper-text">Start here before adding students. Each group holds up to {{ group_limit }} students. Use a team or project name; you can rename it later.</p>
+                    <form class="advisory-group-form" method="POST" action="{{ url_for('faculty.create_group') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            {{ group_form.group_name.label(for='new-group-name') }}
+                            {{ group_form.group_name(id='new-group-name', maxlength=100, placeholder='e.g. Archive Search Team') }}
+                            {% for error in group_form.group_name.errors %}<span class="advisory-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <button type="submit" class="btn-pill btn-pill--primary">Create group</button>
+                    </form>
+                </section>
+                <section class="profile-panel" id="add-advisory-student">
+                    <div class="profile-panel__heading"><h2>Add a student</h2></div>
+                    {% if not groups %}
+                    <p class="helper-text">Create a group first to unlock this form.</p>
+                    <a class="profile-action profile-action--primary" href="#create-advisory-group">Create your first group</a>
+                    {% else %}
+                    <p class="helper-text">Only verified Student accounts are listed. Check the university ID and account number when names match.</p>
+                    <form class="advisory-add" method="POST" action="{{ url_for('faculty.add_student') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            {{ add_form.group_id.label }}
+                            {{ add_form.group_id(aria_describedby='advisory-group-help') }}
+                            <span class="helper-text" id="advisory-group-help">{% if add_form.group_id.choices | length == 1 %}All your groups are full. Create another group or remove a student first.{% else %}Only groups with space are listed. Maximum {{ group_limit }} students per group.{% endif %}</span>
+                            {% for error in add_form.group_id.errors %}<span class="advisory-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            {{ add_form.student_id.label }}
+                            {{ add_form.student_id(aria_describedby='student-account-help') }}
+                            {% for error in add_form.student_id.errors %}<span class="advisory-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <label class="advisory-confirm" for="confirmed">
+                            {{ add_form.confirmed() }}<span>{{ add_form.confirmed.label.text }}</span>
+                        </label>
+                        {% for error in add_form.confirmed.errors %}<span class="advisory-error">{{ error }}</span>{% endfor %}
+                        <button type="submit" class="btn-pill btn-pill--primary" {% if add_form.student_id.choices | length == 1 or add_form.group_id.choices | length == 1 %}disabled{% endif %}>Add to my roster</button>
+                        <p class="helper-text" id="student-account-help">{% if add_form.student_id.choices | length == 1 %}No available student accounts. {% endif %}Each student belongs to one of your groups. Co-advisers keep separate rosters; adding a student does not remove them from another professor's list.</p>
+                    </form>
+                    {% endif %}
+                </section>
+                <section class="profile-panel">
+                    <div class="profile-panel__heading"><h2>Registration &amp; authorship</h2></div>
+                    <p class="helper-text">Review capstoner applications or link verified author credits in the separate professor review page.</p>
+                    <a class="profile-action profile-action--primary" href="{{ url_for('admin.capstoner_review') }}">Open Capstoner Review</a>
+                </section>
+            </aside>
+        </div>
+</section>
+{% endblock %}

@@ -323,3 +323,32 @@ CREATE INDEX IF NOT EXISTS idx_request_user_decision
 CREATE UNIQUE INDEX IF NOT EXISTS idx_request_capstoner_open
     ON request(user_id)
     WHERE request_type = 'capstoner' AND request_status IN ('pending', 'approved');
+
+-- Explicit professor-owned advisory rosters; never inferred from approvals.
+CREATE TABLE IF NOT EXISTS advisory_group (
+    group_id SERIAL PRIMARY KEY,
+    professor_user_id INT NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    group_name VARCHAR(100) NOT NULL CHECK (LENGTH(BTRIM(group_name)) > 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (professor_user_id, group_id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_advisory_group_name
+    ON advisory_group(professor_user_id, LOWER(BTRIM(group_name)));
+
+CREATE TABLE IF NOT EXISTS advisory_student (
+    professor_user_id INT NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    student_user_id INT NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    group_id INT NOT NULL,
+    added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (professor_user_id, student_user_id),
+    CONSTRAINT advisory_student_group_owner_fk FOREIGN KEY (professor_user_id, group_id)
+        REFERENCES advisory_group(professor_user_id, group_id),
+    CHECK (professor_user_id <> student_user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_advisory_student_student
+    ON advisory_student(student_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_advisory_student_group
+    ON advisory_student(professor_user_id, group_id);
