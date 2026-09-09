@@ -2,12 +2,16 @@
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, session, url_for
 
 from app.db.advisories import (
-    add_advisory_student, create_advisory_group, get_advisory_groups,
-    get_advisory_roster, get_available_advisory_students, remove_advisory_student,
+    add_advisory_students, get_advisory_groups,
+    create_advisory_group_with_students, get_advisory_roster,
+    get_available_advisory_students, remove_advisory_student,
     rename_advisory_group, MAX_ADVISORY_GROUP_STUDENTS,
 )
 from app.routes.decorators import role_required
-from app.routes.forms import AdvisoryGroupForm, AddAdvisoryStudentForm, RemoveAdvisoryStudentForm
+from app.routes.forms import (
+    AdvisoryGroupForm, AddAdvisoryStudentForm, CreateAdvisoryGroupForm,
+    RemoveAdvisoryStudentForm,
+)
 
 faculty = Blueprint("faculty", __name__, url_prefix="/faculty")
 
@@ -19,7 +23,16 @@ def _add_student_form(groups=None, *, submitted=False):
         (group["group_id"], f"{group['group_name']} ({group['student_count']}/{MAX_ADVISORY_GROUP_STUDENTS} students)")
         for group in groups if group["student_count"] < MAX_ADVISORY_GROUP_STUDENTS
     ]
-    form.student_id.choices = [(0, "Choose a student account")] + [
+    form.student_id.choices = [
+        (student["user_id"], f"{student['full_name']} · {student['university_no'] or 'No university ID'} · Account #{student['user_id']}")
+        for student in get_available_advisory_students(session["user_id"])
+    ]
+    return form
+
+
+def _create_group_form(*, submitted=False):
+    form = CreateAdvisoryGroupForm() if submitted else CreateAdvisoryGroupForm(formdata=None)
+    form.student_ids.choices = [
         (student["user_id"], f"{student['full_name']} · {student['university_no'] or 'No university ID'} · Account #{student['user_id']}")
         for student in get_available_advisory_students(session["user_id"])
     ]
@@ -31,6 +44,7 @@ def _render_advisory_students(add_form=None, group_form=None, rename_form=None, 
         roster = get_advisory_roster(session["user_id"])
         groups = get_advisory_groups(session["user_id"])
         add_form = add_form or _add_student_form(groups)
+        group_form = group_form or _create_group_form()
     except PermissionError:
         abort(403)
     search = request.args.get("search", "").strip()[:100]
@@ -49,6 +63,7 @@ def _render_advisory_students(add_form=None, group_form=None, rename_form=None, 
     return render_template(
         "faculty/manage_capstone_users.html", professor=g.user, students=visible,
         groups=groups, visible_groups=visible_groups, group_limit=MAX_ADVISORY_GROUP_STUDENTS,
+        group_spaces={str(group["group_id"]): max(0, MAX_ADVISORY_GROUP_STUDENTS - group["student_count"]) for group in groups},
         total_students=len(roster), search=search, selected_status=status,
         metrics=[
             {"label": "Students", "value": len(roster)},
@@ -71,12 +86,23 @@ def manage_capstone_users():
 @faculty.route("/advisory-students/groups", methods=["POST"])
 @role_required(4)
 def create_group():
-    form = AdvisoryGroupForm()
+    try:
+        form = _create_group_form(submitted=True)
+    except PermissionError:
+        abort(403)
     if not form.validate_on_submit():
         flash("Enter a group name between 1 and 100 characters.", "danger")
         return _render_advisory_students(group_form=form), 400
-    ok, error = create_advisory_group(session["user_id"], form.group_name.data)
-    flash("Group created. You can now add students to it." if ok else error, "success" if ok else "danger")
+    if form.student_ids.data and not form.confirmed.data:
+        form.confirmed.errors.append("Confirm that you are assigned to advise all selected students.")
+        flash("Confirm that you are assigned to advise all selected students.", "danger")
+        return _render_advisory_students(group_form=form), 400
+    ok, error = create_advisory_group_with_students(
+        session["user_id"], form.group_name.data, form.student_ids.data or []
+    )
+    count = len(form.student_ids.data or [])
+    message = f"Group created with {count} {'student' if count == 1 else 'students'}." if count else "Group created."
+    flash(message if ok else error, "success" if ok else "danger")
     if not ok:
         return _render_advisory_students(group_form=form), 400
     return redirect(url_for("faculty.manage_capstone_users", _anchor="add-advisory-student"))
@@ -105,10 +131,11 @@ def add_student():
     except PermissionError:
         abort(403)
     if not form.validate_on_submit():
-        flash(f"Choose a group with space (maximum {MAX_ADVISORY_GROUP_STUDENTS} students) and an available student, then confirm your adviser relationship.", "danger")
+        flash(f"Choose a group with space (maximum {MAX_ADVISORY_GROUP_STUDENTS} students) and available students, then confirm your adviser relationship.", "danger")
         return _render_advisory_students(form), 400
-    ok, error = add_advisory_student(session["user_id"], form.student_id.data, form.group_id.data)
-    flash("Student added to your advisory roster. Capstoner status and author credits are unchanged." if ok else error,
+    ok, error = add_advisory_students(session["user_id"], form.student_id.data, form.group_id.data)
+    count = len(form.student_id.data)
+    flash(f"{count} {'student' if count == 1 else 'students'} added to your advisory roster. Capstoner status and author credits are unchanged." if ok else error,
           "success" if ok else "danger")
     if not ok:
         return _render_advisory_students(form), 400

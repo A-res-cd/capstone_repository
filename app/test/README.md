@@ -54,12 +54,19 @@ no automatic group, and existing accounts are not enrolled automatically.
 1. Sign in as an active **Capstone Professor** and open **Management → Advisory
    Students**. The outer paper/binder container is removed to use the available
    width; group sections retain the system's dashed lines, paper colors and theme.
-2. **Create a group** first. Blank names and names over 100 characters are
-   rejected; duplicate names within your roster are rejected ignoring case and
-   surrounding spaces. Another professor may use the same name.
-3. Select your **Advisory group** and a verified **Student** account, check its university ID/account number,
-   confirm that you advise the student, then add them. Same-name accounts remain
-   separate. Adding a student does not approve capstoner registration or link works.
+2. Open **Create a group**. The modal accepts a group name and an optional
+   searchable list of verified students. Select up to four students before
+   saving the group, or create an empty group and add students later.
+   Blank names and names over 100 characters are rejected; duplicate names
+   within your roster are rejected ignoring case and surrounding spaces.
+   Another professor may use the same name.
+3. For an existing group, open **Add students**. Search by name, university ID
+   or account number, then check one or more verified **Student** accounts.
+   Check each university ID/account number and confirm that you advise all selected students.
+   The counter shows available places; switching to a smaller group keeps selections
+   and asks you to deselect extras. Each submission adds all selected students or none.
+   Test an invalid/stale selection: no partial membership or audit entries should remain.
+   Same-name accounts stay separate. Adding students does not approve registration or link works.
    A student belongs to one group per professor. The server also rejects additions
    without a group or using another professor's group ID.
    Each group has a **maximum of 4 students**. Counts show `0 / 4` through `4 / 4`;

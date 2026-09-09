@@ -1,10 +1,13 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import (
-    StringField, PasswordField, HiddenField, IntegerField, SelectField,
+    StringField, PasswordField, HiddenField, IntegerField, SelectField, SelectMultipleField,
     BooleanField, FieldList, FormField, TextAreaField,
 )
 from wtforms.validators import DataRequired, Email, Length, Regexp, EqualTo, Optional, NumberRange, ValidationError
+from wtforms.widgets import CheckboxInput
+
+from app.db.advisories import MAX_ADVISORY_GROUP_STUDENTS
 
 class SigninForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired(message = "Username is required.")])
@@ -70,10 +73,21 @@ class AdvisoryGroupForm(FlaskForm):
                              filters=[lambda value: value.strip() if value else value])
 
 
+class CreateAdvisoryGroupForm(AdvisoryGroupForm):
+    student_ids = SelectMultipleField("Students to add", coerce=int, validators=[
+        Optional(),
+        Length(max=MAX_ADVISORY_GROUP_STUDENTS, message=f"Select at most {MAX_ADVISORY_GROUP_STUDENTS} students."),
+    ], option_widget=CheckboxInput())
+    confirmed = BooleanField("I am assigned to advise all selected students.")
+
+
 class AddAdvisoryStudentForm(FlaskForm):
     group_id = SelectField("Advisory group", coerce=int, validators=[DataRequired()])
-    student_id = SelectField("Student account", coerce=int, validators=[DataRequired()])
-    confirmed = BooleanField("I am assigned to advise this student.", validators=[DataRequired()])
+    student_id = SelectMultipleField("Student accounts", coerce=int, option_widget=CheckboxInput(), validators=[
+        DataRequired(message="Select at least one student."),
+        Length(max=MAX_ADVISORY_GROUP_STUDENTS, message=f"Select at most {MAX_ADVISORY_GROUP_STUDENTS} students."),
+    ])
+    confirmed = BooleanField("I am assigned to advise all selected students.", validators=[DataRequired()])
 
 
 class RemoveAdvisoryStudentForm(FlaskForm):

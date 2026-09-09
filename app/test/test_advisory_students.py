@@ -292,7 +292,7 @@ def test_group_routes_validate_ownership_names_and_csrf(advisory_app, advisory_d
 def test_no_group_cannot_add_student_even_with_forged_post(advisory_app, advisory_db):
     with advisory_app.test_client() as client:
         sign_in(client, 4)
-        assert b"Create a group first to unlock this form" in client.get(BASE).data
+        assert b"Create a group first, or add students while creating your first group." in client.get(BASE).data
         assert client.post(BASE + "/add", data={"student_id": "1", "group_id": "1", "confirmed": "y"}).status_code == 400
     assert advisories.get_advisory_roster(4) == []
     assert advisories.get_advisory_groups(4) == []
@@ -366,12 +366,14 @@ def test_browser_add_search_and_remove(advisory_browser, advisory_db):
     expect(page.locator(".profile-empty-state")).to_contain_text("No advisory groups yet")
     expect(page.get_by_role("button", name="Add to my roster")).to_have_count(0)
     expect(page.locator(".nav-item.active")).to_contain_text("Advisory Students")
-    page.get_by_label("Group name", exact=True).fill("Archive Search Team")
-    page.get_by_role("button", name="Create group", exact=True).click()
-    page.get_by_label("Advisory group", exact=True).select_option(label="Archive Search Team (0/4 students)")
-    page.get_by_label("Student account", exact=True).select_option("1")
-    page.get_by_label("I am assigned to advise this student.", exact=True).check()
-    page.get_by_role("button", name="Add to my roster").click()
+    page.get_by_role("button", name="Create a group", exact=True).first.click()
+    create_modal = page.locator("#create-advisory-group-modal")
+    create_modal.get_by_label("Group name", exact=True).fill("Archive Search Team")
+    create_modal.locator('.advisory-picker-search').fill("2026-001")
+    expect(create_modal.locator('.advisory-student-choice input[value="2"]')).to_be_hidden()
+    create_modal.locator('.advisory-student-choice input[value="1"]').check()
+    create_modal.get_by_label("I am assigned to advise all selected students.", exact=True).check()
+    create_modal.get_by_role("button", name="Create group", exact=True).click()
     expect(page.locator(".advisory-student")).to_have_count(1)
     expect(page.locator(".advisory-student")).to_contain_text("Capstoner: Not registered")
     page.locator(".advisory-group-rename summary").click()
@@ -393,8 +395,41 @@ def test_browser_add_search_and_remove(advisory_browser, advisory_db):
     assert advisories.get_advisory_roster(4) == []
 
 
+def test_roster_panels_leave_with_page_and_groups_collapse_independently(advisory_browser, advisory_db, advisory_groups):
+    from playwright.sync_api import expect
+
+    assert advisories.add_advisory_student(4, 1, advisory_groups[4])[0]
+    assert advisories.create_advisory_group(4, "Second team")[0]
+    page, client = advisory_browser
+    sign_in(client, 4)
+    page.goto(f"{client.browser_url}{BASE}")
+    expect(page.locator(".advisory-group")).to_have_count(2)
+    expect(page.locator("#page-content .advisory-page > .profile-body > aside")).to_have_count(1)
+    expect(page.locator(".advisory-group__body > .advisory-student")).to_be_visible()
+
+    toggle = page.locator(".advisory-group__summary").first
+    toggle.click()
+    expect(page.locator(".advisory-student")).to_be_hidden()
+    expect(page.locator(".advisory-group").nth(1)).to_have_attribute("open", "")
+    toggle.focus()
+    page.keyboard.press("Enter")
+    expect(page.locator(".advisory-student")).to_be_visible()
+
+    page.evaluate("window.advisoryNavigationCheck = true")
+    page.locator('.nav-item[href="/profile"]').click()
+    page.wait_for_url(f"{client.browser_url}/profile")
+    assert page.evaluate("window.advisoryNavigationCheck === true")  # Actual partial navigation.
+    expect(page.locator('aside[aria-label="Advisory tools"]')).to_have_count(0)
+    expect(page.locator("#create-advisory-group, #add-advisory-student")).to_have_count(0)
+
+    page.locator(f'.nav-item[href="{BASE}"]').click()
+    page.wait_for_url(f"{client.browser_url}{BASE}")
+    expect(page.locator('aside[aria-label="Advisory tools"]')).to_have_count(1)
+    expect(page.locator("#page-content .advisory-page > .profile-body > aside")).to_have_count(1)
+
+
 @pytest.mark.parametrize("width,dark", [(1322, False), (768, False), (390, False), (320, False), (1322, True), (390, True)])
-def test_roster_uses_open_responsive_theme(advisory_browser, advisory_db, advisory_groups, width, dark, tmp_path):
+def test_roster_uses_open_responsive_theme(advisory_browser, advisory_db, advisory_groups, capacity_students, width, dark, tmp_path):
     from playwright.sync_api import expect
 
     assert capstoners.submit_capstoner_registration(1, "Archive search project")[0]
@@ -411,10 +446,17 @@ def test_roster_uses_open_responsive_theme(advisory_browser, advisory_db, adviso
     expect(page.locator(".profile-paper")).to_have_count(0)
     expect(page.locator(".advisory-page > .profile-body")).to_be_visible()
     expect(page.locator(".advisory-group__capacity")).to_contain_text("2 / 4 students")
-    expect(page.get_by_role("button", name="Add to my roster")).to_be_disabled()
+    page.get_by_role("button", name="Add students", exact=True).click()
+    add_modal = page.locator("#add-advisory-student-modal")
+    expect(add_modal).to_be_visible()
+    expect(add_modal.get_by_role("button", name="Add to my roster")).to_be_disabled()
     if dark:
         assert page.locator(".advisory-details summary").first.evaluate(
             "el => getComputedStyle(el).color === getComputedStyle(document.querySelector('.advisory-page')).color")
+    add_modal.get_by_label("Advisory group", exact=True).select_option(str(advisory_groups[4]))
+    add_modal.locator('.advisory-student-choice input[value="8"]').check()
+    expect(add_modal.locator("#student-selection-status")).to_contain_text("1 of 2")
+    add_modal.get_by_role("button", name="Cancel").click()
     page.locator(".advisory-group-rename summary").click()
     page.locator(".advisory-student .advisory-details summary").first.click()
     expect(page.locator(".advisory-works")).to_contain_text("Linked Work")
@@ -425,7 +467,7 @@ def test_roster_uses_open_responsive_theme(advisory_browser, advisory_db, adviso
     for field in page.locator(".advisory-page input, .advisory-page select, .advisory-page button").all():
         if field.is_visible():
             assert field.evaluate("el => el.getBoundingClientRect().right <= window.innerWidth")
-    assert page.locator(".advisory-group__heading").evaluate("el => getComputedStyle(el).borderTopStyle") == "dashed"
+    assert page.locator(".advisory-group__summary").evaluate("el => getComputedStyle(el).borderTopStyle") == "dashed"
     assert page.locator(".profile-body").evaluate('''el => {
         const parent = el.parentElement;
         const style = getComputedStyle(parent);
@@ -502,6 +544,130 @@ def test_existing_oversized_groups_are_preserved_and_block_additions(advisory_ap
     assert advisories.get_advisory_groups(4)[0]["student_count"] == 4
 
 
+def test_multiple_student_submission_adds_each_membership_and_audit(advisory_app, advisory_db, advisory_groups, capacity_students):
+    with advisory_app.test_client() as client:
+        sign_in(client, 4)
+        response = client.post(BASE + "/add", data={
+            "group_id": advisory_groups[4], "student_id": ["1", "2", "8", "9"], "confirmed": "y",
+        })
+        assert response.status_code == 302
+    assert {student["user_id"] for student in advisories.get_advisory_roster(4)} == {1, 2, 8, 9}
+    assert query(advisory_db, "SELECT COUNT(*) FROM audit WHERE action_type = 'add_advisory_student'") == [(4,)]
+    assert query(advisory_db, "SELECT COUNT(*) FROM request WHERE request_type = 'capstoner'") == [(0,)]
+    assert query(advisory_db, "SELECT COUNT(*) FROM capauth") == [(0,)]
+    assert advisories.get_advisory_roster(5) == []
+
+
+def test_group_creation_can_atomically_add_students(advisory_db, capacity_students):
+    assert advisories.create_advisory_group_with_students(4, "New Capstone Team", [1, 2, 8, 9])[0]
+    group = advisories.get_advisory_groups(4)[0]
+    assert group["group_name"] == "New Capstone Team"
+    assert group["student_count"] == 4
+    assert {student["user_id"] for student in advisories.get_advisory_roster(4)} == {1, 2, 8, 9}
+    assert query(advisory_db, "SELECT COUNT(*) FROM audit WHERE action_type = 'create_advisory_group'") == [(1,)]
+    assert query(advisory_db, "SELECT COUNT(*) FROM audit WHERE action_type = 'add_advisory_student'") == [(4,)]
+
+
+def test_group_creation_rolls_back_when_selected_students_are_invalid(advisory_db, capacity_students):
+    assert not advisories.create_advisory_group_with_students(4, "Should Roll Back", [1, 7])[0]
+    assert advisories.get_advisory_groups(4) == []
+    assert advisories.get_advisory_roster(4) == []
+    assert query(advisory_db, "SELECT COUNT(*) FROM audit") == [(0,)]
+
+
+@pytest.mark.parametrize("student_ids", [[], [1, 1], [1, 7], [1, 4], [1, 999], [1, 2, 8, 9, 10]])
+def test_invalid_multiple_selection_adds_nobody(advisory_db, advisory_groups, capacity_students, student_ids):
+    assert not advisories.add_advisory_students(4, student_ids, advisory_groups[4])[0]
+    assert advisories.get_advisory_roster(4) == []
+    assert query(advisory_db, "SELECT COUNT(*) FROM audit WHERE action_type = 'add_advisory_student'") == [(0,)]
+
+
+def test_multiple_selection_checks_capacity_ownership_and_existing_members(advisory_app, advisory_db, advisory_groups, capacity_students):
+    group_id = advisory_groups[4]
+    assert advisories.add_advisory_students(4, [1, 2, 8], group_id)[0]
+    with advisory_app.test_client() as client:
+        sign_in(client, 4)
+        response = client.post(BASE + "/add", data={
+            "group_id": group_id, "student_id": ["9", "10"], "confirmed": "y",
+        })
+        assert response.status_code == 400
+        assert b"at most 4 students" in response.data
+    assert advisories.get_advisory_groups(4)[0]["student_count"] == 3
+    assert not advisories.add_advisory_students(4, [9], advisory_groups[5])[0]
+    assert advisories.create_advisory_group(4, "Second team")[0]
+    second_group_id = advisories.get_advisory_groups(4)[1]["group_id"]
+    # The first insert must roll back when a later student is already in another group.
+    assert not advisories.add_advisory_students(4, [9, 1], second_group_id)[0]
+    assert {student["user_id"] for student in advisories.get_advisory_roster(4)} == {1, 2, 8}
+    assert query(advisory_db, "SELECT COUNT(*) FROM audit WHERE action_type = 'add_advisory_student'") == [(3,)]
+
+
+def test_multiple_selection_audit_failure_rolls_back_every_student(advisory_db, advisory_groups, monkeypatch):
+    original_audit = advisories.log_audit
+    calls = []
+
+    def fail_second_audit(*args, **kwargs):
+        calls.append(args)
+        if len(calls) == 2:
+            raise RuntimeError("Simulated audit failure")
+        original_audit(*args, **kwargs)
+
+    monkeypatch.setattr(advisories, "log_audit", fail_second_audit)
+    assert not advisories.add_advisory_students(4, [1, 2], advisory_groups[4])[0]
+    assert len(calls) == 2
+    assert advisories.get_advisory_roster(4) == []
+    assert query(advisory_db, "SELECT COUNT(*) FROM audit WHERE action_type = 'add_advisory_student'") == [(0,)]
+
+
+def test_concurrent_multiple_selections_respect_remaining_capacity(advisory_db, advisory_groups, capacity_students):
+    group_id = advisory_groups[4]
+    assert advisories.add_advisory_student(4, 10, group_id)[0]
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda ids: advisories.add_advisory_students(4, ids, group_id), [[1, 2], [8, 9]]))
+    assert sum(ok for ok, _ in results) == 1
+    assert advisories.get_advisory_groups(4)[0]["student_count"] == 3
+    assert query(advisory_db, "SELECT COUNT(*) FROM audit WHERE action_type = 'add_advisory_student'") == [(3,)]
+
+
+def test_browser_multiple_selection_capacity_and_navigation(advisory_browser, advisory_db, advisory_groups, capacity_students):
+    from playwright.sync_api import expect
+
+    assert advisories.create_advisory_group(4, "Almost full")[0]
+    second_group_id = advisories.get_advisory_groups(4)[1]["group_id"]
+    assert advisories.add_advisory_students(4, [8, 9, 10], second_group_id)[0]
+    page, client = advisory_browser
+    sign_in(client, 4)
+    page.goto(f"{client.browser_url}/profile")
+    page.locator(f'.nav-item[href="{BASE}"]').click()
+    page.wait_for_url(f"{client.browser_url}{BASE}")
+    page.get_by_role("button", name="Add students", exact=True).click()
+    add_modal = page.locator("#add-advisory-student-modal")
+    group = add_modal.get_by_label("Advisory group", exact=True)
+    submit = add_modal.get_by_role("button", name="Add to my roster")
+    group.select_option(str(advisory_groups[4]))
+    add_modal.locator('.advisory-student-choice input[value="1"]').check()
+    add_modal.locator('.advisory-student-choice input[value="2"]').check()
+    expect(add_modal.locator("#student-selection-status")).to_contain_text("2 of 4")
+    add_modal.get_by_label("I am assigned to advise all selected students.", exact=True).check()
+    expect(submit).to_be_enabled()
+
+    group.select_option(str(second_group_id))
+    expect(add_modal.locator("#student-selection-status")).to_contain_text("Select students")
+    expect(submit).to_be_disabled()
+    add_modal.locator('.advisory-student-choice input[value="2"]').check()
+    expect(add_modal.locator('.advisory-student-choice input[value="11"]')).to_be_disabled()
+    expect(submit).to_be_enabled()
+
+    group.select_option(str(advisory_groups[4]))
+    add_modal.locator('.advisory-student-choice input[value="1"]').check()
+    add_modal.locator('.advisory-student-choice input[value="2"]').check()
+    submit.click()
+    expect(page.locator(".flash-list")).to_contain_text("2 students added")
+    expect(page.locator(f'#advisory-group-{advisory_groups[4]} .advisory-student')).to_have_count(2)
+    expect(page.locator('.advisory-student-choice input[value="1"], .advisory-student-choice input[value="2"]')).to_have_count(0)
+    expect(page.locator("#page-content .advisory-page > .profile-body > aside")).to_have_count(1)
+
+
 def test_browser_full_group_disables_add_until_space_reopens(advisory_browser, advisory_db, advisory_groups, capacity_students):
     from playwright.sync_api import expect
 
@@ -511,18 +677,22 @@ def test_browser_full_group_disables_add_until_space_reopens(advisory_browser, a
     page, client = advisory_browser
     sign_in(client, 4)
     page.goto(f"{client.browser_url}{BASE}")
+    page.get_by_role("button", name="Add students", exact=True).click()
+    add_modal = page.locator("#add-advisory-student-modal")
     expect(page.locator(".advisory-group__capacity")).to_contain_text("4 / 4 students")
-    expect(page.locator("#advisory-group-help")).to_contain_text("All your groups are full")
-    expect(page.locator("#group_id option")).to_have_count(1)
-    expect(page.get_by_role("button", name="Add to my roster")).to_be_disabled()
+    expect(add_modal.locator("#advisory-group-help")).to_contain_text("All your groups are full")
+    expect(add_modal.locator("#group_id option")).to_have_count(1)
+    expect(add_modal.get_by_role("button", name="Add to my roster")).to_be_disabled()
+    add_modal.get_by_role("button", name="Cancel").click()
     page.locator(".advisory-student .advisory-details summary").first.click()
     page.get_by_label("Remove from my roster only.", exact=True).first.check()
     page.get_by_role("button", name="Remove student", exact=True).first.click()
     expect(page.locator(".advisory-group__capacity")).to_contain_text("3 / 4 students")
-    expect(page.get_by_role("button", name="Add to my roster")).to_be_enabled()
-    page.get_by_label("Advisory group", exact=True).select_option(str(group_id))
-    page.get_by_label("Student account", exact=True).select_option("10")
-    page.get_by_label("I am assigned to advise this student.", exact=True).check()
-    page.get_by_role("button", name="Add to my roster").click()
+    page.get_by_role("button", name="Add students", exact=True).click()
+    add_modal = page.locator("#add-advisory-student-modal")
+    add_modal.get_by_label("Advisory group", exact=True).select_option(str(group_id))
+    add_modal.locator('.advisory-student-choice input[value="10"]').check()
+    add_modal.get_by_label("I am assigned to advise all selected students.", exact=True).check()
+    add_modal.get_by_role("button", name="Add to my roster").click()
     expect(page.locator(".advisory-group__capacity")).to_contain_text("4 / 4 students")
     expect(page.locator(".advisory-student")).to_have_count(4)

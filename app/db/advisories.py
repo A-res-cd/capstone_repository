@@ -88,6 +88,86 @@ def create_advisory_group(professor_id, name):
     return _change_group(professor_id, name)
 
 
+def _add_students_in_cursor(cursor, professor_id, student_ids, group_id):
+    if not student_ids or len(student_ids) != len(set(student_ids)):
+        raise ValueError("Select at least one student, with no duplicate accounts.")
+    if len(student_ids) > MAX_ADVISORY_GROUP_STUDENTS:
+        raise ValueError(f"Groups can have at most {MAX_ADVISORY_GROUP_STUDENTS} students.")
+
+    cursor.execute('''
+        SELECT user_id, role_id, account_status FROM "user"
+        WHERE user_id = ANY(%s) ORDER BY user_id FOR NO KEY UPDATE
+    ''', ([professor_id, *student_ids],))
+    users = {row["user_id"]: row for row in cursor.fetchall()}
+    professor = users.get(professor_id)
+    if not professor or professor["role_id"] != 4 or professor["account_status"] != "active":
+        raise ValueError("Only an active capstone professor can manage an advisory roster.")
+    if professor_id in student_ids:
+        raise ValueError("You cannot add yourself as an advisory student.")
+
+    cursor.execute("""
+        SELECT group_id FROM advisory_group
+        WHERE group_id = %s AND professor_user_id = %s
+    """, (group_id, professor_id))
+    if not cursor.fetchone():
+        raise ValueError("Create a group first, then choose one of your advisory groups.")
+
+    for student_id in student_ids:
+        student = users.get(student_id)
+        if not student or student["role_id"] != 1 or student["account_status"] != "active":
+            raise ValueError("Choose active, verified student accounts. No students were added.")
+
+    cursor.execute("""
+        SELECT COUNT(*) AS student_count FROM advisory_student
+        WHERE professor_user_id = %s AND group_id = %s
+    """, (professor_id, group_id))
+    if cursor.fetchone()["student_count"] + len(student_ids) > MAX_ADVISORY_GROUP_STUDENTS:
+        raise ValueError(f"Groups can have at most {MAX_ADVISORY_GROUP_STUDENTS} students. Create another group or remove a student first.")
+
+    for student_id in student_ids:
+        cursor.execute("""
+            INSERT INTO advisory_student (professor_user_id, student_user_id, group_id)
+            VALUES (%s, %s, %s) ON CONFLICT DO NOTHING RETURNING student_user_id
+        """, (professor_id, student_id, group_id))
+        if not cursor.fetchone():
+            raise ValueError("A selected student is already on your advisory roster. No students were added.")
+        log_audit(cursor, professor_id, "add_advisory_student", "advisory_student", student_id,
+                  new_values=f"professor_user_id={professor_id}; student_user_id={student_id}; group_id={group_id}")
+
+
+def create_advisory_group_with_students(professor_id, name, student_ids):
+    name = (name or "").strip()
+    if not name or len(name) > 100:
+        return False, "Enter a group name between 1 and 100 characters."
+    conn = db_connect()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+            _require_professor(cursor, professor_id, lock=True)
+            cursor.execute("""
+                INSERT INTO advisory_group (professor_user_id, group_name)
+                VALUES (%s, %s) RETURNING group_id
+            """, (professor_id, name))
+            group_id = cursor.fetchone()["group_id"]
+            log_audit(cursor, professor_id, "create_advisory_group", "advisory_group", group_id,
+                      new_values=name)
+            if student_ids:
+                _add_students_in_cursor(cursor, professor_id, student_ids, group_id)
+        conn.commit()
+        return True, None
+    except (ValueError, PermissionError) as exc:
+        conn.rollback()
+        return False, str(exc)
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        return False, "You already have a group with that name. Choose a different name."
+    except Exception as exc:
+        conn.rollback()
+        logger.error("Advisory group database error: %s", exc)
+        return False, "Could not create your advisory group. Please try again."
+    finally:
+        conn.close()
+
+
 def rename_advisory_group(professor_id, group_id, name):
     if group_id is None:
         return False, "Choose one of your advisory groups to rename."
@@ -151,7 +231,11 @@ def get_available_advisory_students(professor_id):
         conn.close()
 
 
-def _change_roster(professor_id, student_id, *, group_id=None, remove=False):
+def _change_roster(professor_id, student_ids, *, group_id=None, remove=False):
+    if not student_ids or len(student_ids) != len(set(student_ids)):
+        return False, "Select at least one student, with no duplicate accounts."
+    if not remove and len(student_ids) > MAX_ADVISORY_GROUP_STUDENTS:
+        return False, f"Groups can have at most {MAX_ADVISORY_GROUP_STUDENTS} students."
     conn = db_connect()
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
@@ -159,14 +243,15 @@ def _change_roster(professor_id, student_id, *, group_id=None, remove=False):
             cursor.execute('''
                 SELECT user_id, role_id, account_status FROM "user"
                 WHERE user_id = ANY(%s) ORDER BY user_id FOR NO KEY UPDATE
-            ''', ([professor_id, student_id],))
+            ''', ([professor_id, *student_ids],))
             users = {row["user_id"]: row for row in cursor.fetchall()}
             professor = users.get(professor_id)
             if not professor or professor["role_id"] != 4 or professor["account_status"] != "active":
                 raise ValueError("Only an active capstone professor can manage an advisory roster.")
-            if professor_id == student_id:
+            if professor_id in student_ids:
                 raise ValueError("You cannot add yourself as an advisory student.")
             if remove:
+                student_id = student_ids[0]
                 cursor.execute("""
                     DELETE FROM advisory_student
                     WHERE professor_user_id = %s AND student_user_id = %s RETURNING group_id
@@ -176,31 +261,11 @@ def _change_roster(professor_id, student_id, *, group_id=None, remove=False):
                     raise ValueError("This student is not on your advisory roster.")
                 group_id = removed["group_id"]
             else:
-                cursor.execute("""
-                    SELECT group_id FROM advisory_group
-                    WHERE group_id = %s AND professor_user_id = %s
-                """, (group_id, professor_id))
-                if not cursor.fetchone():
-                    raise ValueError("Create a group first, then choose one of your advisory groups.")
-                student = users.get(student_id)
-                if not student or student["role_id"] != 1 or student["account_status"] != "active":
-                    raise ValueError("Choose an active, verified student account.")
-                # The professor row stays locked until commit, so simultaneous
-                # additions cannot both claim the last place in a group.
-                cursor.execute("""
-                    SELECT COUNT(*) AS student_count FROM advisory_student
-                    WHERE professor_user_id = %s AND group_id = %s
-                """, (professor_id, group_id))
-                if cursor.fetchone()["student_count"] >= MAX_ADVISORY_GROUP_STUDENTS:
-                    raise ValueError(f"Groups can have at most {MAX_ADVISORY_GROUP_STUDENTS} students. Create another group or remove a student first.")
-                cursor.execute("""
-                    INSERT INTO advisory_student (professor_user_id, student_user_id, group_id)
-                    VALUES (%s, %s, %s) ON CONFLICT DO NOTHING RETURNING student_user_id
-                """, (professor_id, student_id, group_id))
-                if not cursor.fetchone():
-                    raise ValueError("This student is already on your advisory roster.")
-            log_audit(cursor, professor_id, "remove_advisory_student" if remove else "add_advisory_student",
-                      "advisory_student", student_id, new_values=f"professor_user_id={professor_id}; student_user_id={student_id}; group_id={group_id}")
+                _add_students_in_cursor(cursor, professor_id, student_ids, group_id)
+            for student_id in student_ids:
+                if remove:
+                    log_audit(cursor, professor_id, "remove_advisory_student", "advisory_student", student_id,
+                              new_values=f"professor_user_id={professor_id}; student_user_id={student_id}; group_id={group_id}")
         conn.commit()
         return True, None
     except ValueError as exc:
@@ -215,8 +280,12 @@ def _change_roster(professor_id, student_id, *, group_id=None, remove=False):
 
 
 def add_advisory_student(professor_id, student_id, group_id):
-    return _change_roster(professor_id, student_id, group_id=group_id)
+    return add_advisory_students(professor_id, [student_id], group_id)
+
+
+def add_advisory_students(professor_id, student_ids, group_id):
+    return _change_roster(professor_id, student_ids, group_id=group_id)
 
 
 def remove_advisory_student(professor_id, student_id):
-    return _change_roster(professor_id, student_id, remove=True)
+    return _change_roster(professor_id, [student_id], remove=True)

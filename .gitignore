@@ -35,6 +35,7 @@ uploads/
 seeder.py
 
 capreDB.session.sql
+capre_original.session.sql
 
 # extras
 TODO.md
