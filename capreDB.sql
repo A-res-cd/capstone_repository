@@ -1,7 +1,7 @@
 -- =========================================
 -- CREATE DATABASE
 -- =========================================
-CREATE DATABASE capre;
+-- CREATE DATABASE capre;
 
 -- Connect to capre database first in pgAdmin
 -- Then run everything below
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     user_last_name VARCHAR(100),
     university_no VARCHAR(50),
     locked_until TIMESTAMP,
+    account_status VARCHAR(20) DEFAULT 'pending',
 
     CONSTRAINT fk_user_role
         FOREIGN KEY (role_id)
