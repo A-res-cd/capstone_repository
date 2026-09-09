@@ -186,7 +186,7 @@
                     <fieldset class="advisory-student-picker" aria-describedby="create-student-selection-status create-student-account-help">
                         <legend>{{ group_form.student_ids.label.text }}</legend>
                         <input class="advisory-picker-search" type="search" placeholder="Search name, university ID or account number" aria-label="Find students for new group" data-picker-search>
-                        <p class="helper-text" id="create-student-selection-status" role="status">Students are optional. You can add them now or later.</p>
+                        <p class="helper-text" id="create-student-selection-status" role="status" data-picker-status>Students are optional. You can add them now or later.</p>
                         {% if group_form.student_ids.choices %}
                         <div class="advisory-student-picker__list" data-picker-list>
                             {% for option in group_form.student_ids %}
@@ -231,7 +231,7 @@
                     <fieldset class="advisory-student-picker" aria-describedby="student-selection-status student-account-help">
                         <legend>{{ add_form.student_id.label.text }}</legend>
                         <input class="advisory-picker-search" type="search" placeholder="Search name, university ID or account number" aria-label="Find students to add" data-picker-search>
-                        <p class="helper-text" id="student-selection-status" role="status">Choose a group, then select students for its available places.</p>
+                        <p class="helper-text" id="student-selection-status" role="status" data-picker-status>Choose a group, then select students for its available places.</p>
                         {% if add_form.student_id.choices %}
                         <div class="advisory-student-picker__list" data-picker-list>
                             {% for option in add_form.student_id %}

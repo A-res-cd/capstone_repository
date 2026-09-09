@@ -40,7 +40,7 @@ main:has(.analytics-section) {
     font-family: var(--font-display);
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 3px;
 }
 
@@ -166,7 +166,7 @@ main:has(.analytics-section) {
     font-family: var(--font-display);
     font-size: var(--text-lg);
     font-weight: 700;
-    color: var(--color-primary);
+    color: var(--text-brand);
     line-height: 1.1;
 }
 
@@ -241,7 +241,7 @@ main:has(.analytics-section) {
     font-family: var(--font-display);
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 2px;
 }
 
@@ -249,7 +249,7 @@ main:has(.analytics-section) {
     font-family: var(--font-display);
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0;
 }
 
@@ -330,7 +330,7 @@ main:has(.analytics-section) {
 /* Table cells */
 .analytics-table td {
     padding: 7px 8px;
-    color: var(--color-primary);
+    color: var(--text-brand);
     border-bottom:
         1px dashed
         var(--border-color);
@@ -377,7 +377,7 @@ main:has(.analytics-section) {
     border: 1px solid var(--color-primary-soft);
     border-radius: var(--radius-pill);
     background: transparent;
-    color: var(--color-primary);
+    color: var(--text-brand);
     font: inherit;
     font-weight: 700;
     cursor: pointer;
@@ -440,7 +440,7 @@ body.analytics-export-modal-open {
 .analytics-export-modal__close:hover,
 .analytics-export-modal__close:focus-visible {
     background: var(--hover-tint);
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .analytics-export-modal__icon {
@@ -457,7 +457,7 @@ body.analytics-export-modal-open {
 
 .analytics-export-modal h3 {
     margin: 0 36px 4px 0;
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-size: var(--text-xl);
 }
 
@@ -520,7 +520,7 @@ body.analytics-export-modal-open {
 
 .analytics-export-format i {
     margin-bottom: 3px;
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-size: 28px;
 }
 

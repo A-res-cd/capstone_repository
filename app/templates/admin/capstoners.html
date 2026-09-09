@@ -59,17 +59,22 @@
                 <div><span class="profile-eyebrow">Explicit author assignment</span><h2 id="assign-capstoner-heading">Link an author credit</h2></div>
             </div>
             <p class="helper-text">Select the exact account and author credit you have verified. If needed, this also approves their capstoner registration. Authors without accounts remain valid; existing links cannot be overwritten.</p>
-            <form class="capstoner-form" method="POST" action="{{ url_for('admin.assign_capstoner') }}">
+            <form class="capstoner-form" method="POST" action="{{ url_for('admin.assign_capstoner') }}" data-author-link-form>
                 {{ assignment_form.hidden_tag() }}
                 <div class="form-group">
                     {{ assignment_form.user_id.label }}
-                    {{ assignment_form.user_id(required=true) }}
+                    {{ assignment_form.user_id(required=true, data_custom_select="search") }}
                 </div>
                 <div class="form-group">
                     {{ assignment_form.credit.label }}
-                    {{ assignment_form.credit(required=true, aria_describedby="capstoner-credit-help") }}
+                    {{ assignment_form.credit(required=true, data_custom_select="search", aria_describedby="capstoner-credit-help author-match-status") }}
+                    <span class="helper-text" id="author-match-status" role="status">Choose a user account to narrow the list by author name.</span>
                     <span class="helper-text" id="capstoner-credit-help">Only unlinked author credits on non-archived capstones appear here. Add the capstone and its author names to the repository first.</span>
                 </div>
+                <label class="capstoner-confirm" hidden data-author-filter-controls>
+                    <input type="checkbox" data-show-all-credits>
+                    <span>Show all unlinked author credits</span>
+                </label>
                 <label class="capstoner-confirm">
                     {{ assignment_form.confirmed(required=true) }}
                     <span>{{ assignment_form.confirmed.label.text }}</span>
@@ -78,4 +83,8 @@
             </form>
         </section>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/capstoner_linking.js') }}"></script>
 {% endblock %}

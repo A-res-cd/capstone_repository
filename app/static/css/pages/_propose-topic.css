@@ -42,7 +42,7 @@
 .propose-topic-form label {
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin-top: var(--space-sm);
 }
 
@@ -65,7 +65,7 @@
 }
 
 .propose-topic-form input::placeholder {
-    color: var(--color-gray);
+    color: var(--text-placeholder);
 }
 
 .propose-topic-form input:focus {
@@ -105,7 +105,7 @@
     border-bottom: 1px dashed var(--border-color);
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 /* ── Severity legend — small info icon with a hover/focus tooltip
@@ -126,8 +126,9 @@
     width: 230px;
     padding: var(--space-sm) var(--space-md);
     border-radius: 8px;
-    background: var(--color-primary);
-    color: var(--color-white);
+    background: var(--surface-paper);
+    color: var(--text-dark);
+    border: 1px solid var(--border-tag);
     font-size: var(--text-xs);
     font-weight: 400;
     line-height: 1.5;
@@ -261,7 +262,7 @@
 }
 
 a.pt-match__link:hover {
-    background: #F5F3EA;
+    background: var(--hover-tint);
 }
 
 .pt-match__chevron {
@@ -283,7 +284,7 @@ a.pt-match__link:hover {
 }
 
 a.pt-match__link:hover {
-    background: #F5F3EA;
+    background: var(--hover-tint);
 }
 
 .pt-match__chevron {
@@ -305,7 +306,7 @@ a.pt-match__link:hover {
 }
 
 a.pt-match__link:hover {
-    background: #F5F3EA;
+    background: var(--hover-tint);
 }
 
 .pt-match__chevron {
@@ -322,13 +323,14 @@ a.pt-match__link:hover {
     width: 27px;
     height: 27px;
     flex-shrink: 0;
-    border-radius: 5px;
-    background: #FBF3E2;
+    border-radius: 2px 6px 6px 2px;
+    background: var(--surface-selected);
+    border: 1px dashed var(--border-selected);
 }
 
 .pt-match__icon i {
     font-size: 14px;
-    color: var(--color-primary);
+    color: var(--color-accent-hover);
 }
 
 .pt-match__body {
@@ -341,20 +343,21 @@ a.pt-match__link:hover {
 .pt-match__title {
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .pt-badge {
     align-self: flex-start;
-    font-size: 9px;
+    font-size: var(--text-xs);
     font-weight: 700;
-    border-radius: 8px;
+    border: 1px solid currentColor;
+    border-radius: var(--radius-sm);
     padding: 2px 8px;
 }
 
-.pt-badge--high   { background: #FDE8E8; color: #C0392B; }
-.pt-badge--medium { background: #FBF3E2; color: #B9770E; }
-.pt-badge--low    { background: #EAF3EC; color: #27713F; }
+.pt-badge--high   { background: var(--surface-danger); color: var(--status-rejected); }
+.pt-badge--medium { background: var(--surface-selected); color: var(--status-pending); }
+.pt-badge--low    { background: var(--bg-button-light); color: var(--status-approved); }
 
 .hidden { display: none !important; }
 
@@ -380,7 +383,7 @@ a.pt-match__link:hover {
     margin: 0 0 3px;
     font-family: var(--font-display);
     font-size: var(--text-lg);
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .topic-readiness__head p,
@@ -414,7 +417,7 @@ a.pt-match__link:hover {
     background: var(--surface-muted);
 }
 
-.topic-readiness__metric[data-state="good"] { border-left-color: #2E8B57; }
+.topic-readiness__metric[data-state="good"] { border-left-color: var(--status-approved); }
 .topic-readiness__metric[data-state="warning"] { border-left-color: var(--color-accent); }
 .topic-readiness__metric[data-state="danger"] { border-left-color: var(--color-red); }
 

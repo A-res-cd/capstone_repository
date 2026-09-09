@@ -85,7 +85,7 @@ main:has(.landing-page) {
 
 .home-btn--primary {
     background: var(--color-accent);
-    color: #fff;
+    color: var(--text-on-accent);
     box-shadow: 0 4px 14px rgba(243,156,18,0.35);
 }
 .home-btn--primary:hover { background: var(--color-accent-hover); box-shadow: 0 6px 18px rgba(243,156,18,0.45); }
@@ -111,8 +111,8 @@ main:has(.landing-page) {
 }
 
 .home-btn--white {
-    background: #fff;
-    color: var(--color-primary);
+    background: var(--surface-paper);
+    color: var(--text-brand);
     box-shadow: 0 4px 14px rgba(0,0,0,0.12);
 }
 .home-btn--white:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
@@ -202,7 +202,7 @@ main:has(.landing-page) {
 }
 
 .hero-title__accent {
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-style: italic;
 }
 
@@ -518,7 +518,7 @@ main:has(.landing-page) {
     font-family: var(--font-display);
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 var(--space-md);
 }
 
@@ -616,7 +616,7 @@ main:has(.landing-page) {
     font-family: var(--font-display);
     font-size: 26px;
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 var(--space-md);
 }
 

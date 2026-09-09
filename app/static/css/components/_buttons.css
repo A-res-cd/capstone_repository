@@ -32,7 +32,7 @@
 
 .btn-pill--primary {
     background: linear-gradient(135deg, var(--color-accent), var(--color-accent-hover));
-    color: var(--color-white);
+    color: var(--text-on-accent);
     box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
 }
 
@@ -52,7 +52,7 @@
 
 .btn-pill--ghost {
     background: transparent;
-    color: var(--color-primary);
+    color: var(--text-brand);
     border: 1.5px solid var(--color-primary-soft);
 }
 
@@ -122,7 +122,7 @@
 }
 
 .btn-icon:hover {
-    color: var(--color-primary);
+    color: var(--text-brand);
     background: var(--hover-tint);
 }
 
@@ -194,7 +194,7 @@
 
 .btn-manuscript {
     background: var(--bg-button-light);
-    color: var(--color-primary);
+    color: var(--text-brand);
     border: 1px solid var(--color-primary-soft);
 }
 
@@ -205,7 +205,7 @@
 /* .btn-cite was previously unstyled — see BUGS.md #8 */
 .btn-cite {
     background: transparent;
-    color: var(--color-primary);
+    color: var(--text-brand);
     border: 1px solid var(--color-primary-soft);
 }
 
@@ -219,7 +219,7 @@
     background: var(--bg-card-neutral);
     cursor: pointer;
     font-size: var(--text-sm);
-    color: var(--color-primary);
+    color: var(--text-brand);
     text-decoration: none;
     font-weight: 600;
     line-height: 1.5;

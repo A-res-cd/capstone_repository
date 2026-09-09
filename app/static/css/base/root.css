@@ -1,4 +1,5 @@
 :root {
+    color-scheme: light;
 
     /* ========== PRIMARY COLORS ========== */
     --color-primary: #2E3F92;        /* Main header blue */
@@ -22,6 +23,12 @@
     --text-primary: #FFFFFF;
     --text-secondary: #E0E0E0;
     --text-dark: #333333;
+    /* Foreground ink is separate from solid brand/button fills. */
+    --text-brand: var(--color-primary);
+    --text-brand-strong: var(--color-primary-dark);
+    --text-brand-muted: var(--color-primary-light);
+    --text-placeholder: #707070;
+    --text-on-accent: #FFFFFF;
 
     /* ========== BACKGROUNDS ========== */
     --bg-header: var(--color-primary);
@@ -82,6 +89,8 @@
     --bg-card-header:  #FBF8EF;              /* card header areas — warm paper tint */
     --bg-button-light: #E8F3EC;
     --surface-selected: #FBF3E2;
+    --surface-brand-soft: var(--color-primary-soft);
+    --surface-danger: #FDE8E8;
     --border-selected: #EEDCB0;  /* border for warm "selected/notice" boxes */
 
     /* ========== SEMANTIC ROLE / STATUS / RANK COLORS (theme-aware) ==========
@@ -148,6 +157,11 @@
     --text-primary: #FFFFFF;
     --text-secondary: #BFC3CF;
     --text-dark: #E8E9ED;
+    --text-brand: #ABB8FF;
+    --text-brand-strong: #C7CFFF;
+    --text-brand-muted: #A6B1F5;
+    --text-placeholder: #ADB2C0;
+    --text-on-accent: #241805;
 
     /* ========== BACKGROUNDS ========== */
     --bg-header: var(--color-primary);
@@ -184,6 +198,8 @@
     --bg-card-neutral: #1C1F27;
     --bg-card-header: #22252E;
     --surface-selected: #2A251D;
+    --surface-brand-soft: #292E52;
+    --surface-danger: #352322;
     --border-selected: #4A3C1E;
 
     /* ========== LIGHT BUTTON ========== */

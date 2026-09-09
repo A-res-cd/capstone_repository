@@ -692,10 +692,11 @@ def _capstoner_assignment_form():
     for account in accounts:
         if account["user_id"] != session["user_id"]:
             label = f"{account['full_name']} · {account['university_no'] or 'No university ID'} · Account #{account['user_id']}"
-            form.user_id.choices.append((account["user_id"], label))
+            form.user_id.choices.append((account["user_id"], label, {"data-account-name": account["full_name"]}))
     form.credit.choices = [("", "Choose an unlinked author credit")] + [
         (f"{credit['capstone_id']}:{credit['author_id']}",
-         f"{credit['author_name']} — {credit['capstone_title']} ({credit['capstone_year']}) · Credit #{credit['author_id']}")
+         f"{credit['author_name']} — {credit['capstone_title']} ({credit['capstone_year']}) · Credit #{credit['author_id']}",
+         {"data-author-name": credit["author_name"]})
         for credit in credits
     ]
     return form
@@ -710,13 +711,13 @@ def _render_capstoner_review(assignment_form=None):
 
 
 @admin.route("/capstoners")
-@role_required(4)
+@role_required(3, 4)
 def capstoner_review():
     return _render_capstoner_review()
 
 
 @admin.route("/capstoners/review/<int:request_id>", methods=["POST"])
-@role_required(4)
+@role_required(3, 4)
 def decide_capstoner(request_id):
     form = CapstonerReviewForm()
     if not form.validate_on_submit():
@@ -730,7 +731,7 @@ def decide_capstoner(request_id):
 
 
 @admin.route("/capstoners/assign", methods=["POST"])
-@role_required(4)
+@role_required(3, 4)
 def assign_capstoner():
     form = _capstoner_assignment_form()
     if not form.validate_on_submit():

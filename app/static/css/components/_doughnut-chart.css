@@ -52,7 +52,7 @@
     font-size: var(--text-sm);
     font-weight: 600;
     line-height: 1.2;
-    color: var(--color-primary);
+    color: var(--text-brand);
     text-align: left;
 }
 
@@ -130,7 +130,7 @@
     font-size: var(--text-lg);
     font-weight: 600;
     line-height: 1.2;
-    color: var(--color-primary);
+    color: var(--text-brand);
     text-align: left;
 }
 

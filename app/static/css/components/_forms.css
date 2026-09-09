@@ -31,7 +31,7 @@
 }
 
 .form-group .req {
-    color: #dc3545;
+    color: var(--status-rejected);
 }
 
 .form-group input,
@@ -53,7 +53,8 @@
 
 .form-group input::placeholder,
 .form-group textarea::placeholder {
-    color: var(--color-gray);
+    color: var(--text-placeholder);
+    opacity: 1;
 }
 
 .form-group input:focus,
@@ -64,8 +65,10 @@
     box-shadow: 0 0 0 3px rgba(74, 94, 209, 0.12);
 }
 
-.form-group select option {
-    color: var(--color-black);
+.form-group select option,
+.form-group select optgroup {
+    color: var(--text-dark);
+    background-color: var(--surface-input);
 }
 
 .form-group--full {
@@ -108,8 +111,8 @@
 }
 
 .file-upload-wrapper input[type="file"]::file-selector-button {
-    background: var(--color-primary-soft);
-    color: var(--color-primary);
+    background: var(--surface-brand-soft);
+    color: var(--text-brand);
     padding: 5px var(--space-md);
     border: none;
     border-radius: var(--radius-sm);
@@ -140,7 +143,7 @@
 }
 
 .current-file {
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-style: italic;
 }
 

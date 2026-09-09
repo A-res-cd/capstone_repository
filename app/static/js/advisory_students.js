@@ -7,7 +7,7 @@
         const choices = Array.from(form.querySelectorAll('[data-picker-list] input[type="checkbox"]'));
         const search = form.querySelector('[data-picker-search]');
         const confirmation = form.querySelector('[name="confirmed"]');
-        const status = form.querySelector('[role="status"]');
+        const status = form.querySelector('[data-picker-status]');
         const submit = form.querySelector('button[type="submit"]');
         const spaces = form.dataset.groupSpaces ? JSON.parse(form.dataset.groupSpaces) : {};
         const fixedLimit = Number(form.dataset.maxSelection || 0);

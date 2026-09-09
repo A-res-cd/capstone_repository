@@ -16,6 +16,12 @@ faculty = import_module("app.routes.faculty")
 BASE = "/faculty/advisory-students"
 
 
+def choose_group(modal, group_id):
+    option = modal.locator(f'#group_id option[value="{group_id}"]').text_content()
+    modal.get_by_role("combobox", name="Advisory group", exact=True).click()
+    modal.get_by_role("option", name=option, exact=True).click()
+
+
 @pytest.fixture
 def advisory_db(capstoner_db, monkeypatch):
     monkeypatch.setattr(advisories, "db_connect", capstoner_db)
@@ -453,7 +459,7 @@ def test_roster_uses_open_responsive_theme(advisory_browser, advisory_db, adviso
     if dark:
         assert page.locator(".advisory-details summary").first.evaluate(
             "el => getComputedStyle(el).color === getComputedStyle(document.querySelector('.advisory-page')).color")
-    add_modal.get_by_label("Advisory group", exact=True).select_option(str(advisory_groups[4]))
+    choose_group(add_modal, advisory_groups[4])
     add_modal.locator('.advisory-student-choice input[value="8"]').check()
     expect(add_modal.locator("#student-selection-status")).to_contain_text("1 of 2")
     add_modal.get_by_role("button", name="Cancel").click()
@@ -642,23 +648,22 @@ def test_browser_multiple_selection_capacity_and_navigation(advisory_browser, ad
     page.wait_for_url(f"{client.browser_url}{BASE}")
     page.get_by_role("button", name="Add students", exact=True).click()
     add_modal = page.locator("#add-advisory-student-modal")
-    group = add_modal.get_by_label("Advisory group", exact=True)
     submit = add_modal.get_by_role("button", name="Add to my roster")
-    group.select_option(str(advisory_groups[4]))
+    choose_group(add_modal, advisory_groups[4])
     add_modal.locator('.advisory-student-choice input[value="1"]').check()
     add_modal.locator('.advisory-student-choice input[value="2"]').check()
     expect(add_modal.locator("#student-selection-status")).to_contain_text("2 of 4")
     add_modal.get_by_label("I am assigned to advise all selected students.", exact=True).check()
     expect(submit).to_be_enabled()
 
-    group.select_option(str(second_group_id))
+    choose_group(add_modal, second_group_id)
     expect(add_modal.locator("#student-selection-status")).to_contain_text("Select students")
     expect(submit).to_be_disabled()
     add_modal.locator('.advisory-student-choice input[value="2"]').check()
     expect(add_modal.locator('.advisory-student-choice input[value="11"]')).to_be_disabled()
     expect(submit).to_be_enabled()
 
-    group.select_option(str(advisory_groups[4]))
+    choose_group(add_modal, advisory_groups[4])
     add_modal.locator('.advisory-student-choice input[value="1"]').check()
     add_modal.locator('.advisory-student-choice input[value="2"]').check()
     submit.click()
@@ -690,7 +695,7 @@ def test_browser_full_group_disables_add_until_space_reopens(advisory_browser, a
     expect(page.locator(".advisory-group__capacity")).to_contain_text("3 / 4 students")
     page.get_by_role("button", name="Add students", exact=True).click()
     add_modal = page.locator("#add-advisory-student-modal")
-    add_modal.get_by_label("Advisory group", exact=True).select_option(str(group_id))
+    choose_group(add_modal, group_id)
     add_modal.locator('.advisory-student-choice input[value="10"]').check()
     add_modal.get_by_label("I am assigned to advise all selected students.", exact=True).check()
     add_modal.get_by_role("button", name="Add to my roster").click()

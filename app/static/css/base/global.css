@@ -21,6 +21,21 @@ body {
     overflow: hidden;
 }
 
+/* Native popup options must use the same palette as their closed select. */
+:where(input, select, textarea, option, optgroup) {
+    color: var(--text-dark);
+    background-color: var(--surface-input);
+}
+
+:where(input, textarea)::placeholder {
+    color: var(--text-placeholder);
+    opacity: 1;
+}
+
+:where(a) {
+    color: var(--text-brand);
+}
+
 /* LAYOUT */
 .layout {
     display: flex;

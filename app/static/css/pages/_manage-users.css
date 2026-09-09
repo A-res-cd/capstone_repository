@@ -35,7 +35,7 @@ main:has(.mu-section) {
     font-family: var(--font-display);
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 3px;
 }
 
@@ -81,11 +81,11 @@ main:has(.mu-section) {
 .mu-tab i { font-size: 15px; }
 
 .mu-tab:hover {
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .mu-tab--active {
-    color: var(--color-primary);
+    color: var(--text-brand);
     border-bottom-color: var(--color-accent);
 }
 
@@ -140,11 +140,11 @@ main:has(.mu-section) {
 .mu-tab i { font-size: 15px; }
 
 .mu-tab:hover {
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .mu-tab--active {
-    color: var(--color-primary);
+    color: var(--text-brand);
     border-bottom-color: var(--color-accent);
 }
 
@@ -223,7 +223,7 @@ main:has(.mu-section) {
     border-radius: var(--radius-sm);
     font-size: var(--text-sm);
     color: var(--text-dark);
-    background: var(--color-white);
+    background: var(--bg-card-neutral);
     outline: none;
     transition: border-color 0.2s;
 }
@@ -295,13 +295,13 @@ main:has(.mu-section) {
 }
 
 .status-badge--active {
-    background: #D5F5E3;
-    color: #1E8449;
+    background: var(--bg-button-light);
+    color: var(--status-approved);
 }
 
 .status-badge--inactive {
-    background: #F0F0EC;
-    color: #7A7A72;
+    background: var(--surface-muted);
+    color: var(--status-cancelled);
 }
 
 /* ── Edit User panel — now full-width instead of a narrow centered
@@ -339,7 +339,7 @@ main:has(.mu-section) {
     font-family: var(--font-display);
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0;
 }
 

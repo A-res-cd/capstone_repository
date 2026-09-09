@@ -83,7 +83,7 @@ def get_nav_links(role):
             "title": "Capstoner Review",
             "url": "admin.capstoner_review",
             "icon": "bx bx-user-check",
-            "roles": ["Capstone Professor"],
+            "roles": ["Admin","Capstone Professor"],
             "section": "Management"
         },
 

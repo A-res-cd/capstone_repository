@@ -166,7 +166,7 @@ body.repo-modal-open {
     border-radius: var(--radius-sm);
     font-size: var(--text-sm);
     color: var(--text-dark);
-    background: var(--color-white);
+    background: var(--bg-card-neutral);
     outline: none;
     transition: border-color 0.2s;
 }
@@ -282,7 +282,7 @@ body.repo-modal-open {
     font-family: var(--font-display);
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 3px;
 }
 
@@ -493,7 +493,7 @@ body.repo-modal-open {
 .form-step-dot__label {
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     white-space: nowrap;
 }
 
@@ -568,7 +568,7 @@ body.repo-modal-open {
 .form-step-dot__label {
     font-size: var(--text-sm);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     white-space: nowrap;
 }
 
@@ -712,7 +712,7 @@ body.repo-modal-open {
 
 .extract-status--loading {
     background: #EEF2FF;
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .extract-status--success {
@@ -750,7 +750,7 @@ body.repo-modal-open {
     border-radius: var(--radius-pill);
     border: 1px solid var(--color-primary-soft);
     background: var(--bg-card-neutral);
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-size: var(--text-xs);
     font-weight: 600;
     cursor: pointer;

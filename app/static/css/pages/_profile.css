@@ -282,7 +282,7 @@
 
 .profile-work h3 a:hover,
 .profile-work h3 a:focus-visible {
-    color: var(--color-primary);
+    color: var(--text-brand);
     text-decoration: underline;
     text-underline-offset: 3px;
 }
@@ -298,7 +298,7 @@
 .profile-work__meta span + span::before {
     content: '•';
     margin-right: var(--space-md);
-    color: var(--color-primary-light);
+    color: var(--text-brand-muted);
 }
 
 .profile-work__status {
@@ -438,7 +438,7 @@
     display: flex;
     align-items: flex-start;
     gap: var(--space-md);
-    color: var(--color-primary-light);
+    color: var(--text-brand-muted);
     font-size: 16px;
 }
 

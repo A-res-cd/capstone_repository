@@ -494,6 +494,7 @@ document.querySelectorAll('.btn-row--edit').forEach(btn => {
         // adjusting it, and a blank select forces them to re-pick even
         // when nothing needs to change.
         document.getElementById('role_id').value = roleId;
+        window.CAPRE?.syncSelect?.(document.getElementById('role_id'));
 
         // Deactivate/Reactivate toggle — label, target value, and icon
         // flip based on their current status.
