@@ -1,0 +1,23 @@
+CAPRE | {{ category }}
+{{ title }}
+
+Hello {{ name }},
+
+{{ introduction }}
+{% if code %}
+Your one-time password (OTP) is: {{ code }}
+It expires in {{ expiry_minutes }} minutes. Use it only once.
+{% else %}
+Status: {{ status }}
+{% if reason %}
+Reviewer feedback:
+{{ reason }}
+{% endif %}
+{% endif %}
+{{ instruction }}
+
+{{ note }}
+
+{{ security }}
+
+CAPRE — Automated account notification

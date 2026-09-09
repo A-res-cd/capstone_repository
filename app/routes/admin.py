@@ -1,5 +1,5 @@
 from flask import Blueprint, abort, render_template, request, redirect, session, url_for, flash, jsonify, current_app, send_file, g
-from flask_mail import Message
+from app.utils.account_emails import verification_email
 from werkzeug.utils import secure_filename
 import os
 import sys
@@ -50,26 +50,8 @@ def _send_verification_email(recipient, decision, status_reason):
     if not recipient or not recipient.get("email"):
         return False
 
-    name = recipient.get("full_name") or "there"
-    if decision == "approved":
-        subject = "Your CAPRE account has been verified"
-        body = (
-            f"Hello {name},\n\n"
-            "Your CAPRE account has been verified. You may now sign in.\n\n"
-            "Thank you,\nCAPRE"
-        )
-    else:
-        subject = "Update on your CAPRE account verification"
-        body = (
-            f"Hello {name},\n\n"
-            "Your CAPRE account verification was rejected.\n"
-            f"Reason: {status_reason or 'No reason was provided.'}\n\n"
-            "Please contact support if you need help.\n\n"
-            "Thank you,\nCAPRE"
-        )
-
     try:
-        mail.send(Message(subject=subject, recipients=[recipient["email"]], body=body))
+        mail.send(verification_email(recipient, decision, status_reason))
         return True
     except Exception as exc:
         logger.error("Could not send verification email: %s", exc)

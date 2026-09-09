@@ -94,7 +94,7 @@ def test_verification_recipient_reads_pending_primary_email(monkeypatch):
 
 def test_verification_email_contains_approval_notice(monkeypatch):
     sent = []
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder=str(ROOT / "app/templates"))
     app.config["MAIL_DEFAULT_SENDER"] = "noreply@example.com"
     admin_routes.mail.init_app(app)
 
@@ -109,11 +109,12 @@ def test_verification_email_contains_approval_notice(monkeypatch):
     assert sent[0].subject == "Your CAPRE account has been verified"
     assert sent[0].recipients == ["amy@example.com"]
     assert "Your CAPRE account has been verified" in sent[0].body
+    assert "Your account is ready" in sent[0].html
 
 
 def test_verification_email_contains_rejection_reason_and_handles_failure(monkeypatch):
     sent = []
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder=str(ROOT / "app/templates"))
     app.config["MAIL_DEFAULT_SENDER"] = "noreply@example.com"
     admin_routes.mail.init_app(app)
 

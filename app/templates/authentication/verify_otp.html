@@ -55,7 +55,9 @@
                     <div class="form-group">
                         {{ form.otp.label }}
                         {{ form.otp(id="otp", class="otp-input", placeholder="000000",
-                                   maxlength="6", inputmode="numeric", autocomplete="one-time-code") }}
+                                   maxlength="6", pattern="[0-9]{6}", inputmode="numeric", autocomplete="one-time-code",
+                                   aria_describedby="otp-help") }}
+                        <p id="otp-help">Enter 6 numbers. Your code verifies automatically when complete.</p>
                         <p class="otp-timer">Time remaining:
                             <span id="countdown" data-expiry-minutes="{{ otp_expiry_minutes or 4 }}">
                                 {{ otp_expiry_minutes or 4 }}:00

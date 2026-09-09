@@ -1,5 +1,5 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
-from flask_mail import Message
+from app.utils.account_emails import password_reset_email
 from smtplib import SMTPException
 import logging
 import psycopg2.extras
@@ -152,15 +152,7 @@ def forgot_password():
                                    hide_nav=True, hide_header=True)
 
         try:
-            mail.send(Message(
-                subject="Your password reset OTP",
-                recipients=[email],
-                body=(
-                    f"Your one-time password (OTP) is: {otp}\n\n"
-                    f"It expires in {OTP_EXPIRY_MINUTES} minutes. Do not share it with anyone.\n\n"
-                    "If you did not request this, ignore this email."
-                ),
-            ))
+            mail.send(password_reset_email(email, username, otp, OTP_EXPIRY_MINUTES))
         except (SMTPException, OSError) as exc:
             logger.error("Could not send password reset email: %s", exc)
             flash("Could not send the reset email. Please try again.", "danger")

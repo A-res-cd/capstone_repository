@@ -43,7 +43,7 @@ class ChangePasswordForm(FlaskForm):
     confirm_password = PasswordField("Confirm New Password", validators=[DataRequired(), EqualTo("new_password", message="Passwords do not match.")])
 
 class VerifyOTPForm(FlaskForm):
-    otp = StringField("OTP", validators=[DataRequired(message = "Please enter the OTP."), Length(min=6, max=6, message="OTP must be 6 digit."), Regexp(r'^\d{6}$', message="OTP must be numbers onyl.")])
+    otp = StringField("OTP", validators=[DataRequired(message = "Please enter the OTP."), Length(min=6, max=6, message="OTP must be 6 digits."), Regexp(r'^[0-9]{6}\Z', message="OTP must contain numbers only.")])
 
 #ts took me 1hr to code 💀 (i see you reading the code 👀) i know it's shit man
 
