@@ -276,6 +276,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
 # ____________________________sign in or authentication idk_______________________
 
 def sign_in(username, password, device_ip=None):
+    username = (username or "").strip()
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     now = datetime.now(timezone.utc)
@@ -290,11 +291,16 @@ def sign_in(username, password, device_ip=None):
         JOIN ror   r  ON r.password_id  = sl.password_id
         JOIN "user" u ON u.user_id      = sl.user_id
         JOIN role  ro ON ro.role_id     = u.role_id
-        WHERE k.username = %s
-        LIMIT 1
-        """, (username,))
+        WHERE LOWER(k.username) = LOWER(%s)
+        ORDER BY (k.username = %s) DESC
+        LIMIT 2
+        """, (username, username))
 
-        row = mithrix.fetchone()
+        matches = mithrix.fetchall()
+        # Preserve exact spelling for legacy case-only duplicates; never guess
+        # which account owns a case-insensitive but ambiguous username.
+        exact = [match for match in matches if match["username"] == username]
+        row = matches[0] if len(matches) == 1 else exact[0] if len(exact) == 1 else None
 
         if not row:
             return None, "Invalid username or password."

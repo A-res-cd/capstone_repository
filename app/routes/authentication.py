@@ -31,7 +31,7 @@ def signin():
     form = SigninForm()
 
     if form.validate_on_submit():
-        username = form.username.data
+        username = form.username.data.strip()
         password = form.password.data
         device_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
@@ -48,9 +48,10 @@ def signin():
                     FROM "user" u
                     JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
                     JOIN kappa k ON k.username_id = sl.username_id
-                    WHERE k.username = %s
+                    WHERE LOWER(k.username) = LOWER(%s)
+                    ORDER BY (k.username = %s) DESC
                     LIMIT 1
-                """, (username,))
+                """, (username, username))
                 row = cur.fetchone()
                 cur.close()
                 conn.close()
