@@ -122,15 +122,6 @@ def get_nav_links(role):
             "section": "Account"
         },
 
-        {
-            "name": "User Information",
-            "title": "User Settings",
-            "url": "pages.user_info",
-            "icon": "bx bx-id-card",
-            "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
-            "section": "Account"
-        },
-
         # --- Not a real DFD process — an internal dev tool that mostly
         # trolls, occasionally shows something actually useful. Admin
         # only; see admin.dev_debug for the odds. ---

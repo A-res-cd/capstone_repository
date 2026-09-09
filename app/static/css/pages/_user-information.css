@@ -340,3 +340,93 @@
         flex-wrap: wrap;
     }
 }
+
+.user-information-modal {
+    width: min(1080px, calc(100vw - (var(--space-xl) * 2)));
+    max-width: 100%;
+    max-height: calc(100vh - (var(--space-xl) * 2));
+    padding: 0;
+    color: var(--text-dark);
+    background: var(--surface-paper);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.user-information-modal::backdrop {
+    background: rgba(24, 32, 67, 0.42);
+    backdrop-filter: blur(2px);
+}
+
+.user-information-modal__content {
+    max-height: calc(100vh - (var(--space-xl) * 2));
+    overflow-y: auto;
+}
+
+.user-information-modal .user-information-section {
+    min-height: 0;
+    padding: var(--space-xl);
+}
+
+.user-information-modal .user-information-content {
+    gap: var(--space-xl);
+}
+
+.user-information-modal .ui-identity-header,
+.user-information-modal .user-information-update-group,
+.user-information-modal .ui-danger-zone {
+    background: var(--surface-paper);
+    border: 1px dashed var(--border-tag);
+    border-radius: var(--radius-sm);
+    box-shadow: none;
+}
+
+.user-information-modal .ui-identity-header {
+    padding: var(--space-lg);
+}
+
+.user-information-modal .ui-card-header {
+    border-bottom: 1px dashed var(--border-tag);
+}
+
+.user-information-modal .user-information-update-group,
+.user-information-modal .ui-password-card {
+    height: auto;
+}
+
+.user-information-modal__close {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    padding: 0;
+    color: var(--color-primary);
+    background: transparent;
+    border: 1px solid var(--border-tag);
+    border-radius: 50%;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.user-information-modal__close:hover,
+.user-information-modal__close:focus-visible {
+    color: var(--color-accent-hover);
+    border-color: var(--color-accent);
+}
+
+@media (max-width: 700px) {
+    .user-information-modal {
+        width: calc(100vw - (var(--space-md) * 2));
+        max-height: calc(100vh - (var(--space-md) * 2));
+    }
+
+    .user-information-modal .user-information-section {
+        padding: var(--space-md);
+    }
+
+    .user-information-modal .ui-identity-header {
+        padding: var(--space-md);
+    }
+}

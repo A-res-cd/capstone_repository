@@ -63,20 +63,20 @@
 
     document.querySelectorAll('[data-student-picker]').forEach(initStudentPicker);
 
-    document.querySelectorAll('[data-modal-open]').forEach((button) => {
-        if (button.dataset.modalBound) return;
-        button.dataset.modalBound = 'true';
-        button.addEventListener('click', () => {
-            const modal = document.getElementById(button.dataset.modalOpen);
-            if (modal?.showModal) modal.showModal();
-        });
-    });
+    if (!window.CAPRE_ADVISORY_MODAL_HANDLERS) {
+        document.addEventListener('click', (event) => {
+            const openButton = event.target.closest('[data-modal-open]');
+            if (openButton) {
+                const modal = document.getElementById(openButton.dataset.modalOpen);
+                if (modal && !modal.open) modal.showModal();
+                return;
+            }
 
-    document.querySelectorAll('[data-modal-close]').forEach((button) => {
-        if (button.dataset.modalBound) return;
-        button.dataset.modalBound = 'true';
-        button.addEventListener('click', () => button.closest('dialog')?.close());
-    });
+            const closeButton = event.target.closest('[data-modal-close]');
+            if (closeButton) closeButton.closest('dialog')?.close();
+        });
+        window.CAPRE_ADVISORY_MODAL_HANDLERS = true;
+    }
 
     document.querySelectorAll('.advisory-modal').forEach((modal) => {
         if (modal.dataset.backdropBound) return;

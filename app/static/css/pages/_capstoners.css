@@ -1,19 +1,27 @@
-@import url('./_profile.css');
+@import url('./_advisory-students.css');
 @import url('../components/_detail-card.css');
 
 .capstoner-review__section {
-    padding: var(--profile-inset);
+    padding: 0 0 var(--space-xl);
 }
 
 .capstoner-review__section + .capstoner-review__section {
     border-top: 1px dashed var(--border-tag);
-    background: var(--bg-card-header);
+    background: transparent;
+    padding-top: var(--space-xl);
 }
 
 .capstoner-review__requests {
     display: grid;
     gap: var(--space-lg);
     margin-top: var(--space-lg);
+}
+
+.capstoner-review .detail-card {
+    background: var(--surface-paper);
+    border: 1px dashed var(--border-tag);
+    border-radius: var(--radius-sm);
+    box-shadow: none;
 }
 
 .capstoner-review .detail-card__header,

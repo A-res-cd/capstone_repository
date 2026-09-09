@@ -144,9 +144,14 @@
     gap: 9px;
     min-width: 0;
     padding: 3px 6px;
+    background: transparent;
+    border: 0;
     border-radius: var(--radius-md);
     color: inherit;
+    font: inherit;
+    text-align: left;
     text-decoration: none;
+    cursor: pointer;
     transition: background-color 0.15s, box-shadow 0.15s;
 }
 

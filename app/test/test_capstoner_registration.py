@@ -289,6 +289,13 @@ def test_browser_registration_review_and_author_assignment(workflow_browser):
     page, client = workflow_browser
     sign_in(client, 1)
     page.goto(f"{client.browser_url}/profile")
+    page.get_by_role("button", name="Open user information").click()
+    expect(page.locator("#user-information-modal")).to_be_visible()
+    expect(page.locator("#user-information-modal")).to_contain_text("Basic Information")
+    page.get_by_role("button", name="Close user information").click()
+    page.get_by_role("button", name="Edit user information").click()
+    expect(page.locator("#user-information-modal")).to_be_visible()
+    page.get_by_role("button", name="Close user information").click()
     page.get_by_label("Capstone details", exact=True).fill("Archive search project, adviser Jane.")
     page.get_by_role("button", name="Register as Capstoner", exact=True).click()
     expect(page.locator("#capstoner-registration")).to_contain_text("waiting for a capstone professor")
@@ -326,9 +333,10 @@ def test_capstoner_forms_follow_paper_theme_without_overflow(workflow_browser, w
         page.goto(f"{client.browser_url}/{path}")
         if dark:
             page.evaluate("document.documentElement.setAttribute('data-theme', 'dark')")
-        expect(page.locator(".profile-paper")).to_be_visible()
+        expect(page.locator(".advisory-page")).to_be_visible()
+        expect(page.locator(".profile-paper")).to_have_count(0)
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
         for field in page.locator(".capstoner-form textarea, .capstoner-form select, .capstoner-form button").all():
             assert field.evaluate("el => el.getBoundingClientRect().right <= window.innerWidth")
-        assert page.locator(".profile-paper").evaluate("el => getComputedStyle(el, '::before').width") == "8px"
+        assert page.locator(".advisory-page").evaluate("el => getComputedStyle(el).paddingLeft") != "0px"
         page.screenshot(path=str(tmp_path / f"capstoner-{path}-{width}-{'dark' if dark else 'light'}.png"), full_page=True)

@@ -111,6 +111,16 @@ def toggle_saved_capstone_route(capstone_id):
 @login_required
 def user_info():
     user_id = session.get("user_id")
+    if request.args.get("partial") == "1":
+        return render_template(
+            "partials/user_information_modal.html",
+            **_user_information_context(user_id),
+        )
+
+    return redirect(url_for("pages.profile_overview", user_info="1"))
+
+
+def _user_information_context(user_id):
     profile = get_own_profile(user_id)
     contacts = get_user_contacts(user_id)
     contact_labels = [
@@ -126,18 +136,16 @@ def user_info():
     promotion_requests = get_own_promotion_requests(user_id)
     has_pending_promotion = any(r["request_status"] == "pending" for r in promotion_requests)
 
-    return render_template(
-        "global/user_information.html",
-        hide_nav=False,
-        profile=profile,
-        contacts=contacts,
-        contact_labels=contact_labels,
-        contact_by_type=contact_by_type,
-        password_form=ChangePasswordForm(),
-        roles=roles,
-        promotion_requests=promotion_requests,
-        has_pending_promotion=has_pending_promotion,
-    )
+    return {
+        "profile": profile,
+        "contacts": contacts,
+        "contact_labels": contact_labels,
+        "contact_by_type": contact_by_type,
+        "password_form": ChangePasswordForm(),
+        "roles": roles,
+        "promotion_requests": promotion_requests,
+        "has_pending_promotion": has_pending_promotion,
+    }
 
 
 @pages.route("/profile")

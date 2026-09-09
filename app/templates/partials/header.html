@@ -98,7 +98,9 @@
                 <i class='bx bx-moon theme-toggle__icon theme-toggle__icon--dark'></i>
                 <i class='bx bx-sun theme-toggle__icon theme-toggle__icon--light'></i>
             </button>
-            <a href="{{ url_for('pages.profile_overview') }}" class="header-user__profile" aria-label="Open user profile">
+            <button type="button" class="header-user__profile" data-user-info-open
+                    data-user-info-url="{{ url_for('pages.user_info', partial=1) }}"
+                    aria-label="Open user information" aria-haspopup="dialog" aria-controls="user-information-modal">
                 <span class="header-user__avatar" aria-hidden="true">
                     <span>{{ current_user.initials }}</span>
                 </span>
@@ -111,7 +113,7 @@
                     </span>
                     {% endif %}
                 </span>
-            </a>
+            </button>
         </div>
 
     </div>

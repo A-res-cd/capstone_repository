@@ -1,14 +1,13 @@
 {% extends 'base.html' %}
 
 {% block extra_css %}
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/pages/_profile.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/pages/_advisory-students.css') }}">
 {% endblock %}
 
 {% block title %} Profile Overview | CAPRE{% endblock %}
 
 {% block content %}
-<section class="profile-page">
-    <div class="profile-paper">
+<section class="profile-page advisory-page profile-overview-page">
     <div class="profile-hero">
         <div class="profile-avatar" aria-hidden="true">
             {{ (profile.user_first_name or '?')[0] | upper }}{{ (profile.user_last_name or '')[0] | upper }}
@@ -74,7 +73,7 @@
         </section>
 
         <aside class="profile-sidebar">
-            {% if session.get('role_id') == "Student" %}
+            {% if profile.role_name == "Student" %}
                 <section class="profile-panel" id="capstoner-registration" aria-labelledby="capstoner-heading">
                     {% set capstoner_status = capstoner_registration.request_status if capstoner_registration else 'unregistered' %}
                     <div class="profile-panel__heading">
@@ -132,9 +131,11 @@
                     <div><dt>Email</dt><dd>{{ primary_email or 'Not provided' }}</dd></div>
                     <div><dt>Account</dt><dd>{{ 'Verified' if profile.account_status == 'active' else (profile.account_status | capitalize if profile.account_status else 'Unknown') }}</dd></div>
                 </dl>
-                <a href="{{ url_for('pages.user_info') }}" class="profile-action profile-action--primary">
+                <button type="button" class="profile-action profile-action--primary" data-user-info-open
+                        data-user-info-url="{{ url_for('pages.user_info', partial=1) }}"
+                        aria-haspopup="dialog" aria-controls="user-information-modal">
                     <i class="bx bx-edit-alt"></i> Edit user information
-                </a>
+                </button>
             </section>
 
             <section class="profile-panel">
@@ -153,7 +154,6 @@
                 </div>
             </section>
         </aside>
-    </div>
     </div>
 </section>
 {% endblock %}
