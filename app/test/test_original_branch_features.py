@@ -235,6 +235,45 @@ def test_signup_csrf(feature_app):
     assert feature_app.test_client().post('/signup', data=signup_data()).status_code == 400
 
 
+@pytest.mark.parametrize('decision,fail_mail', [('approved', False), ('rejected', False), ('approved', True)])
+def test_verification_email_after_saved_decision(feature_app, feature_db, monkeypatch, decision, fail_mail):
+    from types import SimpleNamespace
+    from flask_mail import Mail
+    feature_app.config['MAIL_DEFAULT_SENDER'] = 'noreply@example.com'
+    Mail(feature_app)
+    assert auth_db.create_user('Maria', '', 'Cruz', None, 'maria@example.com', 'maria', 'password')[0]
+    with feature_db() as conn, conn.cursor() as cursor:
+        cursor.execute('SELECT request_id FROM request')
+        request_id = cursor.fetchone()[0]
+    sent = []
+
+    def send(message):
+        if fail_mail:
+            raise OSError('simulated mail failure')
+        sent.append(message)
+    monkeypatch.setattr(admin, 'mail', SimpleNamespace(send=send))
+    client = feature_app.test_client()
+    login(client)
+    endpoint = f'/manage_users/verify/{request_id}'
+    assert client.post(endpoint, data={'decision': decision, 'status_reason': 'Please check your COR.'}).status_code == 302
+    with feature_db() as conn, conn.cursor() as cursor:
+        cursor.execute('SELECT request_status FROM request WHERE request_id = %s', (request_id,))
+        assert cursor.fetchone()[0] == decision
+    if fail_mail:
+        with client.session_transaction() as state:
+            assert any('Email notification could not be sent' in message for _, message in state['_flashes'])
+    else:
+        assert sent[0].recipients == ['maria@example.com']
+        assert sent[0].html and sent[0].body
+        assert ('Your account is ready' if decision == 'approved' else 'Please check your COR.') in sent[0].html
+    # A repeated review must not change status or send another email.
+    client.post(endpoint, data={'decision': 'rejected' if decision == 'approved' else 'approved'})
+    assert len(sent) == (0 if fail_mail else 1)
+    with feature_db() as conn, conn.cursor() as cursor:
+        cursor.execute('SELECT request_status FROM request WHERE request_id = %s', (request_id,))
+        assert cursor.fetchone()[0] == decision
+
+
 def test_registration_path_guards_and_missing_files(feature_app, monkeypatch):
     folder = Path(feature_app.config['UPLOAD_REGISTRATION_FOLDER'])
     folder.mkdir()

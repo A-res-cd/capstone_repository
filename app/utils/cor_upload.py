@@ -12,7 +12,11 @@ MAX_COR_BYTES = 5 * 1024 * 1024
 def read_cor_upload(upload):
     if not upload or not upload.filename or not upload.filename.lower().endswith('.pdf'):
         raise ValueError('Upload your Certificate of Registration (COR) as a PDF.')
-    content = upload.stream.read(MAX_COR_BYTES + 1)
+    position = upload.stream.tell()
+    try:
+        content = upload.stream.read(MAX_COR_BYTES + 1)
+    finally:
+        upload.stream.seek(position)
     if len(content) > MAX_COR_BYTES:
         raise ValueError('COR must be 5 MB or smaller.')
     if not content.startswith(b'%PDF-'):

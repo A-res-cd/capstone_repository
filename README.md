@@ -30,12 +30,33 @@ MAIL_PORT = 587
 MAIL_USERNAME = your-email@example.com
 MAIL_PASSWORD = your-email-password
 
-UPLOAD_FOLDER = app/static/uploads
+UPLOAD_MANUSCRIPT_FOLDER = app/static/uploads/manuscripts
+UPLOAD_REGISTRATION_FOLDER = app/static/uploads/registration
+
+# Required for automatic OCR of scanned COR files.
+# Install the Windows engine separately from:
+# https://github.com/UB-Mannheim/tesseract/wiki
+TESSERACT_CMD = C:\Program Files\Tesseract-OCR\tesseract.exe
 
 # 6. Run the app
 flask run
 or
 python run.py
 
-# 7. When done, deactivate environment
+# 7. Run the tests
+pytest app/test/test_cor_extractor.py app/test/test_cor_pdf.py -q
+
+# 8. When done, deactivate environment
 deactivate
+
+## COR upload and automatic extraction
+
+Signup accepts a Certificate of Registration as a PDF. The upload appears first
+in the form and attempts to extract the registration number, student number,
+first name, middle name, and last name. Extracted values remain editable before
+account creation. The sample COR test is stored at
+`app/static/uploads/registration/Sapin_Aaries_M._3e7f3448731c472d93c9912b893e73ac.pdf`.
+
+The sample COR is image-based, so Tesseract OCR must be installed for automatic
+extraction. `pytesseract` in `requirements.txt` is only the Python wrapper. If
+Tesseract is unavailable, the form shows a warning and allows manual entry.

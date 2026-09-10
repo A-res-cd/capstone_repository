@@ -52,6 +52,27 @@
                 <form action="{{ url_for('auth.signup') }}" method="POST" enctype="multipart/form-data" class="auth-form" novalidate>
                     {{ form.hidden_tag() }}
 
+                    <div class="form-group cor-upload-group">
+                        {{ form.cor.label }}
+                        {{ form.cor(id='cor', accept='.pdf,application/pdf', data_extract_url=url_for('auth.extract_cor'), aria_describedby='cor-help') }}
+                        <p id="cor-help" class="field-hint">Upload your Certificate of Registration as a PDF. We will read the registration number, student number, and name for you. You can correct the fields before submitting.</p>
+                        <p id="cor-extraction-status" class="cor-extraction-status" role="status" aria-live="polite">Choose a COR PDF to begin.</p>
+                        {% for error in form.cor.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                    </div>
+
+                    <div id="cor-extraction" class="cor-extraction" hidden>
+                        <div class="form-row">
+                            <div class="form-group">
+                                {{ form.registration_no.label }}
+                                {{ form.registration_no(id="registration_no", placeholder="Auto-filled from COR") }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.student_no.label }}
+                                {{ form.student_no(id="student_no", placeholder="Auto-filled from COR") }}
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-row form-row--3">
                         <div class="form-group">
                             {{ form.first_name.label }}
@@ -104,12 +125,6 @@
                         {% endfor %}
                     </div>
 
-                    <div class="form-group">
-                        {{ form.cor.label }}
-                        {{ form.cor(id='cor', accept='.pdf,application/pdf', aria_describedby='cor-help') }}
-                        <p id="cor-help">Upload your Certificate of Registration as a PDF (up to 5 MB, 20 pages). Only account-verifying admins can open it. Select the file again if this form shows an error.</p>
-                        {% for error in form.cor.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
-                    </div>
                     <button type="submit" class="btn-auth-primary">
                         <i class="bx bx-user-plus"></i>
                         Create Account
@@ -128,6 +143,7 @@
 </div>
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/signup_cor.js') }}"></script>
 <script>
 function togglePassword(fieldId, btn) {
     const field = document.getElementById(fieldId);

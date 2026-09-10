@@ -15,6 +15,8 @@ class SignupForm(FlaskForm):
         FileRequired(message='Upload your COR for account verification.'),
         FileAllowed(['pdf'], 'COR must be a PDF file.'),
     ])
+    registration_no = StringField("Registration No", validators=[Optional(), Length(max=50)])
+    student_no = StringField("Student No", validators=[Optional(), Length(max=50)])
     first_name = StringField("First Name", validators=[DataRequired(message = "Firt Name is required."), Length(max=50)])
     middle_name = StringField("Middle Name", validators=[Optional(), Length(max=50)])
     last_name = StringField("Last Name", validators=[DataRequired(message = "Last Name is required")])
