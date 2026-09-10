@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Audit Logs | CAPRE{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_audit-logs.css') }}">
+{% endblock %}
+{% block content %}
+<section class="audit-page" aria-label="Audit logs">
+    <p class="audit-note">Read-only history of recorded activity. Times and date filters use UTC. Email delivery is not tracked here.</p>
+    <div class="audit-stats" aria-label="Filtered event totals">
+        <div><strong>{{ total }}</strong><span>Matching events</span></div>
+        {% for key, label in categories.items() %}
+        <div><strong>{{ counts[key] }}</strong><span>{{ label }}</span></div>
+        {% endfor %}
+    </div>
+    <form class="audit-filters" method="GET" action="{{ url_for('admin.audit_logs') }}">
+        <div class="form-group"><label for="audit-search">Actor name or record / event ID</label><input id="audit-search" name="q" value="{{ filters.q }}" maxlength="100" placeholder="Search recorded activity"></div>
+        <div class="form-group"><label for="audit-category">Category</label><select id="audit-category" name="category"><option value="">All categories</option>{% for key, label in categories.items() %}<option value="{{ key }}" {% if filters.category == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="audit-action">Action</label><select id="audit-action" name="action"><option value="">All actions</option>{% for key, label in actions|dictsort %}<option value="{{ key }}" {% if filters.action == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label for="audit-start">From (UTC)</label><input id="audit-start" type="date" name="start" value="{{ filters.start }}"></div>
+        <div class="form-group"><label for="audit-end">Through (UTC)</label><input id="audit-end" type="date" name="end" value="{{ filters.end }}"></div>
+        <div class="audit-filter-actions"><button class="btn-pill btn-pill--primary" type="submit">Apply filters</button><a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.audit_logs') }}">Clear filters</a></div>
+    </form>
+    <div class="profile-paper audit-paper">
+        <div class="audit-paper-heading">Recorded activity <span>{{ total }} matching events · 25 per page</span></div>
+        {% for event in events %}
+        <article class="audit-event">
+            <div class="audit-event-meta"><time>{{ event.timestamp.strftime('%b %d, %Y · %H:%M:%S') if event.timestamp else 'Time unavailable' }}</time><span>{{ event.category }}</span></div>
+            <div class="audit-event-copy"><strong>{{ event.actor }}</strong><p>{{ event.summary }}</p></div>
+            <button type="button" class="btn-pill btn-pill--ghost" data-audit-open="audit-detail-{{ event.audit_id }}" aria-haspopup="dialog">View details<span class="audit-sr-only"> for event {{ event.audit_id }}</span></button>
+            <dialog class="audit-dialog profile-paper" id="audit-detail-{{ event.audit_id }}" aria-labelledby="audit-title-{{ event.audit_id }}">
+                <div class="audit-dialog-content">
+                    <h2 id="audit-title-{{ event.audit_id }}">Event #{{ event.audit_id }}</h2>
+                    <p>{{ event.summary }}</p>
+                    <dl>
+                        <dt>Actor (current name)</dt><dd>{{ event.actor }}{% if event.actor_id %} · Account #{{ event.actor_id }}{% endif %}</dd>
+                        <dt>Timestamp (UTC)</dt><dd>{{ event.timestamp or 'Unavailable' }}</dd>
+                        <dt>Category</dt><dd>{{ event.category }}</dd>
+                        <dt>Affected table</dt><dd>{{ event.target_table }}</dd>
+                        <dt>Record ID</dt><dd>{{ event.target_id if event.target_id is not none else 'Unavailable' }}</dd>
+                        {% for label, value in event.changes %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}
+                    </dl>
+                    <p class="audit-note">Only safe summary fields are shown. Raw payloads are hidden. Historical names and deleted record details may be unavailable.</p>
+                    <button type="button" class="btn-pill btn-pill--primary" data-audit-close>Close</button>
+                </div>
+            </dialog>
+        </article>
+        {% else %}
+        <p class="audit-empty">No recorded activity matches these filters.</p>
+        {% endfor %}
+    </div>
+    <nav class="audit-pagination" aria-label="Audit log pages">
+        {% if page > 1 %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.audit_logs', page=page-1, **filters) }}">Previous</a>{% endif %}
+        <span>Page {{ page }} of {{ pages }}</span>
+        {% if page < pages %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.audit_logs', page=page+1, **filters) }}">Next</a>{% endif %}
+    </nav>
+</section>
+{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/audit_logs.js') }}"></script>{% endblock %}

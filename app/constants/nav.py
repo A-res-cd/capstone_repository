@@ -12,6 +12,15 @@ def get_nav_links(role):
             "section": "Management"
         },
 
+        {
+            "name": "Audit Logs",
+            "title": "Audit Logs",
+            "url": "admin.audit_logs",
+            "icon": "bx bx-history",
+            "roles": ["Admin"],
+            "section": "Logs"
+        },
+
         # --- Process 2.0: Manage User and Role — Admin only ---
         {
             "name": "Users & Roles",
