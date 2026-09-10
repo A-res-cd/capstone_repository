@@ -11,6 +11,10 @@ class SigninForm(FlaskForm):
     password = PasswordField("password", validators=[DataRequired(message = "Password is required.")])
 
 class SignupForm(FlaskForm):
+    cor = FileField('Certificate of Registration (COR)', validators=[
+        FileRequired(message='Upload your COR for account verification.'),
+        FileAllowed(['pdf'], 'COR must be a PDF file.'),
+    ])
     first_name = StringField("First Name", validators=[DataRequired(message = "Firt Name is required."), Length(max=50)])
     middle_name = StringField("Middle Name", validators=[Optional(), Length(max=50)])
     last_name = StringField("Last Name", validators=[DataRequired(message = "Last Name is required")])

@@ -149,7 +149,7 @@ def get_role_id(mithrix, role_name):
     row = mithrix.fetchone()
     return row["role_id"] if row else None
 
-def create_user(first_name, middle_name, last_name, university_no, email, username, password):
+def create_user(first_name, middle_name, last_name, university_no, email, username, password, cor_filename=None):
 
     #strip and basic validation
     first_name    = first_name.strip()    if first_name    else ""
@@ -188,10 +188,10 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         insert_university_no = university_no or None
         mithrix.execute("""INSERT INTO "user"
             (role_id, user_first_name, user_middle_name,
-            user_last_name, university_no, account_status)
-            VALUES (%s, %s, %s, %s, %s, 'pending')
+            user_last_name, university_no, account_status, cor_filename)
+            VALUES (%s, %s, %s, %s, %s, 'pending', %s)
             RETURNING user_id
-            """, (role_id, first_name, middle_name, last_name, insert_university_no))
+            """, (role_id, first_name, middle_name, last_name, insert_university_no, cor_filename))
         user_id = mithrix.fetchone()["user_id"]
 
         # insert into username table
@@ -679,6 +679,28 @@ def get_pending_verifications():
         mithrix.close()
         conn.close()
 
+def get_verification_request_recipient(request_id):
+    conn = db_connect()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+            cursor.execute('''
+                SELECT CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
+                       c.contact_value AS email
+                FROM request r JOIN "user" u ON u.user_id = r.user_id
+                LEFT JOIN contact c ON c.user_id = u.user_id
+                    AND c.contact_type = 'email' AND c.is_primary = TRUE
+                WHERE r.request_id = %s AND r.request_type LIKE 'verification_%%'
+                    AND r.request_status = 'pending'
+                ORDER BY c.contact_id LIMIT 1
+            ''', (request_id,))
+            return cursor.fetchone()
+    except Exception:
+        logger.exception('Could not look up verification email recipient')
+        return None
+    finally:
+        conn.close()
+
+
 def review_verification_request(request_id, decision, status_reason, reviewed_by):
     """
     Approve/reject an account-verification request. Unlike review_request()
@@ -697,6 +719,7 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
         mithrix.execute("""
             SELECT user_id, request_type FROM request
             WHERE request_id = %s AND request_type LIKE 'verification_%%'
+              AND request_status = 'pending'
             FOR UPDATE
         """, (request_id,))
         row = mithrix.fetchone()

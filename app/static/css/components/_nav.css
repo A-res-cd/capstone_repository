@@ -151,13 +151,13 @@
 
 .nav-item:hover {
     background: rgba(46,63,146,0.06);
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 /* Active: left accent bar + light fill */
 .nav-item.active {
     background: rgba(46,63,146,0.08);
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-weight: 700;
 }
 

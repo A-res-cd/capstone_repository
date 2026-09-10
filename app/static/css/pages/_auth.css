@@ -58,7 +58,7 @@ main:has(.auth-shell) {
     font-size: var(--text-lg);
     font-weight: 600;
     letter-spacing: 2px;
-    color: var(--color-primary);
+    color: var(--text-brand);
     text-decoration: none;
 }
 
@@ -73,7 +73,7 @@ main:has(.auth-shell) {
     transition: color 0.15s;
 }
 
-.auth-shell__back:hover { color: var(--color-primary); }
+.auth-shell__back:hover { color: var(--text-brand); }
 .auth-shell__back i { font-size: 18px; }
 
 .auth-shell__body {
@@ -120,7 +120,7 @@ main:has(.auth-shell) {
 }
 
 .auth-annotation__title em {
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-style: italic;
 }
 
@@ -219,7 +219,7 @@ main:has(.auth-shell) {
     font-family: 'Fraunces', var(--font-heading);
     font-size: var(--text-xxl);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 5px;
 }
 
@@ -278,7 +278,7 @@ main:has(.auth-shell) {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.form-group input::placeholder { color: var(--color-gray); }
+.form-group input::placeholder { color: var(--text-placeholder); }
 
 .form-group input:focus {
     border-color: var(--color-primary);
@@ -288,7 +288,7 @@ main:has(.auth-shell) {
 
 .field-error {
     font-size: var(--text-xs);
-    color: #dc3545;
+    color: var(--status-rejected);
     font-weight: 500;
 }
 
@@ -321,7 +321,7 @@ main:has(.auth-shell) {
     transition: color 0.15s;
 }
 
-.input-toggle-btn:hover { color: var(--color-primary); }
+.input-toggle-btn:hover { color: var(--text-brand); }
 
 .auth-form__meta {
     display: flex;
@@ -332,7 +332,7 @@ main:has(.auth-shell) {
 .auth-meta-link {
     font-size: var(--text-xs);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     text-decoration: none;
 }
 
@@ -372,7 +372,7 @@ main:has(.auth-shell) {
 }
 
 .auth-form-card__footer a {
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-weight: 700;
     text-decoration: none;
 }
@@ -384,7 +384,7 @@ main:has(.auth-shell) {
     font-size: 27px !important;
     font-weight: 700 !important;
     letter-spacing: 7px;
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .otp-timer {
@@ -394,8 +394,8 @@ main:has(.auth-shell) {
     margin-top: var(--space-sm);
 }
 
-.otp-timer span { font-weight: 700; color: var(--color-primary); }
-.otp-timer.expired span { color: #A32D2D; }
+.otp-timer span { font-weight: 700; color: var(--text-brand); }
+.otp-timer.expired span { color: var(--status-rejected); }
 
 .divider {
     height: 1px;

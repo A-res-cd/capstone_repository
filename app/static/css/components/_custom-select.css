@@ -1,0 +1,198 @@
+/* Paper dropdown; its native select remains the form's source of truth. */
+.custom-select {
+    position: relative;
+    min-width: 0;
+    width: 100%;
+}
+
+.custom-select select.custom-select__native,
+.custom-select__sr {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip-path: inset(50%);
+    border: 0 !important;
+    white-space: nowrap;
+}
+
+.custom-select::after {
+    content: '';
+    position: absolute;
+    top: 17px;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--text-brand);
+    border-bottom: 2px solid var(--text-brand);
+    transform: rotate(45deg);
+    pointer-events: none;
+}
+
+.custom-select:has([aria-expanded="true"])::after {
+    top: 21px;
+    transform: rotate(225deg);
+}
+
+.custom-select .custom-select__input {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    padding: 10px 42px 10px var(--space-md);
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-md);
+    background: var(--surface-input);
+    color: var(--text-dark);
+    font: inherit;
+    font-size: var(--text-md);
+    text-overflow: ellipsis;
+    outline: none;
+    cursor: pointer;
+}
+
+.custom-select .custom-select__input:focus {
+    border-color: var(--text-brand);
+    box-shadow: 0 0 0 3px var(--hover-tint);
+}
+
+.custom-select .custom-select__input[aria-expanded="true"]:not([readonly]) {
+    cursor: text;
+}
+
+.custom-select .custom-select__input:disabled {
+    color: var(--color-gray-dark);
+    background: var(--surface-muted);
+    cursor: not-allowed;
+}
+
+.custom-select .custom-select__input[aria-invalid="true"] {
+    border-color: var(--status-rejected);
+}
+
+.custom-select--compact {
+    flex: 0 1 auto;
+    width: var(--custom-select-width, 12ch);
+    max-width: 100%;
+    font-size: var(--text-sm);
+}
+
+.custom-select--compact .custom-select__input {
+    height: 32px;
+    padding: 5px 30px 5px 8px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+}
+
+.custom-select--compact::after {
+    top: 11px;
+    right: 12px;
+    width: 6px;
+    height: 6px;
+}
+
+.custom-select--compact:has([aria-expanded="true"])::after { top: 14px; }
+
+.filter-group:has(> .custom-select) {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.filter-group:has(> .custom-select) > span { flex-shrink: 0; }
+
+@media (max-width: 900px) {
+    .filter-group:has(> .custom-select) {
+        flex: 1 1 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group > .custom-select--compact { width: 100%; }
+}
+
+.custom-select__list {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: var(--space-sm) var(--space-sm) var(--space-sm) 34px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border-tag);
+    border-radius: var(--radius-sm) var(--radius-md) var(--radius-md) var(--radius-sm);
+    background: var(--surface-paper);
+    /* Punched binder margin stays in place while the options scroll. */
+    background-image:
+        radial-gradient(circle at 14px 28px,
+            var(--surface-page) 3px, var(--border-tag) 3.5px, transparent 4px),
+        radial-gradient(circle at 14px calc(100% - 28px),
+            var(--surface-page) 3px, var(--border-tag) 3.5px, transparent 4px),
+        linear-gradient(90deg,
+            var(--bg-card-header) 27px,
+            var(--border-color) 27px,
+            var(--border-color) 28px,
+            transparent 28px);
+    color: var(--text-dark);
+    box-shadow: var(--shadow-lg);
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+    text-align: left;
+}
+
+.custom-select__option {
+    position: relative;
+    padding: 11px 30px 11px var(--space-md);
+    border-bottom: 1px dashed var(--border-tag);
+    border-radius: var(--radius-sm);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.custom-select__option[aria-selected="true"] {
+    background: var(--surface-selected);
+    color: var(--text-brand-strong);
+    font-weight: 600;
+}
+
+.custom-select__option[aria-selected="true"]::after {
+    content: '✓';
+    position: absolute;
+    right: var(--space-md);
+    color: var(--text-brand);
+}
+
+.custom-select__option[aria-disabled="false"]:hover,
+.custom-select__option[data-active] {
+    background: var(--hover-tint);
+    color: var(--text-brand);
+    outline: 1px solid var(--border-tag);
+    outline-offset: -1px;
+}
+
+.custom-select__option[aria-disabled="true"] {
+    color: var(--color-gray-dark);
+    cursor: not-allowed;
+}
+
+.custom-select__group-label,
+.custom-select__empty {
+    padding: var(--space-md);
+    color: var(--color-gray-dark);
+}
+
+.custom-select__group-label {
+    font-weight: 700;
+    font-size: var(--text-xs);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.custom-select__error {
+    display: block;
+    margin-top: var(--space-sm);
+    color: var(--status-rejected);
+    font-size: var(--text-xs);
+}
+
+.custom-select__error[hidden] { display: none; }

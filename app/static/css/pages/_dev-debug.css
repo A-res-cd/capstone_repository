@@ -38,7 +38,7 @@
     font-family: var(--font-display);
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 3px;
 }
 
@@ -84,7 +84,7 @@
 
 .dev-debug-kv td:first-child {
     font-weight: 700;
-    color: var(--color-primary);
+    color: var(--text-brand);
     white-space: nowrap;
     width: 1%;
     padding-right: var(--space-md);

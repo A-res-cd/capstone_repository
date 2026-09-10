@@ -35,7 +35,7 @@ main:has(.explore-archive-section) {
     font-family: var(--font-display);
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 var(--space-sm);
 }
 
@@ -94,7 +94,7 @@ main:has(.explore-archive-section) {
     padding: 0 8px;
     border: var(--border-light);
     border-radius: var(--radius-sm);
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-size: var(--text-sm);
     font-weight: 600;
     cursor: pointer;
@@ -218,7 +218,7 @@ main:has(.explore-archive-section) {
 
 .compare-capstone-btn:hover,
 .compare-capstone-btn.is-selected {
-    color: var(--color-primary);
+    color: var(--text-brand);
     border-color: var(--color-primary-light);
     background: var(--color-primary-soft);
 }
@@ -284,7 +284,7 @@ main:has(.explore-archive-section) {
 
 .col-title strong {
     font-family: var(--font-display);
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-weight: 600;
 }
 
@@ -334,7 +334,7 @@ main:has(.explore-archive-section) {
 }
 
 .archive-empty a {
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-weight: 600;
 }
 
@@ -365,7 +365,7 @@ main:has(.explore-archive-section) {
     padding: 5px 9px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    color: var(--color-primary);
+    color: var(--text-brand);
     background: var(--surface-paper);
     font-weight: 600;
     text-decoration: none;
@@ -400,7 +400,7 @@ main:has(.explore-archive-section) {
 .compare-tray[hidden],
 .compare-modal-overlay[hidden] { display: none; }
 
-.compare-tray strong { color: var(--color-primary); font-size: var(--text-sm); }
+.compare-tray strong { color: var(--text-brand); font-size: var(--text-sm); }
 .compare-tray small { display: block; margin-top: 3px; color: var(--color-gray-dark); }
 .compare-selected { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
 
@@ -410,7 +410,7 @@ main:has(.explore-archive-section) {
     padding: 2px 7px;
     border-radius: var(--radius-pill);
     background: var(--surface-selected);
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-size: 10px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -451,7 +451,7 @@ body.compare-modal-open { overflow: hidden; }
     background: var(--bg-card-header);
 }
 
-.compare-modal__header h3 { margin: 0 0 3px; color: var(--color-primary); }
+.compare-modal__header h3 { margin: 0 0 3px; color: var(--text-brand); }
 .compare-modal__header p { margin: 0; color: var(--color-gray-dark); font-size: var(--text-sm); }
 
 .compare-modal__close {
@@ -488,7 +488,7 @@ body.compare-modal-open { overflow: hidden; }
 }
 
 .compare-table thead th { background: var(--color-primary); color: #fff; }
-.compare-table tbody th { width: 120px; background: var(--bg-card-header); color: var(--color-primary); }
+.compare-table tbody th { width: 120px; background: var(--bg-card-header); color: var(--text-brand); }
 
 /* ══════════════════════════════════════════════════════
    RESPONSIVE

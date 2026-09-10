@@ -461,9 +461,9 @@ def cite_capstone(capstone_id):
 
 # ─── Data mining: content-based topic-similarity recommender ───────────
 # Sub-process (new, not yet in the DFDs — see PROJECT_ANALYSIS notes):
-# lets a student check a proposed capstone title/keywords against the
+# lets a student check a proposed capstone title against the
 # existing archive before formally submitting a topic, using TF-IDF +
-# cosine similarity over capstone_title + keyword.capstone_keywords.
+# cosine similarity over capstone_title only.
 
 @pages.route("/propose-topic")
 @role_required(1)
@@ -474,15 +474,18 @@ def propose_topic():
 @pages.route("/api/topic-similarity", methods=["POST"])
 @role_required(1)
 def topic_similarity():
-    data = request.get_json(silent=True) or {}
-    title = (data.get("title") or "").strip()
-    keywords = (data.get("keywords") or "").strip()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get('title'), str):
+        return jsonify({'error': 'Provide a title as text.'}), 400
+    title = data['title'].strip()
+    if len(title) > 255:
+        return jsonify({'error': 'Title must be 255 characters or fewer.'}), 400
 
     if len(title) < 4:
         return jsonify({"matches": []})
 
     corpus = get_capstones_corpus()
     engine = TopicRecommender(corpus)
-    matches = engine.find_similar(title, keywords, top_n=5)
+    matches = engine.find_similar(title, top_n=5)
 
     return jsonify({"matches": matches})

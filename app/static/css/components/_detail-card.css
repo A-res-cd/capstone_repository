@@ -42,7 +42,7 @@
     font-family: var(--font-display);
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 3px;
 }
 
@@ -112,7 +112,7 @@
     gap: var(--space-sm);
     font-size: var(--text-sm);
     font-weight: 700;
-    color: #c0392b;
+    color: var(--status-rejected);
 }
 
 .danger-zone__header i { font-size: 18px; }

@@ -43,7 +43,7 @@ main:has(.native-pdf-page) {
 .native-pdf-empty h1 {
     margin: 0 0 var(--space-sm);
     font-size: var(--text-xl);
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .native-pdf-empty p {
@@ -126,7 +126,7 @@ main:has(.view-capstone-container) {
 
 .meta-panel .back-link {
     font-size: var(--text-sm);
-    color: var(--color-primary);
+    color: var(--text-brand);
     font-weight: 600;
     text-decoration: none;
     margin-bottom: var(--space-sm);
@@ -140,7 +140,7 @@ main:has(.view-capstone-container) {
     font-family: var(--font-display);
     font-size: var(--text-lg);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0 0 var(--space-sm);
     line-height: 1.4;
 }
@@ -214,7 +214,7 @@ main:has(.view-capstone-container) {
 
 .abstract-section__header h2 {
     margin: 0;
-    color: var(--color-primary-light);
+    color: var(--text-brand-muted);
     font-family: var(--font-display);
     font-size: var(--text-2xl);
 }

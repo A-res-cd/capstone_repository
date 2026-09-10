@@ -1,5 +1,5 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session
-from flask_mail import Message
+from app.utils.account_emails import password_reset_email
 from smtplib import SMTPException
 import logging
 import psycopg2.extras
@@ -17,6 +17,7 @@ from app.db.database import (
     OTP_EXPIRY_MINUTES,
 )
 from app import mail
+from app.utils.cor_upload import save_cor_upload, remove_cor_file
 
 from app.routes.forms import (
     SigninForm, SignupForm, ForgotPasswordForm, ResetPasswordForm, VerifyOTPForm)
@@ -88,15 +89,35 @@ def signup():
     form = SignupForm()
 
     if form.validate_on_submit():
-        success, message = create_user(
-            form.first_name.data,
-            form.middle_name.data,
-            form.last_name.data,
-            None,
-            form.email.data,
-            form.username.data,
-            form.password.data,
-        )
+        try:
+            cor_filename = save_cor_upload(form.cor.data)
+        except ValueError as exc:
+            form.cor.errors.append(str(exc))
+            return render_template('authentication/signup.html', form=form,
+                                   hide_nav=True, hide_header=True, form_data=request.form)
+        except OSError:
+            logger.exception('Could not save COR upload')
+            flash('Could not save your COR. Please try again.', 'danger')
+            return render_template('authentication/signup.html', form=form,
+                                   hide_nav=True, hide_header=True, form_data=request.form)
+        success = False
+        try:
+            success, message = create_user(
+                form.first_name.data,
+                form.middle_name.data,
+                form.last_name.data,
+                None,
+                form.email.data,
+                form.username.data,
+                form.password.data,
+                cor_filename=cor_filename,
+            )
+        finally:
+            if not success:
+                try:
+                    remove_cor_file(cor_filename)
+                except OSError:
+                    logger.exception('Could not clean up unsuccessful signup COR')
 
         if success:
             flash("Account created successfully! Please wait for approval.", "success")
@@ -151,15 +172,7 @@ def forgot_password():
                                    hide_nav=True, hide_header=True)
 
         try:
-            mail.send(Message(
-                subject="Your password reset OTP",
-                recipients=[email],
-                body=(
-                    f"Your one-time password (OTP) is: {otp}\n\n"
-                    f"It expires in {OTP_EXPIRY_MINUTES} minutes. Do not share it with anyone.\n\n"
-                    "If you did not request this, ignore this email."
-                ),
-            ))
+            mail.send(password_reset_email(email, username, otp, OTP_EXPIRY_MINUTES))
         except (SMTPException, OSError) as exc:
             logger.error("Could not send password reset email: %s", exc)
             flash("Could not send the reset email. Please try again.", "danger")

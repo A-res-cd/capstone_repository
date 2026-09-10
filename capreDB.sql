@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     university_no VARCHAR(50),
     locked_until TIMESTAMP,
     account_status VARCHAR(20) DEFAULT 'pending',
+    cor_filename VARCHAR(200),
 
     CONSTRAINT fk_user_role
         FOREIGN KEY (role_id)

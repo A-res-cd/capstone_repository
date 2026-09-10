@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/_review-paper.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_manage-users.css') }}">
 {% endblock %}
 
@@ -80,6 +81,7 @@
                     </div>
                 </div>
                 <div class="record-card__actions">
+                    <button type="button" class="btn-row" data-verification-details="{{ url_for('admin.verification_details', request_id=pv.request_id) }}" aria-haspopup="dialog">View details / COR</button>
                     <form method="POST" action="{{ url_for('admin.decide_verification', request_id=pv.request_id) }}" style="display:inline;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="decision" value="approved">
@@ -106,6 +108,19 @@
         </div>
         {% endif %}
     </div>{# end panel-pending #}
+
+    <dialog id="verification-dialog" class="review-paper verification-dialog" aria-labelledby="verification-title">
+        <div class="verification-dialog__content">
+            <h2 id="verification-title">Account verification details</h2>
+            <p data-verification-status role="status" aria-live="polite"></p>
+            <dl data-verification-fields hidden></dl>
+            <p>COR files are private. Download and open the PDF to review it before approving or rejecting the account.</p>
+            <div class="verification-dialog__actions">
+                <a class="btn-pill btn-pill--primary" data-verification-file hidden>Download / open COR (PDF)</a>
+                <button type="button" class="btn-pill btn-pill--ghost" data-verification-close>Close</button>
+            </div>
+        </div>
+    </dialog>
 
     {# ══════════════════════════════════════════════════════
        PANEL — PENDING ROLE PROMOTION REQUESTS
@@ -415,6 +430,7 @@
 
 </section>
 
+<script src="{{ url_for('static', filename='js/verification_details.js') }}"></script>
 <script>
 // ── Tab switcher — Manage Users / Verify Accounts / Approve
 // Promotions. Exactly one [data-tab-panel] is visible at a time;
@@ -494,6 +510,7 @@ document.querySelectorAll('.btn-row--edit').forEach(btn => {
         // adjusting it, and a blank select forces them to re-pick even
         // when nothing needs to change.
         document.getElementById('role_id').value = roleId;
+        window.CAPRE?.syncSelect?.(document.getElementById('role_id'));
 
         // Deactivate/Reactivate toggle — label, target value, and icon
         // flip based on their current status.

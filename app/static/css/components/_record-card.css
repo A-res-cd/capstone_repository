@@ -50,7 +50,7 @@
     border-radius: 2px 7px 7px 2px;
     border: 1.5px solid var(--color-primary-light);
     background: var(--bg-card-header);
-    color: var(--color-primary);
+    color: var(--text-brand);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -62,8 +62,8 @@
     width: 37px;
     height: 37px;
     border-radius: 50%;
-    background: var(--color-primary-soft);
-    color: var(--color-primary-dark);
+    background: var(--surface-brand-soft);
+    color: var(--text-brand-strong);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -86,7 +86,7 @@
     font-family: var(--font-display);
     font-size: var(--text-md);
     font-weight: 600;
-    color: var(--color-primary);
+    color: var(--text-brand);
     margin: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -110,7 +110,7 @@
 
 .record-card__meta-item i {
     font-size: 12px;
-    color: var(--color-primary-light);
+    color: var(--text-brand-muted);
 }
 
 /* ── Optional secondary line of free-form text (e.g. a request
@@ -192,8 +192,8 @@
 .record-card__countdown {
     font-size: var(--text-xs);
     font-weight: 700;
-    color: #c0392b;
-    background: #fde8e8;
+    color: var(--status-rejected);
+    background: var(--surface-danger);
     padding: 3px 8px;
     border-radius: var(--radius-pill);
     white-space: nowrap;

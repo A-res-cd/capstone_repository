@@ -1,0 +1,41 @@
+@import url('../base/root.css');
+@import url('./_buttons.css');
+@import url('./_forms.css');
+
+.profile-paper, .review-paper {
+    position: relative;
+    padding-left: 32px;
+    background-color: var(--surface-paper);
+    background-image: linear-gradient(90deg, var(--bg-card-header) 31px, var(--border-color) 31px, var(--border-color) 32px, transparent 32px);
+    border: 1px solid var(--border-color);
+    border-radius: 3px 12px 12px 3px;
+    box-shadow: var(--shadow-sm);
+}
+.profile-paper::before, .profile-paper::after,
+.review-paper::before, .review-paper::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface-page);
+    box-shadow: inset 0 1px 3px rgba(30, 40, 90, .18);
+    pointer-events: none;
+}
+.profile-paper::before, .review-paper::before { top: 42px; }
+.profile-paper::after, .review-paper::after { bottom: 42px; }
+.verification-dialog { position: fixed; margin: auto; padding-right: 0; width: min(620px, calc(100vw - 32px)); max-height: 85vh; overflow: auto; box-sizing: border-box; color: var(--text-dark); }
+.verification-dialog::backdrop { background: rgba(0, 0, 0, .55); }
+.verification-dialog__content { padding: var(--space-xl); overflow-wrap: anywhere; }
+.verification-dialog h2 { margin-top: 0; color: var(--text-brand); }
+.verification-dialog dl { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-md); border-block: 1px dashed var(--border-tag); padding-block: var(--space-lg); }
+.verification-dialog dd { margin: 0; }
+.verification-dialog dt { font-weight: 600; }
+.verification-dialog__actions { display: flex; flex-wrap: wrap; gap: var(--space-md); margin-top: var(--space-lg); }
+.verification-dialog [hidden] { display: none !important; }
+.audit-page .btn-pill--ghost, .verification-dialog .btn-pill--ghost { color: var(--text-brand); }
+@media (max-width: 600px) {
+    .verification-dialog__content { padding: var(--space-md); }
+    .verification-dialog dl { grid-template-columns: 1fr; }
+}

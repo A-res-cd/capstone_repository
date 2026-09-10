@@ -187,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let opt of sel.options) {
             if (opt.value == value) { opt.selected = true; break; }
         }
+        window.CAPRE?.syncSelect?.(sel);
     }
 
     function resetForm() {
@@ -385,7 +386,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setField(id, value) {
         const el = document.getElementById(id);
-        if (el && value !== undefined && value !== null) el.value = value;
+        if (el && value !== undefined && value !== null) {
+            el.value = value;
+            if (el.tagName === 'SELECT') window.CAPRE?.syncSelect?.(el);
+        }
     }
 
     function fuzzySelectMatch(selectId, extracted) {
@@ -407,8 +411,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (bestOption && bestScore > 0)
+        if (bestOption && bestScore > 0) {
             bestOption.selected = true;
+            window.CAPRE?.syncSelect?.(select);
+        }
     }
 
     function renderKeywordChips(keywords) {

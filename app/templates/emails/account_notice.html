@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }} | CAPRE</title>
+</head>
+<body style="margin:0; padding:0; background-color:#111318; color:#e8e9ed; font-family:Arial,Helvetica,sans-serif;">
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">{{ preview }}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#111318">
+        <tr><td align="center" style="padding:32px 12px;">
+            <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0"><tr><td><![endif]-->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#191c24" style="max-width:600px; border:1px solid #30343f; border-top:4px solid #f5a623;">
+                <tr><td style="padding:28px 28px 22px; border-bottom:1px solid #30343f;">
+                    <div style="font-size:26px; line-height:32px; font-weight:bold; letter-spacing:2px; color:#abb8ff;">CAPRE</div>
+                    <div style="margin-top:5px; font-size:12px; line-height:18px; color:#bfc3cf;">Capstone Repository</div>
+                </td></tr>
+                <tr><td style="padding:28px;">
+                    <p style="margin:0 0 12px; font-size:11px; line-height:18px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#ffb74d;">{{ category }}</p>
+                    <h1 style="margin:0 0 24px; font-size:28px; line-height:36px; color:#ffffff;">{{ title }}</h1>
+                    <p style="margin:0 0 14px; font-size:15px; line-height:24px; overflow-wrap:anywhere;">Hello {{ name }},</p>
+                    <p style="margin:0 0 22px; font-size:15px; line-height:24px;">{{ introduction }}</p>
+                    {% if code %}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#111318" style="border:1px solid #454a57;">
+                        <tr><td align="center" style="padding:22px 8px;">
+                            <div style="font-size:11px; line-height:18px; letter-spacing:1px; color:#bfc3cf;">YOUR ONE-TIME CODE</div>
+                            <div style="padding:12px 0; font-family:Consolas,'Courier New',monospace; font-size:32px; line-height:42px; letter-spacing:5px; font-weight:bold; color:#ffb74d;">{{ code }}</div>
+                            <div style="font-size:13px; line-height:20px; color:#e8e9ed;">Expires in {{ expiry_minutes }} minutes. Use it only once.</div>
+                        </td></tr>
+                    </table>
+                    {% else %}
+                    <p style="margin:0 0 20px; padding:16px; border-left:3px solid #f5a623; background-color:#22252e; font-size:14px; line-height:22px; font-weight:bold; letter-spacing:1px; color:#ffb74d;">{{ status }}</p>
+                    {% if reason %}
+                    <p style="margin:0 0 6px; font-size:12px; line-height:20px; font-weight:bold; color:#bfc3cf;">REVIEWER FEEDBACK</p>
+                    <p style="margin:0 0 20px; font-size:15px; line-height:24px; white-space:pre-line; overflow-wrap:anywhere;">{{ reason }}</p>
+                    {% endif %}
+                    {% endif %}
+                    <p style="margin:22px 0 0; font-size:15px; line-height:24px;">{{ instruction }}</p>
+                    <p style="margin:16px 0 0; font-size:13px; line-height:22px; color:#bfc3cf;">{{ note }}</p>
+                </td></tr>
+                <tr><td style="padding:22px 28px; border-top:1px solid #30343f; background-color:#161920;">
+                    <p style="margin:0 0 12px; font-size:12px; line-height:20px; color:#bfc3cf;">{{ security }}</p>
+                    <p style="margin:0; font-size:11px; line-height:18px; color:#bfc3cf;">CAPRE · Automated account notification</p>
+                </td></tr>
+            </table>
+            <!--[if mso]></td></tr></table><![endif]-->
+        </td></tr>
+    </table>
+</body>
+</html>

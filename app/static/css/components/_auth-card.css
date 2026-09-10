@@ -41,7 +41,7 @@
 
 .auth-card h2 {
     margin-bottom: var(--space-lg);
-    color: var(--color-black);
+    color: var(--text-dark);
     font-size: var(--text-xxl);
     font-weight: 600;
 }
@@ -88,12 +88,12 @@
 
 .auth-link {
     font-size: var(--text-sm);
-    color: var(--color-black);
+    color: var(--text-dark);
     font-weight: 600;
 }
 
 .auth-link a {
-    color: var(--color-primary);
+    color: var(--text-brand);
     text-decoration: none;
 }
 
@@ -113,7 +113,7 @@
     font-size: var(--text-xxl) !important;
     font-weight: 700;
     letter-spacing: var(--space-sm);
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .otp-timer {
@@ -125,11 +125,11 @@
 
 .otp-timer span {
     font-weight: 700;
-    color: var(--color-primary);
+    color: var(--text-brand);
 }
 
 .otp-timer.expired span {
-    color: #A32D2D;
+    color: var(--status-rejected);
 }
 
 /* ══════════════════════════════════════════════════════

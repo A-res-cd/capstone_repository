@@ -1,6 +1,6 @@
 (function () {
     const CONTENT_SELECTOR = '#page-content';
-    const CORE_SCRIPTS = ['theme.js', 'index.js', 'navigation.js', 'notifications.js'];
+    const CORE_SCRIPTS = ['theme.js', 'index.js', 'custom_select.js', 'navigation.js', 'notifications.js'];
     const MOTION = {
         refresh: 360,
         leave: 220,

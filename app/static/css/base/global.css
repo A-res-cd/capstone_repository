@@ -21,6 +21,28 @@ body {
     overflow: hidden;
 }
 
+/* Native popup options must use the same palette as their closed select. */
+:where(input, select, textarea, option, optgroup) {
+    color: var(--text-dark);
+    background-color: var(--surface-input);
+}
+
+:where(input, textarea)::placeholder {
+    color: var(--text-placeholder);
+    opacity: 1;
+}
+
+:where(a) {
+    color: var(--text-brand);
+}
+
+input:-webkit-autofill,
+textarea:-webkit-autofill {
+    -webkit-text-fill-color: var(--text-dark);
+    box-shadow: 0 0 0 1000px var(--surface-input) inset;
+    caret-color: var(--text-dark);
+}
+
 /* LAYOUT */
 .layout {
     display: flex;
