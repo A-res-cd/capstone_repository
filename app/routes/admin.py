@@ -8,6 +8,8 @@ import logging
 from datetime import date, timedelta
 from app.db.audit_reader import get_audit_logs
 from app.utils.audit_summary import ACTIONS, CATEGORIES
+from app.db.verification_documents import get_verification_details, get_verification_document
+from app.utils.cor_upload import resolve_cor_file
 import flask
 from app.db.database import (
     delete_user_account, get_all_capstones, get_archived_capstones, get_programs, get_specializations,
@@ -569,6 +571,42 @@ def manage_users():
         total_pages=total_pages,
         total_users=total,
     )
+
+
+@admin.route('/manage_users/verify/<int:request_id>/details')
+@role_required(3)
+def verification_details(request_id):
+    details = get_verification_details(request_id)
+    if not details:
+        abort(404)
+    path = resolve_cor_file(details['filename'])
+    details['size_bytes'] = path.stat().st_size if path else None
+    details['document_url'] = url_for('admin.verification_document', request_id=request_id) if path else None
+    response = jsonify(details)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@admin.route('/manage_users/verify/<int:request_id>/document')
+@role_required(3)
+def verification_document(request_id):
+    document = get_verification_document(request_id)
+    if not document:
+        abort(404)
+    path = resolve_cor_file(document['filename'])
+    if not path:
+        abort(404)
+    response = send_file(
+        path,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=document['filename'],
+        max_age=0,
+    )
+    response.headers['Cache-Control'] = 'no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Content-Security-Policy'] = "sandbox; default-src 'none'; frame-ancestors 'none'"
+    return response
 
 
 @admin.route("/manage_users/promotion/<int:request_id>", methods=["POST"])

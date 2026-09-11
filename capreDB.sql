@@ -1,7 +1,7 @@
 -- =========================================
 -- CREATE DATABASE
 -- =========================================
-CREATE DATABASE capre;
+-- CREATE DATABASE capre;
 
 -- Connect to capre database first in pgAdmin
 -- Then run everything below
@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     university_no VARCHAR(50),
     account_status VARCHAR(50) DEFAULT 'pending',
     locked_until TIMESTAMP,
+    cor_filename VARCHAR(200),
 
     CONSTRAINT fk_user_role
         FOREIGN KEY (role_id)
@@ -122,6 +123,27 @@ CREATE TABLE IF NOT EXISTS signup (
     CONSTRAINT fk_signup_user
         FOREIGN KEY (user_id)
         REFERENCES "user"(user_id)
+);
+
+-- =========================================
+-- NORMALIZED COR REGISTRATION TABLE
+-- =========================================
+CREATE TABLE IF NOT EXISTS cor_registration (
+    cor_registration_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    registration_no VARCHAR(50) NOT NULL,
+    academic_year VARCHAR(20),
+    term VARCHAR(30),
+    year_level SMALLINT,
+    cor_filename VARCHAR(200) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_cor_registration_user
+        FOREIGN KEY (user_id)
+        REFERENCES "user"(user_id)
+        ON DELETE CASCADE,
+    CONSTRAINT uq_cor_registration_user_number
+        UNIQUE (user_id, registration_no)
 );
 
 -- =========================================

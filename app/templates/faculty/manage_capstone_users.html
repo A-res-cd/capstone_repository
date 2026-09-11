@@ -35,7 +35,15 @@
             <section class="profile-works" aria-labelledby="advisory-roster-heading">
                 <div class="profile-section-heading">
                     <div><span class="profile-eyebrow">Your advisory groups</span><h2 id="advisory-roster-heading">Student roster</h2></div>
-                    <span class="helper-text">{{ students | length }} of {{ total_students }} students</span>
+                    <div class="advisory-roster-heading__tools">
+                        <span class="helper-text">{{ students | length }} of {{ total_students }} students</span>
+                        {% if visible_groups %}
+                        <div class="advisory-roster-actions" role="group" aria-label="Roster group controls">
+                            <button class="profile-action" type="button" data-roster-expand>Expand all</button>
+                            <button class="profile-action" type="button" data-roster-collapse>Collapse all</button>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
                 <form class="advisory-filters" method="GET" action="{{ url_for('faculty.manage_capstone_users') }}" role="search">
                     <div class="form-group">
@@ -59,7 +67,7 @@
 
                 <div class="advisory-students">
                     {% for group in visible_groups %}
-                    <details class="advisory-group" id="advisory-group-{{ group.group_id }}" open>
+                    <details class="advisory-group" id="advisory-group-{{ group.group_id }}" {% if rename_group_id == group.group_id %}open{% endif %}>
                         <summary class="advisory-group__summary" aria-labelledby="group-heading-{{ group.group_id }}">
                             <span class="advisory-group__title">
                                 <span class="advisory-group__name" id="group-heading-{{ group.group_id }}" role="heading" aria-level="3">{{ group.group_name }}</span>

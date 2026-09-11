@@ -85,4 +85,12 @@
             if (event.target === modal) modal.close();
         });
     });
+
+    const rosterGroups = Array.from(document.querySelectorAll('.advisory-group'));
+    document.querySelector('[data-roster-expand]')?.addEventListener('click', () => {
+        rosterGroups.forEach((group) => { group.open = true; });
+    });
+    document.querySelector('[data-roster-collapse]')?.addEventListener('click', () => {
+        rosterGroups.forEach((group) => { group.open = false; });
+    });
 })();

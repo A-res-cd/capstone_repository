@@ -716,15 +716,15 @@ body.repo-modal-open {
 }
 
 .extract-status--success {
-    background: #D4EDDA;
-    color: #155724;
-    border: 1px solid #C3E6CB;
+    background: var(--bg-button-light);
+    color: var(--status-approved);
+    border: 1px solid var(--border-tag);
 }
 
 .extract-status--error {
-    background: #F8D7DA;
-    color: #721C24;
-    border: 1px solid #F5C6CB;
+    background: var(--surface-danger);
+    color: var(--status-rejected);
+    border: 1px solid var(--border-tag);
 }
 
 /* ── Keyword suggestion chips ── */

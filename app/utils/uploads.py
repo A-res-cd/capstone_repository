@@ -17,7 +17,7 @@ def allowed_manuscript(filename):
 
 
 def manuscript_upload_folder():
-    configured = current_app.config.get("UPLOAD_FOLDER")
+    configured = current_app.config.get("UPLOAD_MANUSCRIPT_FOLDER") or current_app.config.get("UPLOAD_FOLDER")
     if configured:
         return os.path.abspath(configured)
     return os.path.join(current_app.instance_path, "uploads")
@@ -62,7 +62,11 @@ def resolve_manuscript_file(file_rel):
     candidates = [
         os.path.join(manuscript_upload_folder(), filename),
         os.path.join(current_app.root_path, "static", "uploads", filename),
+        os.path.join(current_app.instance_path, "uploads", filename),
     ]
+    legacy_folder = current_app.config.get('UPLOAD_FOLDER')
+    if legacy_folder:
+        candidates.append(os.path.join(os.path.abspath(legacy_folder), filename))
 
     for path in candidates:
         if os.path.isfile(path):

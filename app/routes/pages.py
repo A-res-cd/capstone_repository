@@ -13,6 +13,9 @@ from app.routes.decorators import login_required, role_required, can_view_full_m
 from app.routes.forms import ChangePasswordForm, CapstonerRegistrationForm
 from app.db.capstones import get_user_authored_capstones
 from app.db.capstoners import get_capstoner_registration, submit_capstoner_registration
+from app.db.cor_registrations import get_latest_cor_registration
+from app.utils.cor_extractor import extract_cor_fields
+from app.utils.cor_upload import read_cor_upload, save_cor_upload, remove_cor_file
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 from app.services.recommender import TopicRecommender
 from app.services.citations import citation_download_metadata, format_citation
@@ -166,6 +169,7 @@ def _render_profile(capstoner_form=None):
         profile=profile,
         contacts=contacts,
         capstoner_registration=get_capstoner_registration(user_id),
+        cor_record=get_latest_cor_registration(user_id),
         capstoner_form=capstoner_form or CapstonerRegistrationForm(),
         my_works=my_works,
         profile_metrics=[
@@ -183,10 +187,56 @@ def _render_profile(capstoner_form=None):
 def register_capstoner():
     form = CapstonerRegistrationForm()
     if not form.validate_on_submit():
-        flash("Enter capstone details using up to 2000 characters.", "danger")
+        flash("Enter capstone details and upload a valid COR.", "danger")
         return _render_profile(form), 400
-    ok, error = submit_capstoner_registration(session["user_id"], form.reason.data)
+
+    user_id = session["user_id"]
+    cor_filename = None
+    cor_registration = None
+    if form.cor.data and form.cor.data.filename:
+        try:
+            document = read_cor_upload(form.cor.data)
+            extracted = extract_cor_fields(document["content"])
+        except ValueError as exc:
+            flash(str(exc), "danger")
+            return _render_profile(form), 400
+
+        if extracted.get("warning") or not extracted.get("year_level"):
+            flash("We could not verify the year level from your COR. Upload a clearer COR.", "danger")
+            return _render_profile(form), 400
+        if int(extracted["year_level"]) not in {3, 4}:
+            flash("You must be a third- or fourth-year student to register as a capstoner.", "danger")
+            return _render_profile(form), 400
+
+        profile = get_own_profile(user_id) or {}
+        normalize = lambda value: re.sub(r"\s+", "", (value or "")).casefold()
+        if normalize(extracted.get("student_no")) != normalize(profile.get("university_no")):
+            flash("The student number on your COR does not match your account.", "danger")
+            return _render_profile(form), 400
+
+        try:
+            cor_filename = save_cor_upload(form.cor.data)
+        except (ValueError, OSError) as exc:
+            logger.exception("Could not save capstoner COR")
+            flash(str(exc) if isinstance(exc, ValueError) else "Could not save your COR. Please try again.", "danger")
+            return _render_profile(form), 400
+        cor_registration = {**extracted, "cor_filename": cor_filename}
+    else:
+        existing = get_latest_cor_registration(user_id)
+        if not existing:
+            flash("Upload your current COR before registering as a capstoner.", "danger")
+            return _render_profile(form), 400
+        if existing.get("year_level") not in {3, 4}:
+            flash("You must be a third- or fourth-year student to register as a capstoner.", "danger")
+            return _render_profile(form), 400
+
+    ok, error = submit_capstoner_registration(user_id, form.reason.data, cor_registration)
     if not ok:
+        if cor_filename:
+            try:
+                remove_cor_file(cor_filename)
+            except OSError:
+                logger.exception("Could not clean up unsuccessful capstoner COR")
         flash(error, "danger")
         return _render_profile(form), 400
     flash("Capstoner request sent. A capstone professor will review your details.", "success")

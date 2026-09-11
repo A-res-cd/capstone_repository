@@ -6,6 +6,7 @@ import psycopg2.extras
 
 from app.db.audit import log_audit
 from app.db.connection import db_connect
+from app.db.cor_registrations import insert_cor_registration
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ def get_capstoner_registration(user_id):
     return rows[0] if rows else None
 
 
-def submit_capstoner_registration(user_id, reason):
+def submit_capstoner_registration(user_id, reason, cor_registration=None):
     reason = (reason or "").strip()
 
     def operation(cursor):
@@ -79,6 +80,13 @@ def submit_capstoner_registration(user_id, reason):
         """, (user_id,))
         if cursor.fetchone():
             raise ValueError("You are already approved or have a pending capstoner request.")
+        if cor_registration:
+            insert_cor_registration(
+                cursor,
+                user_id,
+                cor_registration,
+                cor_registration["cor_filename"],
+            )
         cursor.execute("""
             INSERT INTO request (user_id, request_type, request_status, request_reason, request_date)
             VALUES (%s, 'capstoner', 'pending', %s, %s) RETURNING request_id

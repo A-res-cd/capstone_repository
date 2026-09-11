@@ -12,6 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+from app.db.cor_registrations import insert_cor_registration
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ def get_role_id(mithrix, role_name):
     row = mithrix.fetchone()
     return row["role_id"] if row else None
 
-def create_user(first_name, middle_name, last_name, university_no, email, username, password):
+def create_user(first_name, middle_name, last_name, university_no, email, username, password, cor_filename=None, cor_registration=None):
 
     #strip and basic validation
     first_name    = first_name.strip()    if first_name    else ""
@@ -188,11 +189,14 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         insert_university_no = university_no or None
         mithrix.execute("""INSERT INTO "user"
             (role_id, user_first_name, user_middle_name,
-            user_last_name, university_no, account_status)
-            VALUES (%s, %s, %s, %s, %s, 'pending')
+            user_last_name, university_no, account_status, cor_filename)
+            VALUES (%s, %s, %s, %s, %s, 'pending', %s)
             RETURNING user_id
-            """, (role_id, first_name, middle_name, last_name, insert_university_no))
+            """, (role_id, first_name, middle_name, last_name, insert_university_no, cor_filename))
         user_id = mithrix.fetchone()["user_id"]
+
+        if cor_registration:
+            insert_cor_registration(mithrix, user_id, cor_registration, cor_filename)
 
         # insert into username table
         mithrix.execute("""INSERT INTO kappa (username)
@@ -727,6 +731,7 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
         mithrix.execute("""
             SELECT user_id, request_type FROM request
             WHERE request_id = %s AND request_type LIKE 'verification_%%'
+              AND request_status = 'pending'
             FOR UPDATE
         """, (request_id,))
         row = mithrix.fetchone()
