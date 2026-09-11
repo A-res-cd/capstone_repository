@@ -6,7 +6,18 @@
     const status = dialog.querySelector('[data-verification-status]');
     const fields = dialog.querySelector('[data-verification-fields]');
     const file = dialog.querySelector('[data-verification-file]');
+    const viewerWrap = dialog.querySelector('[data-verification-viewer-wrap]');
+    const viewer = dialog.querySelector('[data-verification-viewer]');
+    const decisionForms = Array.from(dialog.querySelectorAll('[data-verification-decision-form]'));
+    const decisionButtons = decisionForms.map(form => form.querySelector('button'));
     let controller;
+
+    function setDecisionState(action, enabled) {
+        decisionForms.forEach((form) => {
+            if (action) form.action = action;
+        });
+        decisionButtons.forEach((button) => { button.disabled = !enabled; });
+    }
 
     page.addEventListener('click', async (event) => {
         if (event.target.closest('[data-verification-close]')) dialog.close();
@@ -15,10 +26,13 @@
         controller?.abort();
         const active = new AbortController();
         controller = active;
+        setDecisionState(button.dataset.verificationAction, false);
         fields.replaceChildren();
         fields.hidden = true;
         file.hidden = true;
         file.removeAttribute('href');
+        viewerWrap.hidden = true;
+        viewer.removeAttribute('src');
         status.textContent = 'Loading account details…';
         dialog.showModal();
         try {
@@ -40,19 +54,30 @@
                 fields.append(term, value);
             }
             fields.hidden = false;
-            status.textContent = data.document_url ? `COR available (${Math.ceil(data.size_bytes / 1024)} KB).`
+            setDecisionState(button.dataset.verificationAction, true);
+            status.textContent = data.document_url ? `COR available (${Math.ceil(data.size_bytes / 1024)} KB). Review the preview below.`
                 : data.filename ? 'The COR file is missing or unavailable. Do not approve until the document is available.'
                 : 'No COR was uploaded for this account.';
             if (data.document_url) {
                 const url = new URL(data.document_url, location.origin);
                 if (url.origin !== location.origin) throw new Error('Invalid file link');
+                viewer.src = `${url.href}?inline=1`;
+                viewerWrap.hidden = false;
                 file.href = url.href;
                 file.setAttribute('download', data.filename || 'cor.pdf');
                 file.hidden = false;
             }
         } catch (error) {
+            viewerWrap.hidden = true;
+            viewer.removeAttribute('src');
             if (error.name !== 'AbortError' && controller === active) status.textContent = 'Could not load verification details. Close this dialog and try again.';
         }
     });
-    dialog.addEventListener('close', () => { controller?.abort(); controller = null; });
+    dialog.addEventListener('close', () => {
+        controller?.abort();
+        controller = null;
+        setDecisionState('', false);
+        viewerWrap.hidden = true;
+        viewer.removeAttribute('src');
+    });
 })();

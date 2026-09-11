@@ -107,12 +107,13 @@ def verification_document(request_id):
     path = resolve_cor_file(document['filename'])
     if not path:
         abort(404)
-    # Treat uploaded PDFs as untrusted: download, never execute them in the app origin.
+    # Treat uploaded PDFs as untrusted: keep them isolated while the browser PDF viewer renders them.
+    inline = request.args.get('inline') == '1'
     response = send_file(path, mimetype='application/pdf',
-                         as_attachment=True, download_name=document['filename'], max_age=0)
+                         as_attachment=not inline, download_name=document['filename'], max_age=0)
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['Content-Security-Policy'] = "sandbox; default-src 'none'; frame-ancestors 'none'"
+    response.headers['Content-Security-Policy'] = "sandbox; default-src 'none'; frame-ancestors 'self'"
     return response
 
 def _allowed(filename):

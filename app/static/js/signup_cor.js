@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const status = document.getElementById('cor-extraction-status');
     const result = document.getElementById('cor-extraction');
     const fields = {
-        registration_no: document.getElementById('registration_no'),
         student_no: document.getElementById('student_no'),
         first_name: document.getElementById('first_name'),
         middle_name: document.getElementById('middle_name'),
