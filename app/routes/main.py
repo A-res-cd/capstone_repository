@@ -6,6 +6,7 @@ from app.db.qol import (
     mark_all_notifications_read,
 )
 from app.db.avatars import get_user_avatar
+from app.db.health import database_is_ready
 
 main = Blueprint("main", __name__)
 
@@ -96,6 +97,18 @@ def inject_global_template_vars():
 @main.route("/")
 def home():
     return render_template("index.html", hide_nav=True, hide_header=True)
+
+
+@main.route("/health/live")
+def health_live():
+    return jsonify({"status": "ok"})
+
+
+@main.route("/health/ready")
+def health_ready():
+    if not database_is_ready():
+        return jsonify({"status": "not_ready"}), 503
+    return jsonify({"status": "ready"})
 
 
 @main.route("/toggle-nav", methods=["POST"])

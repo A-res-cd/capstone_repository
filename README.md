@@ -84,3 +84,24 @@ python migrate.py upgrade
 Migrations run in filename order, are recorded in `schema_migration`, and are
 protected by a PostgreSQL advisory lock. Applied migration checksums cannot be
 changed silently. The web app does not modify the database during startup.
+
+## Production database operations
+
+The liveness probe is `GET /health/live`. The readiness probe is
+`GET /health/ready`; it returns `503` until PostgreSQL is reachable and every
+tracked migration is applied with its original checksum.
+
+Create a password-safe custom-format backup with the PostgreSQL client tools:
+
+```text
+python scripts/backup_database.py --output backups/capre_predeploy.dump
+```
+
+Restore only into the intended database after checking the backup and target:
+
+```text
+python scripts/restore_database.py --input backups/capre_predeploy.dump --confirm
+```
+
+Backup files are ignored by Git. Store them in protected backup storage and
+test a restore before treating a deployment as production-ready.

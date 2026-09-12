@@ -55,9 +55,11 @@ experimental until every release gate below is satisfied.
   roster tests that still expect the old expanded default, three use the old
   capstoner flow without the required COR, and two point to an unstarted server
   at `localhost:5000`.
-- Production migration tracking, backup/restore verification, malware scanning,
-  retention cleanup, monitoring, and deployment automation are still pending.
+- Migration tracking, backup/restore commands, and read-only health probes are
+  implemented. Backup/restore execution in the target environment, malware
+  scanning, retention cleanup, monitoring, and deployment automation are still
+  pending.
 
-The next implementation step is backup/restore and operational hardening. No
+The next implementation step is upload security and retention cleanup. No
 feature is production-complete until the relevant acceptance row and release
 gate are both satisfied.

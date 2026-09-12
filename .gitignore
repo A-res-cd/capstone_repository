@@ -31,6 +31,7 @@ Thumbs.db
 config.py
 
 uploads/
+backups/
 
 seeder.py
 
