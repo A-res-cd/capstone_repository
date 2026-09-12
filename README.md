@@ -70,3 +70,17 @@ Run `migrations/20260911_user_avatars.sql` on an existing database to create the
 normalized private `user_avatar` table. Avatar files are stored outside the
 static directory and served only to the signed-in owner. The profile overview
 and the header fall back to initials when no image is uploaded.
+
+## Database migrations
+
+Use the explicit migration runner after creating the database and before
+starting the web process:
+
+```text
+python migrate.py status
+python migrate.py upgrade
+```
+
+Migrations run in filename order, are recorded in `schema_migration`, and are
+protected by a PostgreSQL advisory lock. Applied migration checksums cannot be
+changed silently. The web app does not modify the database during startup.
