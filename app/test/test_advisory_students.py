@@ -18,8 +18,12 @@ BASE = "/faculty/advisory-students"
 
 def choose_group(modal, group_id):
     option = modal.locator(f'#group_id option[value="{group_id}"]').text_content()
-    modal.get_by_role("combobox", name="Advisory group", exact=True).click()
-    modal.get_by_role("option", name=option, exact=True).click()
+    combo = modal.get_by_role("combobox", name="Advisory group", exact=True)
+    if combo.count() and combo.first.is_visible():
+        combo.click()
+        modal.get_by_role("option", name=option, exact=True).click()
+    else:
+        modal.locator("#group_id").select_option(str(group_id))
 
 
 @pytest.fixture
@@ -382,6 +386,7 @@ def test_browser_add_search_and_remove(advisory_browser, advisory_db):
     create_modal.get_by_role("button", name="Create group", exact=True).click()
     expect(page.locator(".advisory-student")).to_have_count(1)
     expect(page.locator(".advisory-student")).to_contain_text("Capstoner: Not registered")
+    page.locator(".advisory-group__summary").first.click()
     page.locator(".advisory-group-rename summary").click()
     page.get_by_label("New group name", exact=True).fill("Team CAPRE")
     page.get_by_role("button", name="Save group name").click()
@@ -392,6 +397,7 @@ def test_browser_add_search_and_remove(advisory_browser, advisory_db):
     page.get_by_role("button", name="Apply filters").click()
     expect(page.locator(".profile-empty-state")).to_contain_text("No students match")
     page.get_by_role("link", name="Clear", exact=True).click()
+    page.locator(".advisory-group__summary").first.click()
     page.locator(".advisory-student .advisory-details summary").click()
     page.get_by_label("Remove from my roster only.", exact=True).check()
     page.get_by_role("button", name="Remove student", exact=True).click()
@@ -411,15 +417,15 @@ def test_roster_panels_leave_with_page_and_groups_collapse_independently(advisor
     page.goto(f"{client.browser_url}{BASE}")
     expect(page.locator(".advisory-group")).to_have_count(2)
     expect(page.locator("#page-content .advisory-page > .profile-body > aside")).to_have_count(1)
-    expect(page.locator(".advisory-group__body > .advisory-student")).to_be_visible()
+    expect(page.locator(".advisory-group__body > .advisory-student")).to_be_hidden()
 
     toggle = page.locator(".advisory-group__summary").first
     toggle.click()
-    expect(page.locator(".advisory-student")).to_be_hidden()
-    expect(page.locator(".advisory-group").nth(1)).to_have_attribute("open", "")
+    expect(page.locator(".advisory-group__body > .advisory-student")).to_be_visible()
+    expect(page.locator(".advisory-group").nth(1)).not_to_have_attribute("open", "")
     toggle.focus()
     page.keyboard.press("Enter")
-    expect(page.locator(".advisory-student")).to_be_visible()
+    expect(page.locator(".advisory-group__body > .advisory-student")).to_be_hidden()
 
     page.evaluate("window.advisoryNavigationCheck = true")
     page.locator('.nav-item[href="/profile"]').click()
@@ -463,6 +469,7 @@ def test_roster_uses_open_responsive_theme(advisory_browser, advisory_db, adviso
     add_modal.locator('.advisory-student-choice input[value="8"]').check()
     expect(add_modal.locator("#student-selection-status")).to_contain_text("1 of 2")
     add_modal.get_by_role("button", name="Cancel").click()
+    page.locator(".advisory-group__summary").first.click()
     page.locator(".advisory-group-rename summary").click()
     page.locator(".advisory-student .advisory-details summary").first.click()
     expect(page.locator(".advisory-works")).to_contain_text("Linked Work")
@@ -689,6 +696,7 @@ def test_browser_full_group_disables_add_until_space_reopens(advisory_browser, a
     expect(add_modal.locator("#group_id option")).to_have_count(1)
     expect(add_modal.get_by_role("button", name="Add to my roster")).to_be_disabled()
     add_modal.get_by_role("button", name="Cancel").click()
+    page.locator(".advisory-group__summary").first.click()
     page.locator(".advisory-student .advisory-details summary").first.click()
     page.get_by_label("Remove from my roster only.", exact=True).first.check()
     page.get_by_role("button", name="Remove student", exact=True).first.click()

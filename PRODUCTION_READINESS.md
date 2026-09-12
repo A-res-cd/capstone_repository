@@ -48,17 +48,17 @@ experimental until every release gate below is satisfied.
 
 ## Current blockers on `aresVer`
 
-- Activity schema, deduplication, author totals, and privacy-safe bell
-  notifications are implemented on this branch. PostgreSQL integration and
-  browser coverage for these workflows are still pending.
-- The full test run currently has 225 passing and 14 failing tests. Nine are
-  roster tests that still expect the old expanded default, three use the old
-  capstoner flow without the required COR, and two point to an unstarted server
-  at `localhost:5000`.
-- Migration tracking, backup/restore commands, and read-only health probes are
-  implemented. Backup/restore execution in the target environment, automatic
-  retention cleanup configuration, and deployment environment verification are
-  still pending.
+- Activity schema, deduplication, author totals, privacy-safe bell
+  notifications, PostgreSQL integration coverage, author-bell browser
+  coverage, and request/view/citation route coverage are implemented on this
+  branch.
+- The latest full local test run has 255 passing and 2 skipped tests. The skips
+  are external E2E checks that require a separately running server at
+  `localhost:5000`; they are not counted as a production pass.
+- Migration tracking, backup/restore commands, non-destructive backup archive
+  verification, and read-only health probes are implemented. Backup/restore
+  execution in the target environment, automatic retention cleanup
+  configuration, and deployment environment verification are still pending.
 - Manuscript uploads now validate size and file signatures. Orphaned private
   files can be reviewed with a read-only report and removed after the approved
   30-day retention period. Automatic deletion remains opt-in.
@@ -66,8 +66,8 @@ experimental until every release gate below is satisfied.
   uploads. Production must configure the scanner and require it before this
   upload gate is complete.
 
-Monitoring and deployment preflight are implemented. The next implementation
-step is resolving the known test gaps and verifying the production deployment
-environment. No
-feature is production-complete until the relevant acceptance row and release
-gate are both satisfied.
+Monitoring, deployment preflight, and the local regression gate are
+implemented. The next implementation step is verifying the production
+deployment environment, backup/restore procedure, scanner, mail delivery,
+and external E2E workflow. No feature is production-complete until the
+relevant acceptance row and release gate are both satisfied.

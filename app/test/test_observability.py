@@ -41,6 +41,7 @@ def test_preflight_configuration_requires_production_controls(monkeypatch):
         MAX_CONTENT_LENGTH=1024,
     )
     monkeypatch.setattr(preflight, "_scanner_available", lambda command: True)
+    monkeypatch.setattr(preflight, "_command_available", lambda command: True)
 
     assert preflight.configuration_failures(production, {"FLASK_DEBUG": "0"}) == []
     assert preflight.configuration_failures(production, {"FLASK_DEBUG": "1"})

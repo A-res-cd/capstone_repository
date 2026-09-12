@@ -5,9 +5,23 @@ Run:      pytest test_e2e_workflow.py --headed  (or without --headed for CI)
 """
 
 import re
+import socket
+from urllib.parse import urlsplit
+
+import pytest
 from playwright.sync_api import Page, expect
 
 BASE_URL = "http://localhost:5000"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def require_external_server():
+    target = urlsplit(BASE_URL)
+    try:
+        with socket.create_connection((target.hostname, target.port or 80), timeout=0.5):
+            return
+    except OSError:
+        pytest.skip(f"External CAPRE server is not running at {BASE_URL}")
 
 
 def test_signin_search_logout(page: Page):

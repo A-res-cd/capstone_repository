@@ -77,6 +77,8 @@ class Config:
 
     MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25 MB cap on request/upload size
 
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = "Lax"
+    # Local HTTP testing may disable Secure cookies; production preflight
+    # rejects that setting. Keep the production-safe default.
+    SESSION_COOKIE_SECURE = _bool_env("SESSION_COOKIE_SECURE", True)
+    SESSION_COOKIE_HTTPONLY = _bool_env("SESSION_COOKIE_HTTPONLY", True)
+    SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")

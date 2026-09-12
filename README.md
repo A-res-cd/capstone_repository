@@ -25,6 +25,11 @@ PG_USER = your-postgres-user
 PG_PASSWORD = your-postgres-password
 PG_DB = your-database-name
 
+# Local HTTP testing only. Keep Secure=true behind HTTPS in production.
+SESSION_COOKIE_SECURE = false
+SESSION_COOKIE_HTTPONLY = true
+SESSION_COOKIE_SAMESITE = Lax
+
 MAIL_SERVER = smtp.example.com
 MAIL_PORT = 587
 MAIL_USERNAME = your-email@example.com
@@ -101,6 +106,12 @@ Create a password-safe custom-format backup with the PostgreSQL client tools:
 
 ```text
 python scripts/backup_database.py --output backups/capre_predeploy.dump
+```
+
+Verify the archive without connecting to or changing a database:
+
+```text
+python scripts/verify_backup.py --input backups/capre_predeploy.dump
 ```
 
 Restore only into the intended database after checking the backup and target:

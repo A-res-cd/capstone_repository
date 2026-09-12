@@ -203,6 +203,17 @@ def workflow_app(capstoner_db, monkeypatch):
         rows = query(capstoner_db, 'SELECT role_id FROM "user" WHERE user_id = %s', (user_id,))
         g.user = {"role_id": rows[0][0]} if rows else None
 
+    monkeypatch.setattr(pages, "get_latest_cor_registration", lambda user_id: {
+        "cor_registration_id": 1,
+        "user_id": user_id,
+        "registration_no": "TEST-COR-1",
+        "academic_year": "2026-2027",
+        "term": "1st",
+        "year_level": 3,
+        "cor_filename": "test-cor.pdf",
+        "uploaded_at": None,
+    } if user_id == 1 else None)
+
     def profile(user_id):
         row = query(capstoner_db, 'SELECT user_first_name, user_last_name, account_status FROM "user" WHERE user_id = %s', (user_id,))[0]
         return {"user_first_name": row[0], "user_last_name": row[1], "account_status": row[2], "role_name": "Student"}

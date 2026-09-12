@@ -29,8 +29,10 @@ capstoners. Do not rerun the full `capreDB.sql` against an existing database.
 6. Choose **No linked account**: the credit remains, but leaves that user's
    My Works. Other coauthors keep their work. Archived works stay hidden.
    Capstoner approval remains separate from the list of linked works.
-7. View/citation/manuscript-request activity alerts are not enabled yet;
-   the profile shows placeholders instead of sample activity counts.
+7. Open the linked author's **Profile Overview** after another user views,
+   cites, or requests the manuscript. Confirm Views, Citations, and Requests
+   increase and the bell shows privacy-safe activity notifications. Repeat the
+   same view/citation in the same day and confirm no duplicate total appears.
 
 Run focused checks from the repository root:
 
@@ -92,7 +94,7 @@ no automatic group, and existing accounts are not enrolled automatically.
    created by membership. Test light/dark mode and narrow phone widths.
 
 ```powershell
-python -m pytest app/test/test_advisory_students.py -q
+python -m pytest app/test/test_advisory_students.py app/test/test_activity_integration.py -q
 ```
 
 These tests also use isolated temporary PostgreSQL, not the application database.

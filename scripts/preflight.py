@@ -32,6 +32,10 @@ def _scanner_available(command):
     return bool(shutil.which(executable))
 
 
+def _command_available(command):
+    return bool(shutil.which(command))
+
+
 def configuration_failures(config=Config, environ=None):
     if environ is None:
         environ = os.environ
@@ -54,6 +58,9 @@ def configuration_failures(config=Config, environ=None):
         failures.append("SESSION_COOKIE_HTTPONLY must be true")
     if getattr(config, "MAX_CONTENT_LENGTH", 0) <= 0:
         failures.append("MAX_CONTENT_LENGTH must be positive")
+    for command in ("pg_dump", "pg_restore"):
+        if not _command_available(command):
+            failures.append(f"{command} is unavailable")
     return failures
 
 

@@ -104,6 +104,7 @@ def record_capstone_activity(
     event_type,
     event_variant=None,
     request_id=None,
+    occurred_at=None,
 ):
     """Record activity without making a successful user action fail on telemetry."""
     conn = db_connect()
@@ -112,6 +113,7 @@ def record_capstone_activity(
         created = record_capstone_activity_in_cursor(
             cursor, capstone_id, actor_user_id, event_type,
             event_variant=event_variant, request_id=request_id,
+            occurred_at=occurred_at,
         )
         conn.commit()
         return created
