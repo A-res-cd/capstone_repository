@@ -122,14 +122,15 @@
                         <h2>At a glance</h2>
                     </div>
                     <div class="profile-metrics">
+                        {% set activity_values = {'Citations': activity_totals.citations, 'Views': activity_totals.views, 'Requests': activity_totals.requests} %}
                         {% for metric in profile_metrics %}
                         <div class="profile-metric">
-                            <strong>{{ metric.value }}</strong>
+                            <strong>{{ activity_values.get(metric.label, metric.value) }}</strong>
                             <span>{{ metric.label }}</span>
                         </div>
                         {% endfor %}
                     </div>
-                    <p class="helper-text">Activity counts will appear when tracking is available.</p>
+                    <p class="helper-text">Views and citations count once per user per day. Requests count once per manuscript request.</p>
                 </section>
             {% endif %}
 
@@ -156,11 +157,14 @@
                 <div class="profile-activity-list">
                     {% for activity in recent_activity %}
                     <div class="profile-activity">
-                        <i class="bx bx-check-circle"></i>
-                        <span><strong>{{ activity.label }}</strong><small>{{ activity.date }}</small></span>
+                        <i class="bx {{ 'bx-show' if activity.event_type == 'view' else 'bx-quote-alt' if activity.event_type == 'citation' else 'bx-file-find' }}"></i>
+                        <span>
+                            <strong>{{ 'Capstone viewed' if activity.event_type == 'view' else 'Capstone cited' if activity.event_type == 'citation' else 'Manuscript request received' }}</strong>
+                            <small>{{ activity.capstone_title or 'Linked capstone' }} · {{ activity.occurred_at.strftime('%b %d, %Y - %I:%M %p') }}</small>
+                        </span>
                     </div>
                     {% else %}
-                    <p class="helper-text">Author activity tracking is coming next.</p>
+                    <p class="helper-text">No author activity recorded yet.</p>
                     {% endfor %}
                 </div>
             </section>

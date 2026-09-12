@@ -34,6 +34,7 @@ from app.db.capstoners import (
     get_pending_capstoners, review_capstoner_registration,
     get_capstoner_assignment_choices, assign_capstoner_credit,
 )
+from app.db.activity import record_capstone_activity
 from app.utils.pdf_extractor import extract_abstract_text, extract_capstone_data
 from app.utils.xlsx_export import build_specialization_workbook, build_table_workbook
 from app.utils.uploads import (
@@ -1108,6 +1109,12 @@ def view_capstone_pdf(capstone_id):
         abort(403)
 
     abstract_only = role_name == 'Student' and not has_full_access
+    record_capstone_activity(
+        capstone_id,
+        g.user.get("user_id") if g.user else None,
+        "view",
+        event_variant="abstract" if abstract_only else "full",
+    )
     authors = get_capstone_authors(capstone_id) if abstract_only else []
     max_pages = 1 if abstract_only else None
     pdf_url = None

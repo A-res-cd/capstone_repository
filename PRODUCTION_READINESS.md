@@ -26,7 +26,8 @@ experimental until every release gate below is satisfied.
   may be null until an authorized person explicitly links it.
 - Private COR files and avatars are never served from a public static path.
 - Requester identity is not exposed in author activity notifications.
-- Self-views, self-citations, and self-requests do not create author notices.
+- The activity actor is excluded from author notices; linked coauthors can
+  still receive the privacy-safe event.
 - Every administrative decision, role change, author link, roster change, and
   private-file action is attributable to an authenticated actor.
 - Deleting an account must follow documented retention and foreign-key rules;
@@ -47,15 +48,16 @@ experimental until every release gate below is satisfied.
 
 ## Current blockers on `aresVer`
 
-- `capstone_activity` and generic `notification` records are not implemented;
-  profile activity totals still contain placeholders.
-- The full test run currently has 220 passing and 14 failing tests. Nine are
+- Activity schema, deduplication, author totals, and privacy-safe bell
+  notifications are implemented on this branch. PostgreSQL integration and
+  browser coverage for these workflows are still pending.
+- The full test run currently has 225 passing and 14 failing tests. Nine are
   roster tests that still expect the old expanded default, three use the old
   capstoner flow without the required COR, and two point to an unstarted server
   at `localhost:5000`.
 - Production migration tracking, backup/restore verification, malware scanning,
   retention cleanup, monitoring, and deployment automation are still pending.
 
-The next implementation step is database hardening and migration tracking. No
+The next implementation step is backup/restore and operational hardening. No
 feature is production-complete until the relevant acceptance row and release
 gate are both satisfied.

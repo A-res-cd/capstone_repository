@@ -99,7 +99,10 @@ def get_user_notification_summary(user_id, limit=6):
                 r.status_reason,
                 r.notification_seen_at,
                 c.capstone_title,
-                target_role.role_name AS target_role_name
+                target_role.role_name AS target_role_name,
+                'decision' AS notification_kind,
+                NULL AS notification_title,
+                NULL AS notification_message
             FROM request r
             LEFT JOIN capstone c ON c.capstone_id = r.capstone_id
             LEFT JOIN role target_role ON target_role.role_id = r.target_role_id
@@ -125,7 +128,50 @@ def get_user_notification_summary(user_id, limit=6):
             (user_id,),
         )
         unread_count = cursor.fetchone()["total"]
-        return notifications, unread_count
+        try:
+            cursor.execute(
+                """
+                SELECT
+                    n.notification_id AS request_id,
+                    n.notification_type AS request_type,
+                    'info' AS request_status,
+                    n.created_at AS decision_date,
+                    n.notification_message AS status_reason,
+                    n.read_at AS notification_seen_at,
+                    c.capstone_title,
+                    NULL AS target_role_name,
+                    'activity' AS notification_kind,
+                    n.notification_title,
+                    n.notification_message
+                FROM notification n
+                LEFT JOIN capstone_activity ca ON ca.activity_id = n.activity_id
+                LEFT JOIN capstone c ON c.capstone_id = ca.capstone_id
+                WHERE n.recipient_user_id = %s
+                ORDER BY n.created_at DESC, n.notification_id DESC
+                LIMIT %s
+                """,
+                (user_id, limit),
+            )
+            notifications.extend(cursor.fetchall())
+
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS total
+                FROM notification
+                WHERE recipient_user_id = %s AND read_at IS NULL
+                """,
+                (user_id,),
+            )
+            unread_count += cursor.fetchone()["total"]
+        except psycopg2.errors.UndefinedTable:
+            conn.rollback()
+
+        notifications.sort(
+            key=lambda item: item.get("decision_date").timestamp()
+            if item.get("decision_date") else 0,
+            reverse=True,
+        )
+        return notifications[:limit], unread_count
     except Exception as exc:
         logger.error("Database error loading notifications: %s", exc)
         return [], 0
@@ -149,6 +195,28 @@ def mark_all_notifications_read(user_id):
             """,
             (datetime.now(timezone.utc), user_id),
         )
+        try:
+            cursor.execute(
+                """
+                UPDATE notification
+                SET read_at = %s
+                WHERE recipient_user_id = %s AND read_at IS NULL
+                """,
+                (datetime.now(timezone.utc), user_id),
+            )
+        except psycopg2.errors.UndefinedTable:
+            conn.rollback()
+            cursor.execute(
+                """
+                UPDATE request
+                SET notification_seen_at = %s
+                WHERE user_id = %s
+                  AND decision_date IS NOT NULL
+                  AND request_status IN ('approved', 'rejected')
+                  AND notification_seen_at IS NULL
+                """,
+                (datetime.now(timezone.utc), user_id),
+            )
         conn.commit()
         return True
     except Exception as exc:

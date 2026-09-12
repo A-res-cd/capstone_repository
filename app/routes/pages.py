@@ -15,6 +15,11 @@ from app.routes.forms import ChangePasswordForm, CapstonerRegistrationForm
 from app.db.capstones import get_user_authored_capstones
 from app.db.capstoners import get_capstoner_registration, submit_capstoner_registration
 from app.db.avatars import get_user_avatar, upsert_user_avatar
+from app.db.activity import (
+    get_author_activity_summary,
+    get_recent_author_activity,
+    record_capstone_activity,
+)
 from app.db.cor_registrations import get_latest_cor_registration
 from app.utils.cor_extractor import extract_cor_fields
 from app.utils.cor_upload import read_cor_upload, save_cor_upload, remove_cor_file
@@ -168,6 +173,8 @@ def _render_profile(capstoner_form=None):
     avatar = get_user_avatar(user_id)
     contacts = get_user_contacts(user_id)
     my_works = get_user_authored_capstones(user_id)
+    activity_totals = get_author_activity_summary(user_id)
+    recent_activity = get_recent_author_activity(user_id)
 
     return render_template(
         "global/profile.html",
@@ -179,13 +186,14 @@ def _render_profile(capstoner_form=None):
         cor_record=get_latest_cor_registration(user_id),
         capstoner_form=capstoner_form or CapstonerRegistrationForm(),
         my_works=my_works,
+        activity_totals=activity_totals,
         profile_metrics=[
             {"label": "Works", "value": len(my_works)},
             {"label": "Citations", "value": "—"},
             {"label": "Views", "value": "—"},
             {"label": "Requests", "value": "—"},
         ],
-        recent_activity=[],
+        recent_activity=recent_activity,
     )
 
 
@@ -512,6 +520,13 @@ def view_approved_manuscript(capstone_id):
         flash("Capstone not found.", "danger")
         return redirect(url_for("pages.browse"))
 
+    record_capstone_activity(
+        capstone_id,
+        user_id,
+        "view",
+        event_variant="full",
+    )
+
     # The template's inline script always references PDF_URL and START_PAGE
     # (regardless of max_pages), so both must be passed here — leaving them
     # out renders as the literal text "Undefined" in the script, which is
@@ -590,6 +605,13 @@ def cite_capstone(capstone_id):
         filename, mimetype = citation_download_metadata(capstone, format_name)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
+
+    record_capstone_activity(
+        capstone_id,
+        user_id,
+        "citation",
+        event_variant=format_name,
+    )
 
     if request.args.get("download") == "1":
         response = Response(citation, content_type=f"{mimetype}; charset=utf-8")

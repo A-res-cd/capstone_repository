@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+from app.db.activity import record_capstone_activity_in_cursor
 from datetime import datetime, timezone 
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,21 @@ def request_fullview(user_id, capstone_id, request_reason):
         request_id = mithrix.fetchone()["request_id"]
         log_audit(mithrix, user_id, "manuscript_request",
                   "manuscript_request", request_id)
+        mithrix.execute("SAVEPOINT capstone_activity_record")
+        try:
+            record_capstone_activity_in_cursor(
+                mithrix,
+                capstone_id,
+                user_id,
+                "request",
+                event_variant="manuscript",
+                request_id=request_id,
+            )
+            mithrix.execute("RELEASE SAVEPOINT capstone_activity_record")
+        except Exception as activity_exc:
+            mithrix.execute("ROLLBACK TO SAVEPOINT capstone_activity_record")
+            mithrix.execute("RELEASE SAVEPOINT capstone_activity_record")
+            logger.warning("Could not record manuscript request activity: %s", activity_exc)
 
         conn.commit()
         return True, None
