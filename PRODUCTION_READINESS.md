@@ -1,0 +1,61 @@
+# CAPRE production readiness contract
+
+This document is the acceptance contract for the complete CAPRE capstone
+repository and user-management system. The `aresVer` branch remains
+experimental until every release gate below is satisfied.
+
+## Functional acceptance
+
+| ID | Workflow | Production behavior |
+| --- | --- | --- |
+| CAP-01 | Account access | Users can register, verify their email/OTP, sign in case-insensitively, reset passwords, and receive verification decisions. |
+| CAP-02 | COR verification | Signup validates the COR file, extracts the supported fields, rejects unsupported year levels, and lets an authorized admin review the private document. |
+| CAP-03 | Role access | Students, faculty, capstone professors, and admins can access only their permitted routes and records. |
+| CAP-04 | Repository | Authorized users can create, update, search, archive, view, request, and cite capstone records. |
+| CAP-05 | Author identity | A capstone author may remain unlinked to a user account. Linking is explicit, scoped to one author credit, audited, and never inferred from a matching name. |
+| CAP-06 | Similarity | Topic similarity uses title text only, uses the documented TF-IDF behavior, and returns safe results for empty, short, invalid, and duplicate titles. |
+| CAP-07 | Capstoner workflow | Students submit registration; eligible registrations are reviewed by a capstone professor; approval and author assignment remain separate actions. |
+| CAP-08 | Advisory roster | Active capstone professors can create and rename groups, add at most four verified students, and remove roster membership without changing account, registration, or authorship state. |
+| CAP-09 | User profile | Users can view their identity, linked works, contacts, role status, COR status, and profile image. |
+| CAP-10 | Author activity | The system records deduplicated views, citations, and requests, calculates author totals, and sends privacy-safe notifications to linked authors. |
+| CAP-11 | Administration | Admins can review accounts, verification requests, capstoner requests, audit history, and analytics with summarized and filterable results. |
+
+## Data and privacy rules
+
+- Account users and repository authors are separate identities. `author.user_id`
+  may be null until an authorized person explicitly links it.
+- Private COR files and avatars are never served from a public static path.
+- Requester identity is not exposed in author activity notifications.
+- Self-views, self-citations, and self-requests do not create author notices.
+- Every administrative decision, role change, author link, roster change, and
+  private-file action is attributable to an authenticated actor.
+- Deleting an account must follow documented retention and foreign-key rules;
+  it must not silently delete an unrelated author credit or capstone.
+
+## Release gates
+
+1. All migrations run successfully on a clean database and an upgrade database.
+2. Migration application is tracked and repeatable; backups and restore are tested.
+3. Unit, PostgreSQL integration, browser, authorization, CSRF, XSS, upload,
+   concurrency, and privacy tests pass with zero failures.
+4. Debug mode is off; secrets come from environment configuration; cookies,
+   HTTPS, CSP, rate limits, logging, and error handling are production-safe.
+5. Email, OCR, private-file storage, database failure, and background work have
+   observable failure paths and do not corrupt saved decisions.
+6. The final ERD, DFD, database migrations, UI behavior, and tests describe the
+   same workflows.
+
+## Current blockers on `aresVer`
+
+- `capstone_activity` and generic `notification` records are not implemented;
+  profile activity totals still contain placeholders.
+- The full test run currently has 220 passing and 14 failing tests. Nine are
+  roster tests that still expect the old expanded default, three use the old
+  capstoner flow without the required COR, and two point to an unstarted server
+  at `localhost:5000`.
+- Production migration tracking, backup/restore verification, malware scanning,
+  retention cleanup, monitoring, and deployment automation are still pending.
+
+The next implementation step is database hardening and migration tracking. No
+feature is production-complete until the relevant acceptance row and release
+gate are both satisfied.
