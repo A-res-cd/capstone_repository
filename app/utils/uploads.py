@@ -5,6 +5,7 @@ import uuid
 from flask import current_app
 from werkzeug.utils import secure_filename
 
+from app.utils.malware_scan import UploadScanError, scan_uploaded_file
 
 ALLOWED_MANUSCRIPT_EXTENSIONS = {"pdf", "doc", "docx"}
 DEFAULT_MANUSCRIPT_MAX_BYTES = 20 * 1024 * 1024
@@ -75,7 +76,22 @@ def save_manuscript_upload(file_obj):
     os.makedirs(folder, exist_ok=True)
 
     filename = unique_manuscript_filename(file_obj.filename)
-    file_obj.save(os.path.join(folder, filename))
+    path = os.path.join(folder, filename)
+    try:
+        file_obj.save(path)
+        scan_uploaded_file(path)
+    except UploadScanError as exc:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        return None, str(exc)
+    except Exception:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        raise
     return filename, None
 
 

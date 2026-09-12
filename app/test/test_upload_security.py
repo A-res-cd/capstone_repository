@@ -1,10 +1,13 @@
 from io import BytesIO
+from types import SimpleNamespace
 
 from flask import Flask
+import pytest
 from werkzeug.datastructures import FileStorage
 
+from app.utils import malware_scan
 from app.utils import upload_cleanup
-from app.utils.uploads import validate_manuscript_upload
+from app.utils.uploads import save_manuscript_upload, validate_manuscript_upload
 
 
 def upload(filename, content):
@@ -25,6 +28,50 @@ def test_manuscript_validation_applies_configured_size_limit():
     app.config["UPLOAD_MANUSCRIPT_MAX_BYTES"] = 4
     with app.app_context():
         assert validate_manuscript_upload(upload("paper.pdf", b"%PDF-1.7"))
+
+
+def test_required_scanner_rejects_when_not_configured():
+    app = Flask(__name__)
+    app.config["UPLOAD_ANTIVIRUS_REQUIRED"] = True
+    with app.app_context():
+        with pytest.raises(malware_scan.UploadScanError):
+            malware_scan.scan_uploaded_file("paper.pdf")
+
+
+def test_scanner_uses_no_shell_and_rejects_infected_file(monkeypatch, tmp_path):
+    app = Flask(__name__)
+    app.config["UPLOAD_ANTIVIRUS_COMMAND"] = "scanner"
+    calls = []
+
+    def run(command, **kwargs):
+        calls.append((command, kwargs))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(malware_scan.subprocess, "run", run)
+    with app.app_context():
+        assert malware_scan.scan_uploaded_file(tmp_path / "paper.pdf")
+    assert calls[0][0] == ["scanner", str(tmp_path / "paper.pdf")]
+    assert calls[0][1]["shell"] is False
+
+    def infected(command, **kwargs):
+        return SimpleNamespace(returncode=1)
+
+    monkeypatch.setattr(malware_scan.subprocess, "run", infected)
+    with app.app_context():
+        with pytest.raises(malware_scan.UploadScanError, match="malware"):
+            malware_scan.scan_uploaded_file(tmp_path / "paper.pdf")
+
+
+def test_required_scanner_removes_manuscript_after_rejection(tmp_path):
+    app = Flask(__name__)
+    app.config["UPLOAD_MANUSCRIPT_FOLDER"] = str(tmp_path)
+    app.config["UPLOAD_ANTIVIRUS_REQUIRED"] = True
+    with app.app_context():
+        filename, error = save_manuscript_upload(upload("paper.pdf", b"%PDF-1.7"))
+
+    assert filename is None
+    assert "scanning" in error
+    assert list(tmp_path.iterdir()) == []
 
 
 class InventoryCursor:

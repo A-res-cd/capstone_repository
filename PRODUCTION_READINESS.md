@@ -56,14 +56,15 @@ experimental until every release gate below is satisfied.
   capstoner flow without the required COR, and two point to an unstarted server
   at `localhost:5000`.
 - Migration tracking, backup/restore commands, and read-only health probes are
-  implemented. Backup/restore execution in the target environment, malware
-  scanning, automatic retention cleanup, monitoring, and deployment automation
-  are still pending.
+  implemented. Backup/restore execution in the target environment, automatic
+  retention cleanup, monitoring, and deployment automation are still pending.
 - Manuscript uploads now validate size and file signatures. Orphaned private
   files can be reviewed with a read-only report; automatic deletion remains
   disabled until the retention policy is approved.
+- Optional ClamAV-compatible scanning is wired into COR, manuscript, and avatar
+  uploads. Production must configure the scanner and require it before this
+  upload gate is complete.
 
-The next implementation step is malware scanning and approved retention
-cleanup. No
+The next implementation step is approved retention cleanup. No
 feature is production-complete until the relevant acceptance row and release
 gate are both satisfied.

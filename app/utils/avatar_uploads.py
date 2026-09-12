@@ -7,6 +7,7 @@ from uuid import uuid4
 from flask import current_app
 from PIL import Image, UnidentifiedImageError
 from werkzeug.utils import secure_filename
+from app.utils.malware_scan import scan_uploaded_file
 
 
 ALLOWED_AVATAR_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
@@ -91,6 +92,7 @@ def save_avatar_upload(upload):
     try:
         with path.open("xb") as output:
             upload.save(output)
+        scan_uploaded_file(path)
     except Exception:
         path.unlink(missing_ok=True)
         raise

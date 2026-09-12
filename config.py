@@ -29,6 +29,17 @@ def _int_env(name, default=None):
         raise RuntimeError(f"Environment variable {name}={raw!r} must be an integer.")
 
 
+def _bool_env(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    if raw.lower() in ("1", "true", "yes", "on"):
+        return True
+    if raw.lower() in ("0", "false", "no", "off"):
+        return False
+    raise RuntimeError(f"Environment variable {name}={raw!r} must be boolean.")
+
+
 for _var in _REQUIRED_ENV_VARS:
     _require_env(_var)
 
@@ -57,6 +68,9 @@ class Config:
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER")
     UPLOAD_MANUSCRIPT_MAX_BYTES = _int_env("UPLOAD_MANUSCRIPT_MAX_BYTES", 20 * 1024 * 1024)
     UPLOAD_ORPHAN_RETENTION_DAYS = _int_env("UPLOAD_ORPHAN_RETENTION_DAYS", 30)
+    UPLOAD_ANTIVIRUS_COMMAND = os.environ.get("UPLOAD_ANTIVIRUS_COMMAND")
+    UPLOAD_ANTIVIRUS_REQUIRED = _bool_env("UPLOAD_ANTIVIRUS_REQUIRED", False)
+    UPLOAD_ANTIVIRUS_TIMEOUT_SECONDS = _int_env("UPLOAD_ANTIVIRUS_TIMEOUT_SECONDS", 30)
     UPLOAD_AVATAR_FOLDER = os.environ.get("UPLOAD_AVATAR_FOLDER")
     UPLOAD_AVATAR_MAX_BYTES = _int_env("UPLOAD_AVATAR_MAX_BYTES", 5 * 1024 * 1024)
 

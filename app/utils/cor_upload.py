@@ -5,6 +5,7 @@ from uuid import uuid4
 from flask import current_app
 import pdfplumber
 from werkzeug.utils import secure_filename
+from app.utils.malware_scan import scan_uploaded_file
 
 MAX_COR_BYTES = 5 * 1024 * 1024
 
@@ -58,7 +59,8 @@ def save_cor_upload(upload):
         with path.open('xb') as output:
             created = True
             output.write(document['content'])
-    except OSError:
+        scan_uploaded_file(path)
+    except Exception:
         if created:
             path.unlink(missing_ok=True)
         raise
