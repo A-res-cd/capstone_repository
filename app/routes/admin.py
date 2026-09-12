@@ -24,6 +24,9 @@ from app.db.database import (
     get_capstones_by_program, get_capstone_trend_by_specialization, get_capstone_status_flags
 )
 from app.routes.decorators import role_required, can_view_full_manuscript
+from app.constants.roles import (
+    ALL_ROLES, ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR, ROLE_FACULTY,
+)
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm, CapstonerReviewForm, CapstonerAssignmentForm
 from app.db.analytics import get_all_specialization_reports, get_specialization_report
 from app.db.capstones import get_author_account_choices
@@ -48,7 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 @admin.route('/audit-logs')
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def audit_logs():
     filters = {key: request.args.get(key, '').strip() for key in ('q', 'category', 'action', 'start', 'end')}
     try:
@@ -148,7 +151,7 @@ def _people_for_db(form):
 # ── PDF auto-extract ───────────────────────────────────────────────────────
 
 @admin.route("/repository/extract", methods=["POST"])
-@role_required(3, 4)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def extract_capstone_pdf():
     file = request.files.get('capstone_file')
 
@@ -200,7 +203,7 @@ def _dev_debug_enabled():
 
 
 @admin.route("/dev-debug")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def dev_debug():
     if not _dev_debug_enabled():
         abort(404)
@@ -254,7 +257,7 @@ def dev_debug():
 
 
 @admin.route("/analytics")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics():
     db_errors = []
 
@@ -370,7 +373,7 @@ def analytics():
 # ── User management ───────────────────────────────────────────────────────────
 
 @admin.route("/analytics/specialization/<int:specialization_id>/report")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_specialization_report(specialization_id):
     rows, specialization, err = get_specialization_report(specialization_id)
     if err:
@@ -386,7 +389,7 @@ def analytics_specialization_report(specialization_id):
 
 
 @admin.route("/analytics/specialization/<int:specialization_id>/report.xlsx")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_specialization_workbook(specialization_id):
     rows, specialization, err = get_specialization_report(specialization_id)
     if err:
@@ -409,7 +412,7 @@ def analytics_specialization_workbook(specialization_id):
 
 
 @admin.route("/analytics/report.xlsx")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_workbook():
     by_specialization, specialization_err = get_capstones_by_specialization()
     by_program, program_err = get_capstones_by_program()
@@ -510,7 +513,7 @@ def analytics_workbook():
 
 
 @admin.route("/analytics/specializations/report")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_all_specializations_report():
     specializations, err = get_all_specialization_reports()
     if err:
@@ -523,7 +526,7 @@ def analytics_all_specializations_report():
 
 
 @admin.route("/analytics/specializations/report.xlsx")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_all_specializations_workbook():
     specializations, err = get_all_specialization_reports()
     if err:
@@ -538,7 +541,7 @@ def analytics_all_specializations_workbook():
 
 
 @admin.route("/manage_users")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def manage_users():
     search = request.args.get("search", "").strip()
     role_id = request.args.get("role", "").strip()
@@ -574,7 +577,7 @@ def manage_users():
 
 
 @admin.route('/manage_users/verify/<int:request_id>/details')
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def verification_details(request_id):
     details = get_verification_details(request_id)
     if not details:
@@ -588,7 +591,7 @@ def verification_details(request_id):
 
 
 @admin.route('/manage_users/verify/<int:request_id>/document')
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def verification_document(request_id):
     document = get_verification_document(request_id)
     if not document:
@@ -610,7 +613,7 @@ def verification_document(request_id):
 
 
 @admin.route("/manage_users/promotion/<int:request_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def decide_promotion(request_id):
     decision = request.form.get("decision")  # 'approved' or 'rejected'
     status_reason = request.form.get("status_reason", "")
@@ -631,7 +634,7 @@ def decide_promotion(request_id):
 
 
 @admin.route("/manage_users/verify/<int:request_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def decide_verification(request_id):
     decision = request.form.get("decision")  # 'approved' or 'rejected'
     status_reason = request.form.get("status_reason", "")
@@ -658,7 +661,7 @@ def decide_verification(request_id):
 
 
 @admin.route("/manage_users/update_role/<int:user_id>", methods=["GET","POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def update_role(user_id):
     new_role_id = request.form.get("role_id")
     # Derived from the session, not a client-supplied form field — a
@@ -680,7 +683,7 @@ def update_role(user_id):
 
 
 @admin.route("/manage_users/delete/<int:user_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def delete_user(user_id):
     acting_admin_id = session.get("user_id")
     ok, err = delete_user_account(user_id, acting_admin_id)
@@ -692,7 +695,7 @@ def delete_user(user_id):
 
 
 @admin.route("/manage_users/status/<int:user_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def change_account_status(user_id):
     new_status = request.form.get("status")
     acting_admin_id = session.get("user_id")
@@ -713,7 +716,7 @@ def change_account_status(user_id):
 from flask import request
 
 @admin.route("/requests")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def view_requests():
     selected_status = request.args.get("status", "all").lower()
 
@@ -763,13 +766,13 @@ def _render_capstoner_review(assignment_form=None):
 
 
 @admin.route("/capstoners")
-@role_required(3, 4)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def capstoner_review():
     return _render_capstoner_review()
 
 
 @admin.route("/capstoners/review/<int:request_id>", methods=["POST"])
-@role_required(3, 4)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def decide_capstoner(request_id):
     form = CapstonerReviewForm()
     if not form.validate_on_submit():
@@ -783,7 +786,7 @@ def decide_capstoner(request_id):
 
 
 @admin.route("/capstoners/assign", methods=["POST"])
-@role_required(3, 4)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def assign_capstoner():
     form = _capstoner_assignment_form()
     if not form.validate_on_submit():
@@ -798,7 +801,7 @@ def assign_capstoner():
 
 
 @admin.route("/repository")
-@role_required(2, 3, 4)
+@role_required(ROLE_FACULTY, ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def view_capstone_repository():
     search = request.args.get("search", "").strip()
     program_id = request.args.get("program", "").strip()
@@ -832,7 +835,7 @@ def view_capstone_repository():
 
 
 @admin.route("/repository/<int:capstone_id>/people")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def get_capstone_people_json(capstone_id):
     """Feeds the Edit-panel wizard's Authors/Adviser step — capstone
     people were previously only fetchable server-side, so editing an
@@ -859,7 +862,7 @@ def get_capstone_people_json(capstone_id):
 
 
 @admin.route("/recyclebin")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def view_archived_capstones():
     search = request.args.get("search", "").strip()
     program_id = request.args.get("program", "").strip()
@@ -888,7 +891,7 @@ def view_archived_capstones():
 
 
 @admin.route("/repository/create", methods=["GET", "POST"])
-@role_required(3, 4)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def admin_create_capstone():
     if request.method == "GET":
         return redirect(url_for("admin.view_capstone_repository"))
@@ -968,7 +971,7 @@ def admin_create_capstone():
 
 
 @admin.route("/repository/update/<int:capstone_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def update_capstone(capstone_id):
     used_keywords = get_used_keyword()
     capstone = get_capstone_details(capstone_id)
@@ -1047,7 +1050,7 @@ def update_capstone(capstone_id):
 
 
 @admin.route("/delete_capstone/<int:capstone_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def delete_capstone_route(capstone_id):
     try:
         success, message = delete_capstone(capstone_id, acting_user_id=session.get("user_id"))
@@ -1060,7 +1063,7 @@ def delete_capstone_route(capstone_id):
 
 
 @admin.route("/repository/view/<int:capstone_id>")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def view_capstone(capstone_id):
     capstone = get_capstone_details(capstone_id)
     authors = get_capstone_authors(capstone_id)
@@ -1088,7 +1091,7 @@ def view_capstone(capstone_id):
 
 
 @admin.route("/repository/pdf/<int:capstone_id>")
-@role_required(1, 2, 3, 4)
+@role_required(*ALL_ROLES)
 def view_capstone_pdf(capstone_id):
     capstone = get_capstone_details(capstone_id)
     if not capstone:
@@ -1135,7 +1138,7 @@ def view_capstone_pdf(capstone_id):
 
 
 @admin.route("/repository/file/<int:capstone_id>")
-@role_required(1, 2, 3, 4)
+@role_required(*ALL_ROLES)
 def manuscript_file(capstone_id):
     capstone = get_capstone_details(capstone_id)
     if not capstone:
@@ -1161,7 +1164,7 @@ def manuscript_file(capstone_id):
 
 
 @admin.route("/repository/decide/<int:request_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def decide_request(request_id):
     status = request.form.get("status")
     status_reason = request.form.get("status_reason", "")
@@ -1176,7 +1179,7 @@ def decide_request(request_id):
 
 
 @admin.route("/repository/archive/<int:capstone_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def archive_capstone(capstone_id):
     success, message = add_to_bin(capstone_id, acting_user_id=session.get("user_id"))
     flash(message, "success" if success else "danger")
@@ -1184,7 +1187,7 @@ def archive_capstone(capstone_id):
 
 
 @admin.route("/recyclebin/restore/<int:capstone_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def restore_capstone_route(capstone_id):
     success, message = restore_capstone(capstone_id, acting_user_id=session.get("user_id"))
     flash(message, "success" if success else "danger")

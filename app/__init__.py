@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    for name in ('UPLOAD_MANUSCRIPT_FOLDER', 'UPLOAD_REGISTRATION_FOLDER'):
+    for name in ('UPLOAD_MANUSCRIPT_FOLDER', 'UPLOAD_REGISTRATION_FOLDER', 'UPLOAD_AVATAR_FOLDER'):
         app.config[name] = os.environ.get(name, app.config.get(name))
 
     mail.init_app(app)

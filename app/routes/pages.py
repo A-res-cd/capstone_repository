@@ -10,13 +10,16 @@ get_requestable_capstones, get_programs, get_specializations,
 get_saved_capstone_ids, toggle_saved_capstone,
 )
 from app.routes.decorators import login_required, role_required, can_view_full_manuscript
+from app.constants.roles import ROLE_STUDENT
 from app.routes.forms import ChangePasswordForm, CapstonerRegistrationForm
 from app.db.capstones import get_user_authored_capstones
 from app.db.capstoners import get_capstoner_registration, submit_capstoner_registration
+from app.db.avatars import get_user_avatar, upsert_user_avatar
 from app.db.cor_registrations import get_latest_cor_registration
 from app.utils.cor_extractor import extract_cor_fields
 from app.utils.cor_upload import read_cor_upload, save_cor_upload, remove_cor_file
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
+from app.utils.avatar_uploads import remove_avatar_file, resolve_avatar_file, save_avatar_upload
 from app.services.recommender import TopicRecommender
 from app.services.citations import citation_download_metadata, format_citation
 
@@ -125,6 +128,7 @@ def user_info():
 
 def _user_information_context(user_id):
     profile = get_own_profile(user_id)
+    avatar = get_user_avatar(user_id)
     contacts = get_user_contacts(user_id)
     contact_labels = [
         ("email", "Email"),
@@ -141,6 +145,7 @@ def _user_information_context(user_id):
 
     return {
         "profile": profile,
+        "avatar": avatar,
         "contacts": contacts,
         "contact_labels": contact_labels,
         "contact_by_type": contact_by_type,
@@ -160,6 +165,7 @@ def profile_overview():
 def _render_profile(capstoner_form=None):
     user_id = session.get("user_id")
     profile = get_own_profile(user_id)
+    avatar = get_user_avatar(user_id)
     contacts = get_user_contacts(user_id)
     my_works = get_user_authored_capstones(user_id)
 
@@ -167,6 +173,7 @@ def _render_profile(capstoner_form=None):
         "global/profile.html",
         hide_nav=False,
         profile=profile,
+        avatar=avatar,
         contacts=contacts,
         capstoner_registration=get_capstoner_registration(user_id),
         cor_record=get_latest_cor_registration(user_id),
@@ -180,6 +187,39 @@ def _render_profile(capstoner_form=None):
         ],
         recent_activity=[],
     )
+
+
+@pages.route("/profile/avatar", methods=["GET"])
+@login_required
+def user_avatar():
+    avatar = get_user_avatar(session.get("user_id"))
+    path = resolve_avatar_file(avatar.get("storage_key")) if avatar else None
+    if not path:
+        abort(404)
+    return send_file(path, mimetype=avatar["mime_type"], conditional=True)
+
+
+@pages.route("/profile/avatar", methods=["POST"])
+@login_required
+def upload_avatar():
+    upload = request.files.get("avatar")
+    try:
+        metadata = save_avatar_upload(upload)
+        previous_key = upsert_user_avatar(session["user_id"], metadata)
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("pages.profile_overview"))
+    except Exception:
+        if "metadata" in locals():
+            remove_avatar_file(metadata.get("storage_key"))
+        logger.exception("Could not save user avatar")
+        flash("The profile image could not be saved. Please try again.", "danger")
+        return redirect(url_for("pages.profile_overview"))
+
+    if previous_key and previous_key != metadata["storage_key"]:
+        remove_avatar_file(previous_key)
+    flash("Profile image updated.", "success")
+    return redirect(url_for("pages.profile_overview"))
 
 
 @pages.route("/profile/capstoner", methods=["POST"])
@@ -372,7 +412,7 @@ def delete_own_account_route():
 
 
 @pages.route("/my-requests")
-@role_required(1)
+@role_required(ROLE_STUDENT)
 def all_requests():
     user_id = session.get("user_id")
     if not user_id:
@@ -569,13 +609,13 @@ def cite_capstone(capstone_id):
 # archive using TF-IDF + cosine similarity over titles only.
 
 @pages.route("/propose-topic")
-@role_required(1)
+@role_required(ROLE_STUDENT)
 def propose_topic():
     return render_template("global/propose_title.html")
 
 
 @pages.route("/api/topic-similarity", methods=["POST"])
-@role_required(1)
+@role_required(ROLE_STUDENT)
 def topic_similarity():
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or not isinstance(data.get("title"), str):

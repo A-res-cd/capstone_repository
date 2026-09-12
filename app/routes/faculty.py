@@ -8,6 +8,7 @@ from app.db.advisories import (
     rename_advisory_group, MAX_ADVISORY_GROUP_STUDENTS,
 )
 from app.routes.decorators import role_required
+from app.constants.roles import ROLE_CAPSTONE_PROFESSOR
 from app.routes.forms import (
     AdvisoryGroupForm, AddAdvisoryStudentForm, CreateAdvisoryGroupForm,
     RemoveAdvisoryStudentForm,
@@ -78,13 +79,13 @@ def _render_advisory_students(add_form=None, group_form=None, rename_form=None, 
 
 
 @faculty.route("/advisory-students")
-@role_required(4)
+@role_required(ROLE_CAPSTONE_PROFESSOR)
 def manage_capstone_users():
     return _render_advisory_students()
 
 
 @faculty.route("/advisory-students/groups", methods=["POST"])
-@role_required(4)
+@role_required(ROLE_CAPSTONE_PROFESSOR)
 def create_group():
     try:
         form = _create_group_form(submitted=True)
@@ -109,7 +110,7 @@ def create_group():
 
 
 @faculty.route("/advisory-students/groups/<int:group_id>/rename", methods=["POST"])
-@role_required(4)
+@role_required(ROLE_CAPSTONE_PROFESSOR)
 def rename_group(group_id):
     form = AdvisoryGroupForm()
     if not form.validate_on_submit():
@@ -124,7 +125,7 @@ def rename_group(group_id):
 
 
 @faculty.route("/advisory-students/add", methods=["POST"])
-@role_required(4)
+@role_required(ROLE_CAPSTONE_PROFESSOR)
 def add_student():
     try:
         form = _add_student_form(submitted=True)
@@ -143,7 +144,7 @@ def add_student():
 
 
 @faculty.route("/advisory-students/<int:student_id>/remove", methods=["POST"])
-@role_required(4)
+@role_required(ROLE_CAPSTONE_PROFESSOR)
 def remove_student(student_id):
     form = RemoveAdvisoryStudentForm()
     if not form.validate_on_submit():

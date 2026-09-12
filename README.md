@@ -32,6 +32,8 @@ MAIL_PASSWORD = your-email-password
 
 UPLOAD_MANUSCRIPT_FOLDER = app/static/uploads/manuscripts
 UPLOAD_REGISTRATION_FOLDER = app/static/uploads/registration
+UPLOAD_AVATAR_FOLDER = app/uploads/avatars
+UPLOAD_AVATAR_MAX_BYTES = 5242880
 
 # Required for automatic OCR of scanned COR files.
 # Install the Windows engine separately from:
@@ -63,3 +65,8 @@ Tesseract is unavailable, the form shows a warning and allows manual entry.
 
 Run `migrations/20260911_cor_registration.sql` on an existing database. It
 creates the normalized `cor_registration` table used by capstoner eligibility.
+
+Run `migrations/20260911_user_avatars.sql` on an existing database to create the
+normalized private `user_avatar` table. Avatar files are stored outside the
+static directory and served only to the signed-in owner. The profile overview
+and the header fall back to initials when no image is uploaded.

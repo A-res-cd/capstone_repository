@@ -185,6 +185,14 @@
     user-select: none;
 }
 
+.header-user__avatar img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
 .header-user__info {
     display: flex;
     flex-direction: column;

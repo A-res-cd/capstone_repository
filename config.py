@@ -55,6 +55,8 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_USERNAME")
 
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER")
+    UPLOAD_AVATAR_FOLDER = os.environ.get("UPLOAD_AVATAR_FOLDER")
+    UPLOAD_AVATAR_MAX_BYTES = _int_env("UPLOAD_AVATAR_MAX_BYTES", 5 * 1024 * 1024)
 
     MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25 MB cap on request/upload size
 

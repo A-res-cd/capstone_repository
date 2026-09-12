@@ -5,6 +5,7 @@ from app.db.qol import (
     get_user_notification_summary,
     mark_all_notifications_read,
 )
+from app.db.avatars import get_user_avatar
 
 main = Blueprint("main", __name__)
 
@@ -39,6 +40,7 @@ def inject_global_template_vars():
     role_meta = get_role_meta(role)
     first_name = g.user.get("user_first_name") or session.get("first_name", "")
     last_name = g.user.get("user_last_name") or session.get("last_name", "")
+    has_avatar = bool(get_user_avatar(session.get("user_id")))
 
     for link in nav_links:
         try:
@@ -76,6 +78,7 @@ def inject_global_template_vars():
             "initials": (
                 first_name[:1].upper() + last_name[:1].upper()
             ) or (session.get("username", "?")[:1].upper()),
+            "avatar_url": url_for("pages.user_avatar") if has_avatar else None,
         },
         "current_path": request.path,
         "breadcrumb": breadcrumb,
