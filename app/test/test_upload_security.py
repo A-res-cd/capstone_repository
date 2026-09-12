@@ -122,3 +122,45 @@ def test_orphan_report_is_read_only_and_keeps_referenced_files(monkeypatch, tmp_
 
     assert [entry["path"] for entry in report] == [str(orphan)]
     assert kept.exists() and orphan.exists()
+
+
+def test_cleanup_deletes_only_old_orphaned_files(monkeypatch, tmp_path):
+    app = Flask(__name__)
+    app.config["UPLOAD_ORPHAN_RETENTION_DAYS"] = 1
+    folder = tmp_path / "uploads"
+    folder.mkdir()
+    kept = folder / "kept.pdf"
+    orphan = folder / "orphan.pdf"
+    kept.write_bytes(b"kept")
+    orphan.write_bytes(b"orphan")
+
+    monkeypatch.setattr(upload_cleanup, "db_connect", InventoryConnection)
+    monkeypatch.setattr(upload_cleanup, "manuscript_upload_folder", lambda: str(folder))
+    monkeypatch.setattr(upload_cleanup, "registration_upload_folder", lambda: folder)
+    monkeypatch.setattr(upload_cleanup, "avatar_upload_folder", lambda: folder)
+    old_timestamp = orphan.stat().st_mtime - (3 * 24 * 60 * 60)
+    import os
+    os.utime(orphan, (old_timestamp, old_timestamp))
+
+    with app.app_context():
+        assert upload_cleanup.delete_orphaned_uploads() == 1
+
+    assert kept.exists() and not orphan.exists()
+
+
+def test_cleanup_fails_closed_when_database_references_are_unavailable(monkeypatch, tmp_path):
+    app = Flask(__name__)
+    app.config["UPLOAD_ORPHAN_RETENTION_DAYS"] = 1
+    folder = tmp_path / "uploads"
+    folder.mkdir()
+    orphan = folder / "orphan.pdf"
+    orphan.write_bytes(b"orphan")
+    monkeypatch.setattr(upload_cleanup, "_referenced_upload_names", lambda: None)
+    monkeypatch.setattr(upload_cleanup, "manuscript_upload_folder", lambda: str(folder))
+    monkeypatch.setattr(upload_cleanup, "registration_upload_folder", lambda: folder)
+    monkeypatch.setattr(upload_cleanup, "avatar_upload_folder", lambda: folder)
+
+    with app.app_context():
+        assert upload_cleanup.delete_orphaned_uploads() == 0
+
+    assert orphan.exists()

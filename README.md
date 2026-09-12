@@ -36,6 +36,7 @@ UPLOAD_AVATAR_FOLDER = app/uploads/avatars
 UPLOAD_MANUSCRIPT_MAX_BYTES = 20971520
 UPLOAD_AVATAR_MAX_BYTES = 5242880
 UPLOAD_ORPHAN_RETENTION_DAYS = 30
+UPLOAD_RETENTION_CLEANUP_ENABLED = false
 UPLOAD_ANTIVIRUS_COMMAND = C:/Program Files/ClamAV/clamscan.exe
 UPLOAD_ANTIVIRUS_REQUIRED = false
 UPLOAD_ANTIVIRUS_TIMEOUT_SECONDS = 30
@@ -120,6 +121,17 @@ python scripts/report_orphaned_uploads.py
 
 The report is read-only. Do not delete a reported file until its database
 references and retention policy have been reviewed.
+
+After review, run the explicit cleanup command:
+
+```text
+python scripts/cleanup_orphaned_uploads.py --confirm
+```
+
+Automatic daily cleanup is disabled by default. Enable it only after review by
+setting `UPLOAD_RETENTION_CLEANUP_ENABLED = true`. Cleanup skips files whose
+database references cannot be read or whose size/timestamp changed during the
+operation.
 
 For production, configure `UPLOAD_ANTIVIRUS_COMMAND` to a ClamAV-compatible
 scanner and set `UPLOAD_ANTIVIRUS_REQUIRED = true`. When required, COR,

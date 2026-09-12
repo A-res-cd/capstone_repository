@@ -18,6 +18,7 @@ def main():
         orphaned = find_orphaned_uploads()
     for entry in orphaned:
         entry["modified_at"] = entry["modified_at"].isoformat()
+        entry.pop("modified_at_ns", None)
     print(json.dumps(orphaned, indent=2))
 
 

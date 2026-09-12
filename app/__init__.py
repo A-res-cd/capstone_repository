@@ -121,7 +121,7 @@ def create_app():
     # Run once on startup, then every 24h. WERKZEUG_RUN_MAIN check avoids
     # starting the job twice under the Flask dev server's reloader.
     if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        from datetime import datetime
+        from datetime import datetime, timedelta
         from app.db.database import purge_expired_archived_capstones
         scheduler = BackgroundScheduler(daemon=True)
         scheduler.add_job(
@@ -130,6 +130,21 @@ def create_app():
             hours=24,
             next_run_time=datetime.now(),
         )
+        if app.config.get("UPLOAD_RETENTION_CLEANUP_ENABLED"):
+            from app.utils.upload_cleanup import delete_orphaned_uploads
+
+            def cleanup_uploads_job():
+                with app.app_context():
+                    deleted = delete_orphaned_uploads()
+                    if deleted:
+                        logger.info("Removed %s orphaned upload(s)", deleted)
+
+            scheduler.add_job(
+                cleanup_uploads_job,
+                "interval",
+                hours=24,
+                next_run_time=datetime.now() + timedelta(hours=24),
+            )
         scheduler.start()
 
     return app
