@@ -137,3 +137,14 @@ For production, configure `UPLOAD_ANTIVIRUS_COMMAND` to a ClamAV-compatible
 scanner and set `UPLOAD_ANTIVIRUS_REQUIRED = true`. When required, COR,
 manuscript, and avatar uploads are rejected if scanning is unavailable or
 reports an infection.
+
+Before starting a production process, run the deployment preflight:
+
+```text
+python migrate.py upgrade
+python scripts/preflight.py
+```
+
+The preflight checks debug mode, secure cookies, required upload controls, and
+database migration readiness. HTTP responses include an `X-Request-ID`; the
+server logs method, path, status, and duration without query-string values.

@@ -57,7 +57,7 @@ experimental until every release gate below is satisfied.
   at `localhost:5000`.
 - Migration tracking, backup/restore commands, and read-only health probes are
   implemented. Backup/restore execution in the target environment, automatic
-  retention cleanup configuration, monitoring, and deployment automation are
+  retention cleanup configuration, and deployment environment verification are
   still pending.
 - Manuscript uploads now validate size and file signatures. Orphaned private
   files can be reviewed with a read-only report and removed after the approved
@@ -66,6 +66,8 @@ experimental until every release gate below is satisfied.
   uploads. Production must configure the scanner and require it before this
   upload gate is complete.
 
-The next implementation step is monitoring and deployment automation. No
+Monitoring and deployment preflight are implemented. The next implementation
+step is resolving the known test gaps and verifying the production deployment
+environment. No
 feature is production-complete until the relevant acceptance row and release
 gate are both satisfied.

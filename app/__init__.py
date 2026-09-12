@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, abort, render_template, request, session, url_for
+from flask import Flask, abort, g, render_template, request, session, url_for
 from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect, CSRFError
@@ -9,6 +9,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 
 from .utils.auth_utils import load_current_user
 from .utils.navigation import LAST_PAGE_SESSION_KEY, last_page_url
+from .utils.observability import finish_request_observation, start_request_observation
 
 mail = Mail()
 
@@ -35,6 +36,7 @@ def create_app():
         DebugToolbarExtension(app)
 
     app.before_request(load_current_user)
+    app.before_request(start_request_observation)
 
     @app.before_request
     def block_public_uploads():
@@ -71,7 +73,7 @@ def create_app():
             page_url = request.full_path.removesuffix("?")
             if len(page_url) <= 1024:
                 session[LAST_PAGE_SESSION_KEY] = page_url
-        return response
+        return finish_request_observation(response)
 
     from .routes import blueprints
     for bp in blueprints:
@@ -90,7 +92,11 @@ def create_app():
         # A stale/missing CSRF token is by far the most common cause of
         # a 400 here (form left open too long, or opened in two tabs) —
         # same page as the generic 400 handler, just a clearer log line.
-        logger.info("CSRF validation failed: %s", e.description)
+        logger.info(
+            "CSRF validation failed request_id=%s: %s",
+            getattr(g, "request_id", "unknown"),
+            e.description,
+        )
         return render_template(
             "errors/400.html", hide_nav=True, hide_header=True,
             back_url=last_page_url(url_for("main.home")),
@@ -112,7 +118,11 @@ def create_app():
 
     @app.errorhandler(500)
     def internal_error(e):
-        logger.error("Unhandled server error: %s", e)
+        logger.error(
+            "Unhandled server error request_id=%s: %s",
+            getattr(g, "request_id", "unknown"),
+            e,
+        )
         return render_template(
             "errors/500.html", hide_nav=True, hide_header=True,
             back_url=last_page_url(url_for("main.home")),
