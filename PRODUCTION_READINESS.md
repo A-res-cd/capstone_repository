@@ -57,9 +57,13 @@ experimental until every release gate below is satisfied.
   at `localhost:5000`.
 - Migration tracking, backup/restore commands, and read-only health probes are
   implemented. Backup/restore execution in the target environment, malware
-  scanning, retention cleanup, monitoring, and deployment automation are still
-  pending.
+  scanning, automatic retention cleanup, monitoring, and deployment automation
+  are still pending.
+- Manuscript uploads now validate size and file signatures. Orphaned private
+  files can be reviewed with a read-only report; automatic deletion remains
+  disabled until the retention policy is approved.
 
-The next implementation step is upload security and retention cleanup. No
+The next implementation step is malware scanning and approved retention
+cleanup. No
 feature is production-complete until the relevant acceptance row and release
 gate are both satisfied.

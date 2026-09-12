@@ -7,6 +7,9 @@ from werkzeug.utils import secure_filename
 
 
 ALLOWED_MANUSCRIPT_EXTENSIONS = {"pdf", "doc", "docx"}
+DEFAULT_MANUSCRIPT_MAX_BYTES = 20 * 1024 * 1024
+PDF_SIGNATURE = b"%PDF-"
+OLE_SIGNATURE = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 
 
 def allowed_manuscript(filename):
@@ -29,11 +32,44 @@ def unique_manuscript_filename(filename):
     return f"{name}_{uuid.uuid4().hex[:8]}{ext}"
 
 
+def validate_manuscript_upload(file_obj):
+    if not file_obj or not file_obj.filename:
+        return "No file uploaded."
+    if not allowed_manuscript(file_obj.filename):
+        return "Invalid file type. Only PDF, DOC, and DOCX are allowed."
+
+    max_bytes = current_app.config.get(
+        "UPLOAD_MANUSCRIPT_MAX_BYTES", DEFAULT_MANUSCRIPT_MAX_BYTES
+    )
+    stream = file_obj.stream
+    position = stream.tell()
+    try:
+        stream.seek(0, os.SEEK_END)
+        file_size = stream.tell()
+        stream.seek(0)
+        signature = stream.read(8)
+    finally:
+        stream.seek(position)
+
+    if file_size <= 0 or file_size > max_bytes:
+        return f"Manuscript files must be smaller than {max_bytes // (1024 * 1024)} MB."
+
+    extension = file_obj.filename.rsplit(".", 1)[1].lower()
+    if extension == "pdf" and not signature.startswith(PDF_SIGNATURE):
+        return "The uploaded PDF file is not valid."
+    if extension in {"doc", "docx"} and not (
+        signature.startswith(OLE_SIGNATURE) or signature.startswith(b"PK")
+    ):
+        return "The uploaded document file is not valid."
+    return None
+
+
 def save_manuscript_upload(file_obj):
     if not file_obj or not file_obj.filename:
         return None, None
-    if not allowed_manuscript(file_obj.filename):
-        return None, "Invalid file type. Only PDF, DOC, and DOCX are allowed."
+    validation_error = validate_manuscript_upload(file_obj)
+    if validation_error:
+        return None, validation_error
 
     folder = manuscript_upload_folder()
     os.makedirs(folder, exist_ok=True)

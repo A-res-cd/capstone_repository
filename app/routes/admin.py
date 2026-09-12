@@ -44,7 +44,6 @@ from app.utils.uploads import (
     resolve_manuscript_file,
     save_manuscript_upload,
     stored_manuscript_path,
-    unique_manuscript_filename,
 )
 from app import mail
 admin = Blueprint("admin", __name__)
@@ -159,13 +158,10 @@ def extract_capstone_pdf():
     if not file or file.filename == '':
         return jsonify({'success': False, 'error': 'No file uploaded.'}), 400
 
-    if not _allowed(file.filename):
-        return jsonify({'success': False, 'error': 'Only PDF, DOC, and DOCX files are accepted.'}), 400
-
-    filename = unique_manuscript_filename(file.filename)
-    os.makedirs(manuscript_upload_folder(), exist_ok=True)
+    filename, error = save_manuscript_upload(file)
+    if error:
+        return jsonify({'success': False, 'error': error}), 400
     temp_path = os.path.join(manuscript_upload_folder(), filename)
-    file.save(temp_path)
 
     # Only PDF files can be parsed for metadata — DOC/DOCX silently skip
     if filename.lower().endswith('.pdf'):
@@ -923,9 +919,9 @@ def admin_create_capstone():
                 return _rerender()
         elif extracted_filename:
             filename = secure_filename(extracted_filename)
-            if not _allowed(filename):
+            if not _allowed(filename) or not resolve_manuscript_file(filename):
                 flash(
-                    "Invalid file type. Only PDF, DOC, and DOCX are allowed.", "danger")
+                    "Choose a valid uploaded manuscript file.", "danger")
                 return _rerender()
         else:
             flash("Upload a capstone file first.", "danger")

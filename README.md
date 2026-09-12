@@ -33,7 +33,9 @@ MAIL_PASSWORD = your-email-password
 UPLOAD_MANUSCRIPT_FOLDER = app/static/uploads/manuscripts
 UPLOAD_REGISTRATION_FOLDER = app/static/uploads/registration
 UPLOAD_AVATAR_FOLDER = app/uploads/avatars
+UPLOAD_MANUSCRIPT_MAX_BYTES = 20971520
 UPLOAD_AVATAR_MAX_BYTES = 5242880
+UPLOAD_ORPHAN_RETENTION_DAYS = 30
 
 # Required for automatic OCR of scanned COR files.
 # Install the Windows engine separately from:
@@ -105,3 +107,13 @@ python scripts/restore_database.py --input backups/capre_predeploy.dump --confir
 
 Backup files are ignored by Git. Store them in protected backup storage and
 test a restore before treating a deployment as production-ready.
+
+Uploaded manuscripts are checked by extension, size, and file signature before
+they are stored. Review old unreferenced private files before deleting them:
+
+```text
+python scripts/report_orphaned_uploads.py
+```
+
+The report is read-only. Do not delete a reported file until its database
+references and retention policy have been reviewed.
