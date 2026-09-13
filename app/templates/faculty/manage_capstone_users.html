@@ -9,7 +9,11 @@
 <section class="profile-page advisory-page">
         <div class="profile-hero">
             <div class="profile-avatar" aria-hidden="true">
-                {{ (professor.user_first_name or '?')[0] | upper }}{{ (professor.user_last_name or '')[0] | upper }}
+                {% if avatar %}
+                <img src="{{ url_for('pages.user_avatar') }}" alt="Profile image">
+                {% else %}
+                {{ (profile.user_first_name or '?')[0] | upper }}
+                {% endif %}
             </div>
             <div class="profile-hero__details">
                 <div class="profile-detail-line">

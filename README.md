@@ -35,9 +35,9 @@ MAIL_PORT = 587
 MAIL_USERNAME = your-email@example.com
 MAIL_PASSWORD = your-email-password
 
-UPLOAD_MANUSCRIPT_FOLDER = app/static/uploads/manuscripts
-UPLOAD_REGISTRATION_FOLDER = app/static/uploads/registration
-UPLOAD_AVATAR_FOLDER = app/uploads/avatars
+UPLOAD_MANUSCRIPT_FOLDER = instance/uploads/manuscripts
+UPLOAD_REGISTRATION_FOLDER = instance/uploads/registration
+UPLOAD_AVATAR_FOLDER = instance/uploads/avatars
 UPLOAD_MANUSCRIPT_MAX_BYTES = 20971520
 UPLOAD_AVATAR_MAX_BYTES = 5242880
 UPLOAD_ORPHAN_RETENTION_DAYS = 30
@@ -68,7 +68,7 @@ Signup accepts a Certificate of Registration as a PDF. The upload appears first
 in the form and attempts to extract the registration number, student number,
 first name, middle name, and last name. Extracted values remain editable before
 account creation. The sample COR test is stored at
-`app/static/uploads/registration/Sapin_Aaries_M._3e7f3448731c472d93c9912b893e73ac.pdf`.
+`instance/uploads/registration/Sapin_Aaries_M._3e7f3448731c472d93c9912b893e73ac.pdf`.
 
 The sample COR is image-based, so Tesseract OCR must be installed for automatic
 extraction. `pytesseract` in `requirements.txt` is only the Python wrapper. If

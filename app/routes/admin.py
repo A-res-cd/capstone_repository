@@ -596,16 +596,17 @@ def verification_document(request_id):
     path = resolve_cor_file(document['filename'])
     if not path:
         abort(404)
+    inline = request.args.get('inline') == '1'
     response = send_file(
         path,
         mimetype='application/pdf',
-        as_attachment=True,
+        as_attachment=not inline,
         download_name=document['filename'],
         max_age=0,
     )
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['Content-Security-Policy'] = "sandbox; default-src 'none'; frame-ancestors 'none'"
+    response.headers['Content-Security-Policy'] = "sandbox; default-src 'none'; frame-ancestors 'self'"
     return response
 
 

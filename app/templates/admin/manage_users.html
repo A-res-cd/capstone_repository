@@ -81,22 +81,9 @@
                     </div>
                 </div>
                 <div class="record-card__actions">
-                    <button type="button" class="btn-row" data-verification-details="{{ url_for('admin.verification_details', request_id=pv.request_id) }}" aria-haspopup="dialog">View details / COR</button>
-                    <form method="POST" action="{{ url_for('admin.decide_verification', request_id=pv.request_id) }}" style="display:inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="decision" value="approved">
-                        <button type="submit" class="btn-row btn-row--approve">
-                            <i class="bx bx-check"></i> Approve
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ url_for('admin.decide_verification', request_id=pv.request_id) }}" style="display:inline;"
-                          onsubmit="return confirm('Reject this account? The user will not be able to sign in.');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="decision" value="rejected">
-                        <button type="submit" class="btn-row btn-row--reject">
-                            <i class="bx bx-x"></i> Reject
-                        </button>
-                    </form>
+                    <button type="button" class="btn-row" data-verification-details="{{ url_for('admin.verification_details', request_id=pv.request_id) }}" data-verification-action="{{ url_for('admin.decide_verification', request_id=pv.request_id) }}" aria-haspopup="dialog">
+                        <i class="bx bx-search-alt"></i> Review request
+                    </button>
                 </div>
             </div>
             {% endfor %}
@@ -113,11 +100,35 @@
         <div class="verification-dialog__content">
             <h2 id="verification-title">Account verification details</h2>
             <p data-verification-status role="status" aria-live="polite"></p>
-            <dl data-verification-fields hidden></dl>
-            <p>COR files are private. Download and open the PDF to review it before approving or rejecting the account.</p>
+            <div class="verification-dialog__grid">
+                <section class="verification-dialog__details" aria-labelledby="verification-account-heading">
+                    <h3 id="verification-account-heading">Account details</h3>
+                    <dl data-verification-fields hidden></dl>
+                </section>
+                <section class="verification-dialog__document" aria-labelledby="verification-document-heading">
+                    <h3 id="verification-document-heading">COR preview</h3>
+                    <p class="verification-dialog__document-note">Review the uploaded Certificate of Registration before deciding.</p>
+                    <div class="verification-dialog__viewer-wrap" data-verification-viewer-wrap hidden>
+                        <iframe class="verification-dialog__viewer" data-verification-viewer title="Certificate of Registration preview" loading="lazy" referrerpolicy="no-referrer"></iframe>
+                    </div>
+                </section>
+            </div>
+            <p class="verification-dialog__privacy-note">COR files are private and available only to authorized reviewers.</p>
             <div class="verification-dialog__actions">
-                <a class="btn-pill btn-pill--primary" data-verification-file hidden>Download / open COR (PDF)</a>
-                <button type="button" class="btn-pill btn-pill--ghost" data-verification-close>Close</button>
+                <a class="btn-pill btn-pill--primary" data-verification-file hidden>Download COR (PDF)</a>
+                <div class="verification-dialog__decision-actions">
+                    <form method="POST" data-verification-decision-form>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="decision" value="approved">
+                        <button type="submit" class="btn-pill btn-pill--primary" data-verification-approve disabled>Verify account</button>
+                    </form>
+                    <form method="POST" data-verification-decision-form onsubmit="return confirm('Reject this account? The user will not be able to sign in.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="decision" value="rejected">
+                        <button type="submit" class="btn-pill btn-pill--danger" data-verification-reject disabled>Reject request</button>
+                    </form>
+                    <button type="button" class="btn-pill btn-pill--ghost" data-verification-close>Close</button>
+                </div>
             </div>
         </div>
     </dialog>

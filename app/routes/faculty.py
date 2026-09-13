@@ -13,6 +13,7 @@ from app.routes.forms import (
     AdvisoryGroupForm, AddAdvisoryStudentForm, CreateAdvisoryGroupForm,
     RemoveAdvisoryStudentForm,
 )
+from app.db.avatars import get_user_avatar
 
 faculty = Blueprint("faculty", __name__, url_prefix="/faculty")
 
@@ -41,6 +42,9 @@ def _create_group_form(*, submitted=False):
 
 
 def _render_advisory_students(add_form=None, group_form=None, rename_form=None, rename_group_id=None):
+    user_id = session.get("user_id")
+    avatar = get_user_avatar(user_id)
+
     try:
         roster = get_advisory_roster(session["user_id"])
         groups = get_advisory_groups(session["user_id"])
@@ -75,6 +79,7 @@ def _render_advisory_students(add_form=None, group_form=None, rename_form=None, 
         group_form=group_form or AdvisoryGroupForm(formdata=None),
         rename_form=rename_form, rename_group_id=rename_group_id,
         add_form=add_form, remove_form=RemoveAdvisoryStudentForm(formdata=None),
+        avatar=avatar,
     )
 
 
