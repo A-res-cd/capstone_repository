@@ -1,6 +1,7 @@
 import mimetypes
 import os
 import uuid
+from pathlib import Path
 
 from flask import current_app
 from werkzeug.utils import secure_filename
@@ -19,8 +20,11 @@ def allowed_manuscript(filename):
 def manuscript_upload_folder():
     configured = current_app.config.get("UPLOAD_MANUSCRIPT_FOLDER") or current_app.config.get("UPLOAD_FOLDER")
     if configured:
-        return os.path.abspath(configured)
-    return os.path.join(current_app.instance_path, "uploads")
+        path = Path(configured)
+        if not path.is_absolute():
+            path = Path(current_app.root_path).parent / path
+        return str(path.resolve())
+    return str((Path(current_app.instance_path) / "uploads" / "manuscripts").resolve())
 
 
 def unique_manuscript_filename(filename):
@@ -62,6 +66,7 @@ def resolve_manuscript_file(file_rel):
     candidates = [
         os.path.join(manuscript_upload_folder(), filename),
         os.path.join(current_app.root_path, "static", "uploads", filename),
+        os.path.join(current_app.instance_path, "uploads", "manuscripts", filename),
         os.path.join(current_app.instance_path, "uploads", filename),
     ]
     legacy_folder = current_app.config.get('UPLOAD_FOLDER')

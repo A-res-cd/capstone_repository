@@ -10,7 +10,7 @@
 {% block title %}Sign Up | CAPRE{% endblock %}
 
 {% block content %}
-<div class="auth-shell">
+<div class="auth-shell auth-shell--signup">
     <div class="auth-shell__bg"></div>
     {% include 'partials/flash_messages.html' %}
 
@@ -21,7 +21,7 @@
         </a>
     </header>
 
-    <div class="auth-shell__body">
+    <div class="auth-shell__body auth-shell__body--signup">
 
         {# ── Annotation column ── #}
         <div class="auth-annotation">
@@ -49,7 +49,7 @@
                     <p>Fill in your details to register</p>
                 </div>
 
-                <form action="{{ url_for('auth.signup') }}" method="POST" enctype="multipart/form-data" class="auth-form" novalidate>
+                <form id="signup-form" action="{{ url_for('auth.signup') }}" method="POST" enctype="multipart/form-data" class="auth-form" novalidate>
                     {{ form.hidden_tag() }}
 
                     <div class="form-group cor-upload-group">
@@ -120,11 +120,26 @@
                         {% endfor %}
                     </div>
 
-                    <button type="submit" class="btn-auth-primary">
-                        <i class="bx bx-user-plus"></i>
-                        Create Account
-                    </button>
+                    <div class="form-group signup-terms">
+                        <div class="signup-terms__choice">
+                            <label class="signup-terms__label">
+                                {{ form.accept_terms(id="accept_terms") }}
+                                <span>I accept the</span>
+                            </label>
+                            <button type="button" class="signup-terms__link" id="termsLink" aria-controls="terms-modal">
+                                Terms and Agreements
+                            </button>
+                        </div>
+                        {% for error in form.accept_terms.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
                 </form>
+
+                <button type="submit" form="signup-form" class="btn-auth-primary">
+                    <i class="bx bx-user-plus"></i>
+                    Create Account
+                </button>
 
                 <div class="auth-form-card__footer">
                     <p>Already have an account?
@@ -134,6 +149,25 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<div class="terms-modal" id="terms-modal" hidden role="dialog" aria-modal="true" aria-labelledby="terms-modal-title">
+    <div class="terms-modal__backdrop" data-terms-close></div>
+    <div class="terms-modal__content">
+        <button type="button" class="terms-modal__close" data-terms-close aria-label="Close Terms and Agreements">
+            <i class="bx bx-x"></i>
+        </button>
+        <h2 id="terms-modal-title">Terms and Agreements</h2>
+        <p>By creating a CAPRE account, you agree to the following:</p>
+        <ul>
+            <li>Provide accurate and complete personal information.</li>
+            <li>Upload only your valid Certificate of Registration.</li>
+            <li>Use CAPRE for legitimate academic and repository purposes.</li>
+            <li>Keep your account credentials private and secure.</li>
+            <li>Respect the intellectual property and privacy of other users.</li>
+        </ul>
+        <p>CAPRE may review account information and uploaded documents before approving access.</p>
     </div>
 </div>
 
@@ -151,6 +185,26 @@ function togglePassword(fieldId, btn) {
         icon.className = 'bx bx-hide';
     }
 }
+
+const termsModal = document.getElementById('terms-modal');
+const termsLink = document.getElementById('termsLink');
+const termsCloseButtons = termsModal.querySelectorAll('[data-terms-close]');
+
+function openTermsModal() {
+    termsModal.hidden = false;
+    termsModal.querySelector('.terms-modal__close').focus();
+}
+
+function closeTermsModal() {
+    termsModal.hidden = true;
+    termsLink.focus();
+}
+
+termsLink.addEventListener('click', openTermsModal);
+termsCloseButtons.forEach((button) => button.addEventListener('click', closeTermsModal));
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !termsModal.hidden) closeTermsModal();
+});
 </script>
 {% endblock %}
 {% endblock %}

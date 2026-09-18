@@ -34,7 +34,12 @@ def read_cor_upload(upload):
 
 def registration_upload_folder():
     configured = current_app.config.get('UPLOAD_REGISTRATION_FOLDER')
-    return Path(configured).resolve() if configured else Path(current_app.instance_path, 'registration').resolve()
+    if configured:
+        folder = Path(configured)
+        if not folder.is_absolute():
+            folder = Path(current_app.root_path).parent / folder
+        return folder.resolve()
+    return Path(current_app.instance_path, 'uploads', 'registration').resolve()
 
 
 def resolve_cor_file(filename):

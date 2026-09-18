@@ -13,7 +13,7 @@ saving. Nothing is written to the database by this module.
 Usage:
     from app.utils.pdf_extractor import extract_capstone_data
 
-    data = extract_capstone_data("app/static/uploads/thesis.pdf")
+    data = extract_capstone_data("instance/uploads/manuscripts/thesis.pdf")
     # data is a dict — see return value of extract_capstone_data() below.
 
 Dependencies:

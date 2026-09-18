@@ -26,6 +26,10 @@ class SignupForm(FlaskForm):
     
     password = PasswordField("Password", validators=[DataRequired(message = "Password is required"), 
                                                      Length(min = 6, message = "Password must be at least 6 characters.")])
+    accept_terms = BooleanField(
+        "I accept the Terms and Agreements",
+        validators=[DataRequired(message="You must accept the Terms and Agreements to create an account.")]
+    )
     
 class ForgotPasswordForm(FlaskForm):
     username = StringField("Username", validators = [DataRequired(message="Username is required.")])
