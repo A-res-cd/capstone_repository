@@ -9,6 +9,7 @@ from app.utils.cor_extractor import extract_cor_fields
 
 SAMPLE_COR = (
     Path(__file__).parents[1]
+    / "app"
     / "static"
     / "uploads"
     / "registration"

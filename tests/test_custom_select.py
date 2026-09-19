@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 import pytest
 from playwright.sync_api import expect
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 HTML = """<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="/static/css/base/global.css">
 <link rel="stylesheet" href="/static/css/components/index.css">

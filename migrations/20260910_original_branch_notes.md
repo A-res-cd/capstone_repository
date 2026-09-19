@@ -1,7 +1,7 @@
 # Original-branch feature setup
 
 1. Back up the original branch database and confirm the app points to it, not the experimental database.
-2. Run `20260910_verification_documents.sql` on that database before restarting the app. It adds only `user.cor_filename`; fresh databases from `capreDB.sql` already have the column.
+2. Run `20260910_verification_documents.sql` on that database before restarting the app. It adds only `user.cor_filename`; fresh databases from `database/capreDB.sql` already have the column.
 3. Sign up using a readable COR PDF (maximum 5 MB and 20 pages). Sign in as Admin, open **Users & Roles → Verify Accounts → View details / COR**, and download the PDF before deciding.
 4. Check **Audit Logs** and **Title Similarity**. Neither needs additional tables. The `/propose-topic` URL is preserved.
 

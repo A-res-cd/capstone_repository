@@ -10,7 +10,7 @@ import pytest
 
 from app.utils.account_emails import password_reset_email, verification_email
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ def test_email_layout_without_external_assets(email_app, page, kind, width, tmp_
 
 
 def test_password_reset_route_sends_formatted_email_and_retains_failure_handling(email_app, monkeypatch):
-    routes = import_module('app.routes.authentication')
+    routes = import_module('app.routes.authentication.passwords')
     email_app.register_blueprint(routes.auth)
     sent = []
     monkeypatch.setattr(routes, 'lookup_user_for_reset', lambda username, email: (11, 7, None))

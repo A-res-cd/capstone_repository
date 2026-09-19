@@ -24,7 +24,7 @@ from app.utils.cor_upload import read_cor_upload, resolve_cor_file, MAX_COR_BYTE
 from app.utils.uploads import manuscript_upload_folder, resolve_manuscript_file
 from app.utils.audit_summary import summarize_audit
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 admin = import_module('app.routes.admin')
 auth = import_module('app.routes.authentication')
 pages = import_module('app.routes.pages')
@@ -96,7 +96,7 @@ def feature_db(isolated_database, monkeypatch):
     with closing(psycopg2.connect(**isolated_database)) as conn, conn.cursor() as cursor:
         cursor.execute(f'CREATE SCHEMA "{schema}"')
         cursor.execute(f'SET search_path TO "{schema}"')
-        cursor.execute((ROOT / 'capreDB.sql').read_text(encoding='utf-8'))
+        cursor.execute((ROOT / 'database/capreDB.sql').read_text(encoding='utf-8'))
         cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'Admin'), (4, 'Capstone Professor')")
         conn.commit()
 
@@ -133,7 +133,7 @@ def feature_app(monkeypatch, tmp_path):
     def context():
         return dict(hide_header=True, hide_nav=True)
 
-    monkeypatch.setattr(pages, 'get_capstones_corpus', lambda: [dict(capstone_id=1, capstone_title='Attendance Tracking System')])
+    monkeypatch.setattr(pages.topics, 'get_capstones_corpus', lambda: [dict(capstone_id=1, capstone_title='Attendance Tracking System')])
     return app
 
 
@@ -143,10 +143,22 @@ def login(client, role=3):
 
 
 def signup_data(file=True):
-    data = dict(first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='secure-password')
+    data = dict(first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='secure-password', accept_terms='y')
     if file:
         data['cor'] = (BytesIO(pdf_bytes()), 'my COR.pdf')
     return data
+
+
+def test_signup_requires_terms_before_storage_or_account_creation(feature_app, monkeypatch):
+    def unexpected(*args, **kwargs):
+        pytest.fail('Signup must not store a file or create an account without consent')
+    monkeypatch.setattr(auth.registration, 'save_cor_upload', unexpected)
+    monkeypatch.setattr(auth.registration, 'create_user', unexpected)
+    data = signup_data()
+    data.pop('accept_terms')
+    response = feature_app.test_client().post('/signup', data=data)
+    assert response.status_code == 200
+    assert b'You must accept the Terms and Agreements' in response.data
 
 
 def test_signup_atomic_document_and_admin_access(feature_app, feature_db):
@@ -251,7 +263,7 @@ def test_verification_email_after_saved_decision(feature_app, feature_db, monkey
         if fail_mail:
             raise OSError('simulated mail failure')
         sent.append(message)
-    monkeypatch.setattr(admin, 'mail', SimpleNamespace(send=send))
+    monkeypatch.setattr(admin.users, 'mail', SimpleNamespace(send=send))
     client = feature_app.test_client()
     login(client)
     endpoint = f'/manage_users/verify/{request_id}'
@@ -284,9 +296,9 @@ def test_registration_path_guards_and_missing_files(feature_app, monkeypatch):
             assert resolve_cor_file(filename) is None
     client = feature_app.test_client()
     login(client)
-    monkeypatch.setattr(admin, 'get_verification_document', lambda _: {'filename': '../COR.pdf'})
+    monkeypatch.setattr(admin.users, 'get_verification_document', lambda _: {'filename': '../COR.pdf'})
     assert client.get('/manage_users/verify/1/document').status_code == 404
-    monkeypatch.setattr(admin, 'get_verification_details', lambda _: {'filename': 'missing.pdf'})
+    monkeypatch.setattr(admin.users, 'get_verification_details', lambda _: {'filename': 'missing.pdf'})
     response = client.get('/manage_users/verify/1/details')
     assert response.json['document_url'] is None and response.json['size_bytes'] is None
 
@@ -294,7 +306,7 @@ def test_registration_path_guards_and_missing_files(feature_app, monkeypatch):
 def test_failed_database_signup_removes_new_file(feature_app, monkeypatch):
     def fail(*args, **kwargs):
         raise RuntimeError('database unavailable')
-    monkeypatch.setattr(auth, 'create_user', fail)
+    monkeypatch.setattr(auth.registration, 'create_user', fail)
     with pytest.raises(RuntimeError):
         feature_app.test_client().post('/signup', data=signup_data())
     assert list(Path(feature_app.config['UPLOAD_REGISTRATION_FOLDER']).iterdir()) == []
@@ -303,8 +315,8 @@ def test_failed_database_signup_removes_new_file(feature_app, monkeypatch):
 def test_upload_storage_error_does_not_create_account(feature_app, monkeypatch):
     def fail(_):
         raise OSError('storage unavailable')
-    monkeypatch.setattr(auth, 'save_cor_upload', fail)
-    monkeypatch.setattr(auth, 'create_user', lambda *args, **kwargs: pytest.fail('Must not create account without a file'))
+    monkeypatch.setattr(auth.registration, 'save_cor_upload', fail)
+    monkeypatch.setattr(auth.registration, 'create_user', lambda *args, **kwargs: pytest.fail('Must not create account without a file'))
     response = feature_app.test_client().post('/signup', data=signup_data())
     assert response.status_code == 200 and b'Could not save your COR' in response.data
 
@@ -329,13 +341,12 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     login(client)
     event = dict(audit_id=1, user_id=None, actor_name='<script>alert(1)</script>', action_type='update_contact', affected_record_id=22,
                  affected_table='contact', new_values='SECRET', old_values=None, action_timestamp=None)
-    monkeypatch.setattr(admin, 'get_audit_logs', lambda *args: dict(events=[summarize_audit(event, {})], counts=dict(account=1, capstone=0, workflow=0, other=0), total=1, page=1, pages=1))
-    monkeypatch.setattr(admin, 'get_users', lambda **kwargs: ([], 0))
-    monkeypatch.setattr(admin, 'get_all_roles', lambda: [])
-    monkeypatch.setattr(admin, 'get_pending_promotions', lambda: [], raising=False)
-    monkeypatch.setattr(admin, 'get_pending_promotion_requests', lambda: [])
-    monkeypatch.setattr(admin, 'get_pending_verifications', lambda: [dict(request_id=1, full_name='Maria Cruz', role='Student', email='maria@example.com', university_no=None)])
-    monkeypatch.setattr(admin, 'get_verification_details', lambda request_id: dict(request_id=1, full_name='<img src=x onerror=alert(1)>', filename='COR.pdf', size_bytes=500))
+    monkeypatch.setattr(admin.audit, 'get_audit_logs', lambda *args: dict(events=[summarize_audit(event, {})], counts=dict(account=1, capstone=0, workflow=0, other=0), total=1, page=1, pages=1))
+    monkeypatch.setattr(admin.users, 'get_users', lambda **kwargs: ([], 0))
+    monkeypatch.setattr(admin.users, 'get_all_roles', lambda: [])
+    monkeypatch.setattr(admin.users, 'get_pending_promotion_requests', lambda: [])
+    monkeypatch.setattr(admin.users, 'get_pending_verifications', lambda: [dict(request_id=1, full_name='Maria Cruz', role='Student', email='maria@example.com', university_no=None)])
+    monkeypatch.setattr(admin.users, 'get_verification_details', lambda request_id: dict(request_id=1, full_name='<img src=x onerror=alert(1)>', filename='COR.pdf', size_bytes=500))
     folder = Path(feature_app.config['UPLOAD_REGISTRATION_FOLDER'])
     folder.mkdir()
     (folder / 'COR.pdf').write_bytes(pdf_bytes())
@@ -369,10 +380,10 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
     page.goto('http://features.test/manage_users')
     page.get_by_role('tab', name='Verify Accounts', exact=False).click()
-    page.get_by_role('button', name='View details / COR').click()
+    page.get_by_role('button', name='Review request', exact=True).click()
     expect(page.get_by_role('dialog')).to_contain_text('<img src=x onerror=alert(1)>')
     expect(page.get_by_role('dialog').locator('img')).to_have_count(0)
-    expect(page.get_by_role('link', name='Download / open COR (PDF)')).to_be_visible()
+    expect(page.get_by_role('link', name='Download COR (PDF)', exact=True)).to_be_visible()
     page.screenshot(path=str(ROOT / '.pytest_cache' / f'cor-{theme}-{width}.png'))
     page.get_by_role('button', name='Close', exact=True).click()
     login(client, 1)

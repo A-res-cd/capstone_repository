@@ -1,10 +1,6 @@
 def get_nav_links(role):
     links = [
-        {
-            "name": "Audit Logs", "title": "Audit Logs",
-            "url": "admin.audit_logs", "icon": "bx bx-history",
-            "roles": ["Admin"], "section": "Management"
-        },
+        
         # --- Process 6.0: Generate System Analytics and Report — Admin only ---
         # Sub-processes: View Audit Logs (6.1), Generate Informational Reports (6.2),
         # View Informational Reports (6.3), Generate Informational Analytics (6.5)
@@ -14,7 +10,16 @@ def get_nav_links(role):
             "url": "admin.analytics",
             "icon": "bx bx-bar-chart-alt-2",
             "roles": ["Admin"],
-            "section": "Management"
+            "section": "Reports & Audit"
+        },
+
+        {
+            "name": "Audit Logs", 
+            "title": "Audit Logs",
+            "url": "admin.audit_logs", 
+            "icon": "bx bx-history",
+            "roles": ["Admin"],
+            "section": "Reports & Audit"
         },
 
         # --- Process 2.0: Manage User and Role — Admin only ---
