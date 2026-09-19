@@ -1,3 +1,7 @@
+Project layout and code ownership: [structure guide](docs/STRUCTURE.md).
+Tests: [test instructions](tests/README.md).
+Desktop test runner: double-click `run_tests.bat`, or run `python scripts/test_gui.py`.
+
 # 1. Clone the repo
 git clone https://github.com/AresFrappe/capstone_repository.git
 cd repository
@@ -57,7 +61,7 @@ or
 python run.py
 
 # 7. Run the tests
-pytest app/test/test_cor_extractor.py app/test/test_cor_pdf.py -q
+pytest tests/test_cor_extractor.py tests/test_cor_pdf.py -q
 
 # 8. When done, deactivate environment
 deactivate
@@ -88,8 +92,8 @@ Use the explicit migration runner after creating the database and before
 starting the web process:
 
 ```text
-python migrate.py status
-python migrate.py upgrade
+python scripts/migrate.py status
+python scripts/migrate.py upgrade
 ```
 
 Migrations run in filename order, are recorded in `schema_migration`, and are
@@ -152,7 +156,7 @@ reports an infection.
 Before starting a production process, run the deployment preflight:
 
 ```text
-python migrate.py upgrade
+python scripts/migrate.py upgrade
 python scripts/preflight.py
 ```
 

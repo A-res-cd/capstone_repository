@@ -132,7 +132,7 @@ def create_app():
     # starting the job twice under the Flask dev server's reloader.
     if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
         from datetime import datetime, timedelta
-        from app.db.database import purge_expired_archived_capstones
+        from app.db.archive import purge_expired_archived_capstones
         scheduler = BackgroundScheduler(daemon=True)
         scheduler.add_job(
             purge_expired_archived_capstones,

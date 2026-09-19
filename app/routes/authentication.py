@@ -2,10 +2,9 @@ from flask import Blueprint, flash, render_template, request, redirect, url_for,
 from app.utils.account_emails import password_reset_email
 from smtplib import SMTPException
 import logging
-import psycopg2.extras
-from app.db.database import db_connect
+from app.db.session_users import get_locked_until
 
-from app.db.database import (
+from app.db.auth import (
     create_user,
     sign_in,
     sign_out,
@@ -41,24 +40,8 @@ def signin():
 
         if error:
             if "locked" in error.lower():
-                locked_until = None
-                conn = db_connect()
-                cur = conn.cursor(
-                    cursor_factory=psycopg2.extras.RealDictCursor)
-                cur.execute("""
-                    SELECT u.locked_until
-                    FROM "user" u
-                    JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
-                    JOIN kappa k ON k.username_id = sl.username_id
-                    WHERE LOWER(k.username) = LOWER(%s)
-                    ORDER BY (k.username = %s) DESC
-                    LIMIT 1
-                """, (username, username))
-                row = cur.fetchone()
-                cur.close()
-                conn.close()
-                if row and row["locked_until"]:
-                    locked_until = row["locked_until"].isoformat()
+                deadline = get_locked_until(username)
+                locked_until = deadline.isoformat() if deadline else None
             else:
                 flash(error, "error")
 
@@ -259,26 +242,6 @@ def reset_password_route():
     return render_template("authentication/reset_password.html", form=form,
                            hide_nav=True, hide_header=True)
 
-
-def get_current_user(user_id):
-    """Get the current logged-in user from the session."""
-    if not user_id:
-        return None
-
-    conn = db_connect()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        SELECT u.user_id, u.first_name, u.middle_name, u.last_name, u.email, u.role_id, r.role_name, u.locked_until
-        FROM "user" u
-        JOIN role r ON u.role_id = r.role_id
-        WHERE u.user_id = %s
-        LIMIT 1
-    """, (user_id,))
-    user = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    return user
 
 # @auth.route("/debug-ip")
 # def debug_ip():

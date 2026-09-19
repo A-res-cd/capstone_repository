@@ -7,7 +7,7 @@ from pathlib import Path
 from flask import current_app
 from werkzeug.utils import secure_filename
 
-from app.db.connection import db_connect
+from app.db.upload_references import get_referenced_uploads
 from app.utils.avatar_uploads import avatar_upload_folder
 from app.utils.cor_upload import registration_upload_folder
 from app.utils.uploads import manuscript_upload_folder
@@ -24,37 +24,15 @@ def _stored_name(value):
 
 
 def _referenced_upload_names():
-    conn = None
-    cursor = None
     try:
-        conn = db_connect()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT capstone_file FROM capstone WHERE capstone_file IS NOT NULL
-            UNION ALL
-            SELECT cor_filename FROM "user" WHERE cor_filename IS NOT NULL
-            UNION ALL
-            SELECT cor_filename FROM cor_registration
-            WHERE cor_filename IS NOT NULL
-            UNION ALL
-            SELECT storage_key FROM user_avatar
-            """
-        )
         return {
             stored_name
-            for row in cursor.fetchall()
-            if (stored_name := _stored_name(row[0]))
+            for value in get_referenced_uploads()
+            if (stored_name := _stored_name(value))
         }
     except Exception:
-        conn.rollback()
         logger.exception("Upload inventory stopped: could not read file references")
         return None
-    finally:
-        if cursor is not None:
-            cursor.close()
-        if conn is not None:
-            conn.close()
 
 
 def _files_in(folder):
