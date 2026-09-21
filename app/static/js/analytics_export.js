@@ -285,6 +285,45 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     };
 
+    const exportArff = report => {
+        const sections = report.sections || [];
+        const includeSection = sections.length > 1;
+        const sectionColumns = [...new Set(sections.flatMap(section => section.columns))];
+        const columns = includeSection ? ['Section', ...sectionColumns] : sectionColumns;
+        const records = sections.flatMap(section => section.rows.map(row => ({
+            section: section.title,
+            values: Object.fromEntries(section.columns.map((column, index) => [column, row[index]]))
+        })));
+        const quote = value => `'${String(value ?? '')
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/\r?\n/g, '\\n')}'`;
+        const isNumeric = value => value !== '' && value !== null && value !== undefined
+            && Number.isFinite(Number(value));
+        const attributeTypes = columns.map(column => {
+            const values = records
+                .map(record => column === 'Section' ? record.section : record.values[column])
+                .filter(value => value !== '' && value !== null && value !== undefined);
+            return values.length && values.every(isNumeric) ? 'NUMERIC' : 'STRING';
+        });
+        const rows = records.map(record => columns.map((column, index) => {
+            const value = column === 'Section' ? record.section : record.values[column];
+            if (value === '' || value === null || value === undefined) return '?';
+            return attributeTypes[index] === 'NUMERIC' ? String(value) : quote(value);
+        }).join(','));
+        const arff = [
+            `% CAPRE Analytics Report - ${report.name}`,
+            `@RELATION ${quote(report.name)}`,
+            '',
+            ...columns.map((column, index) => `@ATTRIBUTE ${quote(column)} ${attributeTypes[index]}`),
+            '',
+            '@DATA',
+            ...rows
+        ].join('\r\n');
+
+        download(arff, 'application/arff;charset=utf-8', `analytics-${safeFilename(report.name)}.arff`);
+    };
+
     const pdfSafe = value => String(value)
         .normalize('NFKD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -420,6 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const report = await getReport();
                 if (format === 'pdf') createPdf(report);
+                else if (format === 'arff') exportArff(report);
                 else exportCsv(report);
             }
 
