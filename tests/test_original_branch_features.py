@@ -364,6 +364,41 @@ def test_separate_manuscript_folder_and_legacy_fallback(feature_app, tmp_path):
         assert Path(resolve_manuscript_file('uploads/old.pdf')) == legacy / 'old.pdf'
 
 
+@pytest.mark.parametrize('path', ['/signin', '/signup', '/reset_password'])
+def test_password_icons_without_internet(feature_app, page, path):
+    client = feature_app.test_client()
+    if path == '/reset_password':
+        with client.session_transaction() as state:
+            state.update(otp_verified=True, reset_id=1, reset_user_id=1)
+
+    def handle(route):
+        url = urlsplit(route.request.url)
+        if url.netloc != 'offline.test':
+            route.abort()
+            return
+        response = client.get(url.path)
+        route.fulfill(status=response.status_code, body=response.data, content_type=response.content_type)
+
+    page.route('**/*', handle)
+    page.goto('http://offline.test' + path)
+    assert page.evaluate("async () => (await document.fonts.load('16px boxicons')).some(font => font.status === 'loaded')")
+    for button in page.locator('.input-toggle-btn').all():
+        field = page.locator('#' + button.get_attribute('aria-controls'))
+        icon = button.locator('i')
+        expect(icon).to_be_visible()
+        assert icon.evaluate("el => getComputedStyle(el, '::before').content") not in ('none', 'normal', '""')
+        expect(button).to_have_accessible_name('Show password')
+        field.fill('offline-password')
+        button.focus()
+        page.keyboard.press('Enter')
+        expect(field).to_have_attribute('type', 'text')
+        expect(button).to_have_accessible_name('Hide password')
+        expect(button).to_have_attribute('aria-pressed', 'true')
+        page.keyboard.press('Enter')
+        expect(field).to_have_attribute('type', 'password')
+        expect(button).to_have_accessible_name('Show password')
+
+
 @pytest.mark.parametrize('theme,width', [('light', 1280), ('dark', 1280), ('light', 390), ('dark', 390)])
 def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     client = feature_app.test_client()
