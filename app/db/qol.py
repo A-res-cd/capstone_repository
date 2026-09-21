@@ -98,12 +98,11 @@ def get_user_notification_summary(user_id, limit=6):
                 r.decision_date,
                 r.status_reason,
                 r.notification_seen_at,
-                c.capstone_title,
-                target_role.role_name AS target_role_name
+                c.capstone_title
             FROM request r
             LEFT JOIN capstone c ON c.capstone_id = r.capstone_id
-            LEFT JOIN role target_role ON target_role.role_id = r.target_role_id
             WHERE r.user_id = %s
+              AND r.request_type IS DISTINCT FROM 'promotion'
               AND r.decision_date IS NOT NULL
               AND r.request_status IN ('approved', 'rejected')
             ORDER BY r.decision_date DESC, r.request_id DESC
@@ -118,6 +117,7 @@ def get_user_notification_summary(user_id, limit=6):
             SELECT COUNT(*) AS total
             FROM request
             WHERE user_id = %s
+              AND request_type IS DISTINCT FROM 'promotion'
               AND decision_date IS NOT NULL
               AND request_status IN ('approved', 'rejected')
               AND notification_seen_at IS NULL
@@ -143,6 +143,7 @@ def mark_all_notifications_read(user_id):
             UPDATE request
             SET notification_seen_at = %s
             WHERE user_id = %s
+              AND request_type IS DISTINCT FROM 'promotion'
               AND decision_date IS NOT NULL
               AND request_status IN ('approved', 'rejected')
               AND notification_seen_at IS NULL
@@ -174,8 +175,7 @@ def get_admin_pending_nav_counts():
                 ) AS manuscript_requests,
                 COUNT(*) FILTER (
                     WHERE request_status = 'pending'
-                      AND (request_type = 'promotion'
-                           OR request_type LIKE 'verification_%')
+                      AND request_type LIKE 'verification_%'
                 ) AS user_requests
             FROM request
         """)

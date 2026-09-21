@@ -17,7 +17,6 @@
   ["/logout","auth.logout",["GET","HEAD","OPTIONS"]],
   ["/manage_users","admin.manage_users",["GET","HEAD","OPTIONS"]],
   ["/manage_users/delete/<int:user_id>","admin.delete_user",["OPTIONS","POST"]],
-  ["/manage_users/promotion/<int:request_id>","admin.decide_promotion",["OPTIONS","POST"]],
   ["/manage_users/status/<int:user_id>","admin.change_account_status",["OPTIONS","POST"]],
   ["/manage_users/update_role/<int:user_id>","admin.update_role",["GET","HEAD","OPTIONS","POST"]],
   ["/manage_users/verify/<int:request_id>","admin.decide_verification",["OPTIONS","POST"]],
@@ -54,7 +53,5 @@
   ["/user-info/contact","pages.update_user_contact_info",["OPTIONS","POST"]],
   ["/user-info/delete","pages.delete_own_account_route",["OPTIONS","POST"]],
   ["/user-info/password","pages.update_own_password",["OPTIONS","POST"]],
-  ["/user-info/promotion","pages.submit_promotion_request_route",["OPTIONS","POST"]],
-  ["/user-info/promotion/cancel/<int:request_id>","pages.cancel_promotion_request_route",["OPTIONS","POST"]],
   ["/verify_otp","auth.verify_otp_route",["GET","HEAD","OPTIONS","POST"]]
 ]

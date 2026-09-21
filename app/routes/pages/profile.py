@@ -1,16 +1,12 @@
 """Pages profile routes and local helpers."""
 from . import pages
-from flask import render_template, request, flash, session, redirect, url_for, g
+from flask import render_template, request, flash, session, redirect, url_for
 import re
 from app.db.users import (
     get_user_contacts,
     upsert_user_contact,
     get_own_profile,
     delete_own_account,
-    get_all_roles,
-    submit_promotion_request,
-    get_own_promotion_requests,
-    cancel_promotion_request,
 )
 from app.db.auth import change_own_password
 from app.routes.decorators import login_required
@@ -38,10 +34,6 @@ def user_info():
     ]
     contact_by_type = {c["contact_type"]: c for c in contacts}
 
-    roles = get_all_roles()
-    promotion_requests = get_own_promotion_requests(user_id)
-    has_pending_promotion = any(r["request_status"] == "pending" for r in promotion_requests)
-
     return render_template(
         "global/user_information.html",
         hide_nav=False,
@@ -50,57 +42,7 @@ def user_info():
         contact_labels=contact_labels,
         contact_by_type=contact_by_type,
         password_form=ChangePasswordForm(),
-        roles=roles,
-        promotion_requests=promotion_requests,
-        has_pending_promotion=has_pending_promotion,
     )
-
-
-@pages.route("/user-info/promotion", methods=["POST"])
-@login_required
-def submit_promotion_request_route():
-    user_id = session.get("user_id")
-    target_role_id = request.form.get("target_role_id")
-    reason = request.form.get("reason", "").strip()
-
-    # Admins already hold the top role — block here too, not just by
-    # hiding the form, since a direct POST would otherwise still work.
-    # Use g.user (loaded fresh from the DB this request) rather than the
-    # session copy, so a role change takes effect immediately.
-    current_role = g.user.get("role_name") if g.user else None
-    if current_role == "Admin":
-        flash("Admins can't request a role promotion.", "danger")
-        return redirect(url_for("pages.user_info"))
-
-    if not target_role_id or not target_role_id.isdigit():
-        flash("Select a role to request.", "danger")
-        return redirect(url_for("pages.user_info"))
-
-    # Admin can't be requested as a target role either — it's granted
-    # by another admin via Manage Users, not self-service.
-    target_role_id = int(target_role_id)
-    roles = get_all_roles()
-    target_role_name = next((r[1] for r in roles if r[0] == target_role_id), None)
-    if target_role_name == "Admin":
-        flash("The Admin role can't be requested — it must be assigned by an existing admin.", "danger")
-        return redirect(url_for("pages.user_info"))
-
-    if not reason:
-        flash("Enter a reason for the request.", "danger")
-        return redirect(url_for("pages.user_info"))
-
-    ok, err = submit_promotion_request(user_id, target_role_id, reason)
-    flash("Promotion request submitted." if ok else err, "success" if ok else "danger")
-    return redirect(url_for("pages.user_info"))
-
-
-@pages.route("/user-info/promotion/cancel/<int:request_id>", methods=["POST"])
-@login_required
-def cancel_promotion_request_route(request_id):
-    user_id = session.get("user_id")
-    ok, err = cancel_promotion_request(request_id, user_id)
-    flash("Promotion request cancelled." if ok else err, "success" if ok else "danger")
-    return redirect(url_for("pages.user_info"))
 
 
 @pages.route("/user-info/contact", methods=["POST"])

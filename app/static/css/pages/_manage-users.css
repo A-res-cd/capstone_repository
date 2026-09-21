@@ -1,7 +1,7 @@
 /* ============================================================
    PAGE: Manage Users
-   List + edit-panel switching. Shared table look comes from
-   components/_table.css, the edit-card shell from
+   User list and edit modal. Shared table look comes from
+   components/_table.css, user details from
    components/_detail-card.css, fields from components/_forms.css,
    and buttons from components/_buttons.css.
 ============================================================ */
@@ -49,8 +49,8 @@ main:has(.mu-section) {
 .mu-panel { flex: 1; min-height: 0; }
 .mu-panel--hidden { display: none; }
 
-/* ── Tab switcher — flips between Manage Users, Verify Accounts,
-   and Approve Role Promotions. Only one [data-tab-panel] is shown
+/* ── Tab switcher — flips between Manage Users and Verify Accounts.
+   Only one [data-tab-panel] is shown
    at a time (see inline script). ── */
 .mu-tabs {
     flex-shrink: 0;
@@ -108,8 +108,8 @@ main:has(.mu-section) {
     box-shadow: 0 0 0 2px var(--color-white);
 }
 
-/* ── Tab switcher — flips between Manage Users, Verify Accounts,
-   and Approve Role Promotions. Only one [data-tab-panel] is shown
+/* ── Tab switcher — flips between Manage Users and Verify Accounts.
+   Only one [data-tab-panel] is shown
    at a time (see inline script). ── */
 .mu-tabs {
     flex-shrink: 0;
@@ -304,11 +304,13 @@ main:has(.mu-section) {
     color: var(--status-cancelled);
 }
 
-/* ── Edit User panel — now full-width instead of a narrow centered
-   card, so it uses the page instead of leaving dead space beside it ── */
+/* ── Edit User modal details and actions ── */
 .info-strip--wide {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr 1.4fr auto auto;
 }
+
+.info-strip--wide .role-badge,
+.info-strip--wide .status-badge { align-self: flex-start; }
 
 .mu-edit-grid {
     display: grid;
@@ -327,7 +329,12 @@ main:has(.mu-section) {
 .mu-edit-grid__col .form-actions {
     border-top: none;
     padding-top: 0;
-    margin-top: auto;
+    margin-top: 0;
+}
+
+.review-form-dialog .danger-zone {
+    padding: var(--space-md) 0 0;
+    border-top: 1px dashed var(--border-tag);
 }
 
 .mu-edit-grid__col.danger-zone {

@@ -69,11 +69,10 @@
                             <span>
                                 <strong>
                                     {% if item.request_type == 'manuscript' %}Manuscript request
-                                    {% elif item.request_type == 'promotion' %}Role request
                                     {% else %}Account request{% endif %}
                                     {{ item.request_status }}
                                 </strong>
-                                <small>{{ item.capstone_title or item.target_role_name or (item.status_reason or 'Review completed') }}</small>
+                                <small>{{ item.capstone_title or (item.status_reason or 'Review completed') }}</small>
                                 <time>{{ item.decision_date.strftime('%b %d, %Y - %I:%M %p') }}</time>
                             </span>
                         </a>

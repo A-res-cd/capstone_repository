@@ -2,6 +2,7 @@
 {% block title %}Browse Capstones | CAPRE{% endblock %}
 
 {% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/_review-paper.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_archive.css') }}">
 {% endblock %}
 
@@ -216,6 +217,9 @@
                             {% if session.get('role_name') == 'Student' %}
                             <a id="sb-request-link"
                                class="btn-manuscript"
+                               aria-haspopup="dialog" aria-controls="manuscript-request-dialog"
+                               data-submit-url="{{ url_for('pages.request_manuscript', capstone_id=sidebar_project.capstone_id) }}"
+                               data-submit-base-url="{{ url_for('pages.request_manuscript', capstone_id=0) }}"
                                href="{{ url_for('pages.request_capstone', capstone_id=sidebar_project.capstone_id) }}"
                                data-base-url="{{ url_for('pages.request_capstone', capstone_id=0) }}"
                                {% if is_approved %}style="display:none"{% endif %}>
@@ -268,6 +272,31 @@
                     <p>Select a capstone to see details.</p>
                 </div>
             </aside>
+
+            {% if session.get('role_name') == 'Student' and sidebar_project %}
+            <dialog id="manuscript-request-dialog" class="review-paper verification-dialog review-form-dialog" aria-labelledby="manuscript-request-title">
+                <div class="verification-dialog__content">
+                    <div class="review-form-dialog__header">
+                        <div>
+                            <h2 id="manuscript-request-title">Request Full Manuscript</h2>
+                            <p id="manuscript-request-project">{{ sidebar_project.capstone_title }}</p>
+                        </div>
+                        <button type="button" class="btn-icon" data-request-close aria-label="Close manuscript request"><i class="bx bx-x"></i></button>
+                    </div>
+                    <form id="manuscript-request-form" method="POST" action="{{ url_for('pages.request_manuscript', capstone_id=sidebar_project.capstone_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            <label for="manuscript-request-reason">Reason for requesting</label>
+                            <textarea id="manuscript-request-reason" name="request_reason" rows="5" placeholder="Explain why you need access to the full manuscript." required autofocus></textarea>
+                        </div>
+                        <div class="verification-dialog__actions">
+                            <button type="button" class="btn-pill btn-pill--ghost" data-request-close>Cancel</button>
+                            <button type="submit" class="btn-pill btn-pill--primary"><i class="bx bx-send"></i> Submit Request</button>
+                        </div>
+                    </form>
+                </div>
+            </dialog>
+            {% endif %}
 
             {# ── pop up citation ── #}
             <div id="cite-modal-overlay">

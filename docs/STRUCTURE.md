@@ -47,7 +47,7 @@ application's runtime paths remain at their existing locations.
 | --- | --- |
 | `/repository`, creation, updates, PDF extraction | `admin/repository.py` |
 | Repository manuscript preview/download | `admin/manuscripts.py` |
-| `/manage_users`, verification, promotions | `admin/users.py` |
+| `/manage_users`, verification, role changes | `admin/users.py` |
 | `/analytics` dashboard | `admin/analytics.py` |
 | Analytics reports and workbook exports | `admin/reports.py` |
 | `/requests` and review decisions | `admin/requests.py` |

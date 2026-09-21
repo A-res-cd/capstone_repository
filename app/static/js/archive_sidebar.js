@@ -8,6 +8,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarEmpty = document.getElementById('sidebar-empty');
     const sidebarSaveBtn = document.getElementById('sb-save-btn');
     const saveBaseUrl = sidebarSaveBtn?.dataset.baseUrl;
+    const requestLink = document.getElementById('sb-request-link');
+    const requestDialog = document.getElementById('manuscript-request-dialog');
+    const requestForm = document.getElementById('manuscript-request-form');
+
+    if (requestLink && requestDialog && requestForm) {
+        requestLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            requestForm.reset();
+            requestForm.action = requestLink.dataset.submitUrl;
+            document.getElementById('manuscript-request-project').textContent =
+                document.getElementById('sb-title').textContent;
+            requestDialog.showModal();
+        });
+        requestDialog.querySelectorAll('[data-request-close]').forEach((button) => {
+            button.addEventListener('click', () => requestDialog.close());
+        });
+    }
 
     const setSaveButton = (button, saved) => {
         if (!button) return;
@@ -107,9 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fullviewLink.style.display = isApproved ? '' : 'none';
             }
 
-            const requestLink = document.getElementById('sb-request-link');
             if (requestLink) {
                 requestLink.href = requestLink.dataset.baseUrl.slice(0, -1) + id;
+                requestLink.dataset.submitUrl = requestLink.dataset.submitBaseUrl.slice(0, -1) + id;
                 requestLink.style.display = isApproved ? 'none' : '';
             }
 

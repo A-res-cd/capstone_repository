@@ -47,6 +47,17 @@
 .verification-dialog__decision-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-md); }
 .verification-dialog [hidden] { display: none !important; }
 .audit-page .btn-pill--ghost, .verification-dialog .btn-pill--ghost { color: var(--text-brand); }
+.verification-dialog.review-form-dialog { width: min(600px, calc(100vw - 32px)); height: fit-content; max-height: calc(100dvh - 32px); overflow: auto; }
+.verification-dialog.review-form-dialog--wide { width: min(880px, calc(100vw - 32px)); }
+.review-form-dialog .verification-dialog__content { height: auto; padding: var(--space-lg); }
+.review-form-dialog__header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); margin-bottom: var(--space-lg); padding-bottom: var(--space-md); border-bottom: 1px dashed var(--border-tag); }
+.review-form-dialog__header h2 { margin-bottom: var(--space-sm); }
+.review-form-dialog__header p { margin: 0; color: var(--color-gray-dark); }
+.review-form-dialog__header .btn-icon { flex-shrink: 0; }
+.review-form-dialog textarea { min-height: 140px; resize: vertical; }
+.review-form-dialog .mu-edit-grid { padding: var(--space-xl) 0 0; }
+.review-form-dialog .info-strip { padding-inline: 0; }
+body:has(.review-form-dialog[open]) { overflow: hidden; }
 @media (max-width: 600px) {
     .verification-dialog { width: calc(100vw - 32px); height: auto; max-height: calc(100vh - 32px); overflow: auto; }
     .verification-dialog__content { height: auto; padding: var(--space-md); }

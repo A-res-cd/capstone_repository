@@ -142,6 +142,35 @@ def login(client, role=3):
         state.update(user_id=1, role_id=role)
 
 
+@pytest.mark.parametrize('path', [
+    '/user-info/promotion',
+    '/user-info/promotion/cancel/1',
+    '/manage_users/promotion/1',
+])
+def test_promotion_endpoints_removed(feature_app, path):
+    client = feature_app.test_client()
+    login(client)
+    assert client.post(path).status_code == 404
+
+
+@pytest.mark.parametrize('role', [1, 3])
+def test_direct_role_change_remains_admin_only(feature_app, monkeypatch, role):
+    calls = []
+
+    def update_role(user_id, new_role_id, acting_admin_id):
+        calls.append((user_id, new_role_id, acting_admin_id))
+        return True, None
+
+    monkeypatch.setattr(admin.users, 'update_user_role', update_role)
+    client = feature_app.test_client()
+    login(client, role=role)
+    response = client.post('/manage_users/update_role/2', data={'role_id': '4'})
+    assert response.status_code == 302
+    assert calls == ([(2, '4', 1)] if role == 3 else [])
+    if role == 3:
+        assert response.location == '/manage_users'
+
+
 def signup_data(file=True):
     data = dict(first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='secure-password', accept_terms='y')
     if file:
@@ -342,9 +371,8 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     event = dict(audit_id=1, user_id=None, actor_name='<script>alert(1)</script>', action_type='update_contact', affected_record_id=22,
                  affected_table='contact', new_values='SECRET', old_values=None, action_timestamp=None)
     monkeypatch.setattr(admin.audit, 'get_audit_logs', lambda *args: dict(events=[summarize_audit(event, {})], counts=dict(account=1, capstone=0, workflow=0, other=0), total=1, page=1, pages=1))
-    monkeypatch.setattr(admin.users, 'get_users', lambda **kwargs: ([], 0))
-    monkeypatch.setattr(admin.users, 'get_all_roles', lambda: [])
-    monkeypatch.setattr(admin.users, 'get_pending_promotion_requests', lambda: [])
+    monkeypatch.setattr(admin.users, 'get_users', lambda **kwargs: ([dict(user_id=2, full_name='Maria Cruz', university_no='2026-002', email='maria@example.com', role='Student', role_id=1, account_status='active')], 1))
+    monkeypatch.setattr(admin.users, 'get_all_roles', lambda: [(1, 'Student'), (3, 'Admin'), (4, 'Faculty')])
     monkeypatch.setattr(admin.users, 'get_pending_verifications', lambda: [dict(request_id=1, full_name='Maria Cruz', role='Student', email='maria@example.com', university_no=None)])
     monkeypatch.setattr(admin.users, 'get_verification_details', lambda request_id: dict(request_id=1, full_name='<img src=x onerror=alert(1)>', filename='COR.pdf', size_bytes=500))
     folder = Path(feature_app.config['UPLOAD_REGISTRATION_FOLDER'])
@@ -379,6 +407,21 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     expect(page.get_by_role('dialog')).not_to_be_visible()
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
     page.goto('http://features.test/manage_users')
+    edit_button = page.get_by_role('button', name='Edit', exact=True)
+    edit_button.click()
+    edit_dialog = page.get_by_role('dialog', name='Edit User', exact=True)
+    expect(edit_dialog).to_be_visible()
+    expect(edit_dialog.locator('#info-name')).to_have_text('Maria Cruz')
+    expect(edit_dialog.locator('#form-role')).to_have_attribute('action', '/manage_users/update_role/2')
+    expect(page.locator('#panel-list')).to_be_visible()
+    edit_dialog.get_by_role('combobox', name='Assign New Role', exact=False).click()
+    page.get_by_role('option', name='Faculty', exact=True).click()
+    expect(edit_dialog.locator('#role_id')).to_have_value('4')
+    assert edit_dialog.evaluate('(el) => el.scrollWidth <= el.clientWidth')
+    page.screenshot(path=str(ROOT / '.pytest_cache' / f'edit-user-{theme}-{width}.png'))
+    page.keyboard.press('Escape')
+    expect(edit_dialog).not_to_be_visible()
+    expect(edit_button).to_be_focused()
     page.get_by_role('tab', name='Verify Accounts', exact=False).click()
     page.get_by_role('button', name='Review request', exact=True).click()
     expect(page.get_by_role('dialog')).to_contain_text('<img src=x onerror=alert(1)>')
@@ -396,5 +439,38 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     if width > 900:
         assert page.evaluate("Math.abs(document.querySelector('#pt-results').offsetHeight - document.querySelector('#propose-topic-form').offsetHeight) <= 2")
     page.screenshot(path=str(ROOT / '.pytest_cache' / f'title-{theme}-{width}.png'))
+    projects = [dict(capstone_id=i, capstone_title=f'Project {i}', capstone_year=2026,
+                     program_name='BSIT', specialization_name='Web', capstone_keywords='web', semester='First') for i in (1, 2)]
+    monkeypatch.setattr(pages.archive, 'get_archive_capstones', lambda **kwargs: (projects, 2))
+    monkeypatch.setattr(pages.archive, 'get_archive_years', lambda: [2026])
+    monkeypatch.setattr(pages.archive, 'get_programs', lambda: [])
+    monkeypatch.setattr(pages.archive, 'get_specializations', lambda: [])
+    monkeypatch.setattr(pages.archive, 'get_saved_capstone_ids', lambda user_id: set())
+    with client.session_transaction() as state:
+        state['role_name'] = 'Student'
+    page.goto('http://features.test/archive')
+    page.locator('.archive-card[data-id="2"]').click()
+    page.locator('#sb-request-link').click()
+    request_dialog = page.get_by_role('dialog', name='Request Full Manuscript', exact=True)
+    expect(request_dialog).to_be_visible()
+    expect(request_dialog.locator('#manuscript-request-project')).to_have_text('Project 2')
+    expect(request_dialog.locator('form')).to_have_attribute('action', '/request_manuscript/2')
+    reason = request_dialog.get_by_role('textbox', name='Reason for requesting')
+    expect(reason).to_be_focused()
+    request_dialog.get_by_role('button', name='Submit Request').click()
+    expect(request_dialog).to_be_visible()
+    reason.fill('Reference for our capstone research.')
+    assert request_dialog.evaluate('(el) => el.scrollWidth <= el.clientWidth')
+    page.screenshot(path=str(ROOT / '.pytest_cache' / f'request-{theme}-{width}.png'))
+    submitted = []
+
+    def capture_request(route):
+        submitted.append(route.request.post_data)
+        route.fulfill(status=200, content_type='text/html', body='Request received')
+
+    page.route('**/request_manuscript/2', capture_request)
+    request_dialog.get_by_role('button', name='Submit Request').click()
+    expect(page.locator('body')).to_have_text('Request received')
+    assert 'request_reason=Reference+for+our+capstone+research.' in submitted[0]
     page.goto('http://features.test/signup')
     expect(page.locator('#cor')).to_be_visible()

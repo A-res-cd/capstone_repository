@@ -27,8 +27,6 @@ from app.db.users import (
     update_user_role,
     get_all_roles,
     set_account_status,
-    get_pending_promotion_requests,
-    review_promotion_request,
 )
 from app.routes.decorators import role_required
 
@@ -101,13 +99,11 @@ def manage_users():
 
     roles = get_all_roles()
     pending_verifications = get_pending_verifications()
-    pending_promotions = get_pending_promotion_requests()
     return render_template(
         "admin/manage_users.html",
         users=users,
         roles=roles,
         pending_verifications=pending_verifications,
-        pending_promotions=pending_promotions,
         search=search,
         selected_role=role_id,
         selected_status=status,
@@ -115,27 +111,6 @@ def manage_users():
         total_pages=total_pages,
         total_users=total,
     )
-
-
-@admin.route("/manage_users/promotion/<int:request_id>", methods=["POST"])
-@role_required(3)
-def decide_promotion(request_id):
-    decision = request.form.get("decision")  # 'approved' or 'rejected'
-    status_reason = request.form.get("status_reason", "")
-    reviewed_by = session.get("user_id")
-
-    if decision not in ("approved", "rejected"):
-        flash("Invalid decision.", "danger")
-        return redirect(url_for("admin.manage_users"))
-
-    ok, err = review_promotion_request(request_id, decision, status_reason, reviewed_by)
-    flash(
-        "Promotion approved." if (ok and decision == "approved")
-        else "Promotion request rejected." if ok
-        else f"Error: {err}",
-        "success" if ok else "danger",
-    )
-    return redirect(url_for("admin.manage_users"))
 
 
 @admin.route("/manage_users/verify/<int:request_id>", methods=["POST"])

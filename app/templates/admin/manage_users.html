@@ -14,7 +14,7 @@
     <div class="mu-page-header">
         <div>
             <h2>Manage Users</h2>
-            <p>View all registered users, verify new sign-ups, and review role promotion requests.</p>
+            <p>View all registered users, verify new sign-ups, and change user roles.</p>
         </div>
     </div>
 
@@ -30,10 +30,9 @@
     {% endwith %}
 
     {# ══════════════════════════════════════════════════════
-       TAB SWITCHER — Manage Users / Verify Accounts / Approve
-       Promotions. Only one panel is visible at a time; the two
-       request tabs carry a red notification badge with the
-       pending count.
+       TAB SWITCHER — Manage Users / Verify Accounts.
+       Only one panel is visible at a time; the verification tab
+       carries a red notification badge with the pending count.
     ══════════════════════════════════════════════════════ #}
     <div class="mu-tabs" role="tablist">
         <button type="button" class="mu-tab mu-tab--active" id="tab-users" data-target="panel-list-wrap" role="tab" aria-selected="true">
@@ -43,12 +42,6 @@
             <i class="bx bx-user-check"></i> Verify Accounts
             {% if pending_verifications %}
             <span class="mu-tab__badge">{{ pending_verifications|length }}</span>
-            {% endif %}
-        </button>
-        <button type="button" class="mu-tab" id="tab-promotions" data-target="panel-pending-promotions" role="tab" aria-selected="false">
-            <i class="bx bx-up-arrow-circle"></i> Approve Role Promotions
-            {% if pending_promotions %}
-            <span class="mu-tab__badge">{{ pending_promotions|length }}</span>
             {% endif %}
         </button>
     </div>
@@ -134,73 +127,7 @@
     </dialog>
 
     {# ══════════════════════════════════════════════════════
-       PANEL — PENDING ROLE PROMOTION REQUESTS
-    ══════════════════════════════════════════════════════ #}
-    <div class="mu-panel mu-panel--hidden" id="panel-pending-promotions" data-tab-panel>
-        <div class="mu-panel-header">
-            <h3><i class="bx bx-up-arrow-circle"></i> Pending Promotion Requests</h3>
-            <p>Existing users requesting a different role.</p>
-        </div>
-
-        {% if pending_promotions %}
-        <div class="record-list">
-            {% for pr in pending_promotions %}
-            <div class="record-card">
-                <div class="record-card__avatar">{{ pr.full_name[:1] }}</div>
-                <div class="record-card__body">
-                    <p class="record-card__title">{{ pr.full_name }}</p>
-                    <div class="record-card__meta">
-                        <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ pr.university_no }}</span>
-                        <span class="record-card__meta-item"><i class="bx bx-message-square-detail"></i>{{ pr.request_reason }}</span>
-                    </div>
-                    <div class="record-card__meta">
-                        <span class="role-badge
-                            {% if pr.current_role == 'Admin' %}role-badge--admin
-                            {% elif pr.current_role == 'Faculty' %}role-badge--faculty
-                            {% else %}role-badge--student{% endif %}">
-                            {{ pr.current_role }}
-                        </span>
-                        <i class="bx bx-right-arrow-alt"></i>
-                        <span class="role-badge
-                            {% if pr.target_role == 'Admin' %}role-badge--admin
-                            {% elif pr.target_role == 'Faculty' %}role-badge--faculty
-                            {% else %}role-badge--student{% endif %}">
-                            {{ pr.target_role }}
-                        </span>
-                    </div>
-                </div>
-                <div class="record-card__actions">
-                    <form method="POST" action="{{ url_for('admin.decide_promotion', request_id=pr.request_id) }}" style="display:inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="decision" value="approved">
-                        <button type="submit" class="btn-row btn-row--approve">
-                            <i class="bx bx-check"></i> Approve
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ url_for('admin.decide_promotion', request_id=pr.request_id) }}" style="display:inline;"
-                          onsubmit="return confirm('Reject this promotion request?');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="decision" value="rejected">
-                        <button type="submit" class="btn-row btn-row--reject">
-                            <i class="bx bx-x"></i> Reject
-                        </button>
-                    </form>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="empty-state">
-            <i class="bx bx-check-shield"></i>
-            <p>No promotion requests are waiting for review right now.</p>
-        </div>
-        {% endif %}
-    </div>{# end panel-pending-promotions #}
-
-    {# ══════════════════════════════════════════════════════
-       PANEL A — USER LIST (+ EDIT), wrapped so it toggles with
-       the tab switcher as a single unit — the edit form stays a
-       sub-view inside this tab rather than a fourth tab.
+       USER LIST — edit controls open in a modal from this tab.
     ══════════════════════════════════════════════════════ #}
     <div class="mu-panel" id="panel-list-wrap" data-tab-panel>
 
@@ -264,7 +191,7 @@
                     </div>
                 </div>
                 <div class="record-card__actions">
-                    <button class="btn-row btn-row--edit"
+                    <button type="button" class="btn-row btn-row--edit" aria-haspopup="dialog" aria-controls="panel-edit"
                         data-id="{{ u.user_id }}"
                         data-name="{{ u.full_name }}"
                         data-univ="{{ u.university_no }}"
@@ -312,18 +239,18 @@
     </div>{# end panel-list #}
 
     {# ══════════════════════════════════════════════════════
-       PANEL B — EDIT FORM (hidden by default)
+       EDIT USER MODAL
     ══════════════════════════════════════════════════════ #}
-    <div class="mu-panel mu-panel--hidden" id="panel-edit">
-        <div class="detail-card">
+    <dialog class="review-paper verification-dialog review-form-dialog review-form-dialog--wide" id="panel-edit" aria-labelledby="edit-user-title">
+        <div class="verification-dialog__content">
 
             {# Card header #}
-            <div class="detail-card__header">
+            <div class="review-form-dialog__header">
                 <div>
-                    <h3>Edit User</h3>
+                    <h2 id="edit-user-title" tabindex="-1" autofocus>Edit User</h2>
                     <p id="edit-subheading">Update role or remove account.</p>
                 </div>
-                <button class="btn-icon" id="btn-close-edit" title="Back to list">
+                <button type="button" class="btn-icon" id="btn-close-edit" aria-label="Close edit user">
                     <i class="bx bx-x"></i>
                 </button>
             </div>
@@ -435,7 +362,7 @@
             </div>
 
         </div>
-    </div>{# end panel-edit #}
+    </dialog>{# end panel-edit #}
 
     </div>{# end panel-list-wrap #}
 
@@ -443,8 +370,8 @@
 
 <script src="{{ url_for('static', filename='js/verification_details.js') }}"></script>
 <script>
-// ── Tab switcher — Manage Users / Verify Accounts / Approve
-// Promotions. Exactly one [data-tab-panel] is visible at a time;
+// ── Tab switcher — Manage Users / Verify Accounts.
+// Exactly one [data-tab-panel] is visible at a time;
 // the tab buttons themselves carry the notification badges.
 const tabButtons = document.querySelectorAll('.mu-tab');
 const tabPanels = document.querySelectorAll('[data-tab-panel]');
@@ -462,18 +389,14 @@ tabButtons.forEach(btn => {
     btn.addEventListener('click', () => activateTab(btn.dataset.target));
 });
 
-const panelList = document.getElementById('panel-list');
 const panelEdit = document.getElementById('panel-edit');
 
 function showEdit() {
-    panelList.classList.add('mu-panel--hidden');
-    panelEdit.classList.remove('mu-panel--hidden');
-    panelEdit.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    panelEdit.showModal();
 }
 
 function showList() {
-    panelEdit.classList.add('mu-panel--hidden');
-    panelList.classList.remove('mu-panel--hidden');
+    panelEdit.close();
 }
 
 function setStatusBadge(el, status) {
