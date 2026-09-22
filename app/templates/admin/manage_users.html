@@ -198,9 +198,7 @@
     </div>{# end panel-pending-promotions #}
 
     {# ══════════════════════════════════════════════════════
-       PANEL A — USER LIST (+ EDIT), wrapped so it toggles with
-       the tab switcher as a single unit — the edit form stays a
-       sub-view inside this tab rather than a fourth tab.
+       USER LIST — edit controls open in a modal from this tab.
     ══════════════════════════════════════════════════════ #}
     <div class="mu-panel" id="panel-list-wrap" data-tab-panel>
 
@@ -264,7 +262,7 @@
                     </div>
                 </div>
                 <div class="record-card__actions">
-                    <button class="btn-row btn-row--edit"
+                    <button type="button" class="btn-row btn-row--edit" aria-haspopup="dialog" aria-controls="panel-edit"
                         data-id="{{ u.user_id }}"
                         data-name="{{ u.full_name }}"
                         data-univ="{{ u.university_no }}"
@@ -273,7 +271,7 @@
                         data-role-id="{{ u.role_id }}"
                         data-status="{{ u.account_status }}"
                         data-is-self="{{ 'true' if u.user_id == session.get('user_id') else 'false' }}">
-                        <i class="bx bx-edit-alt"></i> Edit
+                        <i class="bx bx-edit-alt" aria-hidden="true"></i> Edit
                     </button>
                 </div>
             </div>
@@ -312,18 +310,18 @@
     </div>{# end panel-list #}
 
     {# ══════════════════════════════════════════════════════
-       PANEL B — EDIT FORM (hidden by default)
+       EDIT USER MODAL
     ══════════════════════════════════════════════════════ #}
-    <div class="mu-panel mu-panel--hidden" id="panel-edit">
-        <div class="detail-card">
+    <dialog class="review-paper verification-dialog review-form-dialog review-form-dialog--wide" id="panel-edit" aria-labelledby="edit-user-title">
+        <div class="verification-dialog__content">
 
             {# Card header #}
-            <div class="detail-card__header">
+            <div class="review-form-dialog__header">
                 <div>
-                    <h3>Edit User</h3>
+                    <h2 id="edit-user-title" tabindex="-1" autofocus>Edit User</h2>
                     <p id="edit-subheading">Update role or remove account.</p>
                 </div>
-                <button class="btn-icon" id="btn-close-edit" title="Back to list">
+                <button type="button" class="btn-icon" id="btn-close-edit" aria-label="Close edit user">
                     <i class="bx bx-x"></i>
                 </button>
             </div>
@@ -435,7 +433,7 @@
             </div>
 
         </div>
-    </div>{# end panel-edit #}
+    </dialog>{# end panel-edit #}
 
     </div>{# end panel-list-wrap #}
 
@@ -462,18 +460,14 @@ tabButtons.forEach(btn => {
     btn.addEventListener('click', () => activateTab(btn.dataset.target));
 });
 
-const panelList = document.getElementById('panel-list');
 const panelEdit = document.getElementById('panel-edit');
 
 function showEdit() {
-    panelList.classList.add('mu-panel--hidden');
-    panelEdit.classList.remove('mu-panel--hidden');
-    panelEdit.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    panelEdit.showModal();
 }
 
 function showList() {
-    panelEdit.classList.add('mu-panel--hidden');
-    panelList.classList.remove('mu-panel--hidden');
+    panelEdit.close();
 }
 
 function setStatusBadge(el, status) {
