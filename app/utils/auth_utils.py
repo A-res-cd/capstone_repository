@@ -6,7 +6,7 @@ from app.db.session_users import get_current_user
 def load_current_user():
     """Load the current user for application requests."""
 
-    if request.endpoint == "static":
+    if request.endpoint == "static" or request.blueprint == "mobile":
         return
 
     user_id = session.get("user_id")

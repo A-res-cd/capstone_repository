@@ -1,0 +1,28 @@
+:root { font-family: 'Segoe UI', system-ui, sans-serif; color: #333; background: #f5f6fa; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header { padding: calc(20px + env(safe-area-inset-top)) 22px 20px; background: #2e3f92; color: white; display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; }
+header strong { letter-spacing: .12em; font-size: 24px; }
+header span { font-size: 13px; }
+main { max-width: 760px; margin: auto; padding: 24px 18px calc(100px + env(safe-area-inset-bottom)); outline: none; }
+h1 { font-family: Georgia, serif; font-size: clamp(28px, 7vw, 38px); line-height: 1.2; }
+h2 { font-size: 19px; line-height: 1.4; }
+p { line-height: 1.6; overflow-wrap: anywhere; }
+article { background: white; border: 1px solid #d6ded7; border-radius: 14px; padding: 18px; margin: 16px 0; }
+a { color: #2e3f92; text-underline-offset: 4px; }
+label { display: block; margin: 20px 0; font-weight: 600; }
+input { width: 100%; border: 1px solid #7d9183; padding: 14px; margin-top: 8px; border-radius: 8px; background: white; font: inherit; min-width: 0; }
+button { background: #2e3f92; color: white; border: 0; padding: 12px 18px; border-radius: 8px; min-height: 48px; font: inherit; cursor: pointer; margin: 6px 8px 6px 0; }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 3px solid #b87a13; outline-offset: 3px; }
+.search { display: flex; align-items: center; gap: 8px; }
+.search input { margin: 0; }
+.muted { color: #526558; font-size: 14px; }
+.actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+canvas { max-width: 100%; height: auto; display: block; margin: 12px auto; }
+nav { position: fixed; bottom: 0; left: 0; right: 0; display: flex; background: white; border-top: 1px solid #d6ded7; padding: 8px 4px calc(8px + env(safe-area-inset-bottom)); justify-content: space-around; }
+nav a { padding: 14px 8px; font-size: 13px; text-decoration: none; border-radius: 8px; }
+nav a[aria-current] { background: #e5e8fa; font-weight: 700; }
+#message { position: fixed; bottom: calc(82px + env(safe-area-inset-bottom)); left: 16px; right: 16px; background: #fff0e4; color: #6b2e0c; padding: 14px; border: 1px solid #c78860; border-radius: 8px; z-index: 2; }
+#connection { margin: 0; padding: 12px 20px; background: #fff0cc; color: #634719; }
+[hidden] { display: none !important; }
