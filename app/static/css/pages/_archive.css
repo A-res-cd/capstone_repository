@@ -86,22 +86,6 @@ main:has(.explore-archive-section) {
 .filter-input { width: 220px; }
 .filter-input--compact { width: 150px; }
 
-.filter-saved {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    min-height: 30px;
-    padding: 0 8px;
-    border: var(--border-light);
-    border-radius: var(--radius-sm);
-    color: var(--text-brand);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.filter-saved input { accent-color: var(--color-primary); }
-
 /* ── Two-column layout ── */
 .archive-layout-wrapper {
     display: flex;
@@ -186,21 +170,6 @@ main:has(.explore-archive-section) {
     border-right-color: var(--color-accent);
 }
 
-.save-capstone-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    flex-shrink: 0;
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    background: var(--surface-paper);
-    color: var(--color-gray-dark);
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-
 .compare-capstone-btn {
     display: inline-flex;
     align-items: center;
@@ -222,17 +191,6 @@ main:has(.explore-archive-section) {
     border-color: var(--color-primary-light);
     background: var(--color-primary-soft);
 }
-
-.save-capstone-btn:hover,
-.save-capstone-btn.is-saved,
-#sb-save-btn.is-saved {
-    color: var(--color-accent-hover);
-    border-color: var(--color-accent);
-    background: var(--surface-selected);
-}
-
-.save-capstone-btn:disabled,
-#sb-save-btn:disabled { opacity: 0.55; cursor: wait; }
 
 .archive-card .col-title {
     flex: 1;

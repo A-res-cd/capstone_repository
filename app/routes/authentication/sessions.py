@@ -54,7 +54,7 @@ def signin():
             if user["role_id"] == 3:    # Admin
                 return redirect(url_for("admin.analytics"))
             elif user["role_id"] == 4:  # Capstone Professor
-                return redirect(url_for("admin.view_capstone_repository"))
+                return redirect(url_for("admin.manage_users"))
             elif user["role_id"] == 2:  # Faculty
                 return redirect(url_for("pages.browse"))
             else:                        # Student (1)

@@ -316,7 +316,7 @@ def restore_capstone(capstone_id, acting_user_id=None):
 
 def get_archive_capstones(search=None, year=None, page=1, page_size=12,
                           specialization=None, program=None, adviser=None,
-                          sort="newest", saved_by=None):
+                          sort="newest"):
     """
     Fetch capstone records for the public archive list view.
     Joins keyword, specialization, and program for display.
@@ -376,16 +376,6 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12,
                 )
             """)
             params.append(f"%{adviser}%")
-
-        if saved_by:
-            conditions.append("""
-                EXISTS (
-                    SELECT 1 FROM saved_capstone saved
-                    WHERE saved.user_id = %s
-                      AND saved.capstone_id = c.capstone_id
-                )
-            """)
-            params.append(saved_by)
 
         where_clauses = ["c.is_archived IS NOT TRUE"]
         where_clauses.extend(conditions)

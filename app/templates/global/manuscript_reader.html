@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}{{ capstone.capstone_title }} | Manuscript{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_view-capstone.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_manuscript-reader.css') }}">
+{% endblock %}
+
+{% block content %}
+{% set show_abstract = true %}
+<div class="view-capstone-container manuscript-layout">
+{% include 'partials/capstone_metadata.html' %}
+<section class="abstract-section manuscript-reader" data-manuscript-reader
+         data-pages-url="{{ url_for('pages.manuscript_pages', capstone_id=capstone.capstone_id) }}"
+         data-pdfjs-url="{{ url_for('static', filename='vendor/pdfjs/pdf.min.mjs') }}"
+         data-worker-url="{{ url_for('static', filename='vendor/pdfjs/pdf.worker.min.mjs') }}"
+         aria-labelledby="manuscript-title">
+    <header class="abstract-section__header">
+        <h2 id="manuscript-title">Full Manuscript</h2>
+    </header>
+    <div class="manuscript-reader__toolbar" aria-label="Manuscript controls">
+        <label for="manuscript-view">View</label>
+        <select id="manuscript-view" data-native-select disabled>
+            <option value="continuous">Continuous scroll</option>
+            <option value="single">Single page</option>
+        </select>
+        <button type="button" data-previous disabled>Previous</button>
+        <label for="manuscript-page">Page</label>
+        <select id="manuscript-page" data-native-select disabled></select>
+        <span data-page-count>of —</span>
+        <button type="button" data-next disabled>Next</button>
+        <label for="manuscript-zoom">Zoom</label>
+        <select id="manuscript-zoom" data-native-select>
+            <option value="1">Fit width</option>
+            <option value="0.5">50%</option>
+            <option value="0.75">75%</option>
+            <option value="1.25">125%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+            <option value="3">300%</option>
+            <option data-custom-zoom hidden></option>
+        </select>
+    </div>
+    <div class="manuscript-reader__status">
+        <p role="status" aria-live="polite" data-reader-status>Loading manuscript…</p>
+        <button type="button" data-retry hidden>Retry</button>
+        <span class="manuscript-reader__hint" id="manuscript-zoom-hint">Ctrl+scroll to zoom · Drag to pan</span>
+    </div>
+    <div class="manuscript-reader__stage" data-reader-stage aria-busy="true"
+         tabindex="0" aria-label="Manuscript viewer" aria-describedby="manuscript-zoom-hint">
+    </div>
+    <noscript>Enable JavaScript to read this manuscript.</noscript>
+</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/manuscript_reader.js') }}"></script>
+{% endblock %}

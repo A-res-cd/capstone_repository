@@ -70,7 +70,6 @@ from app.db.analytics import (
 )
 
 from app.db.qol import (
-    get_saved_capstone_ids, toggle_saved_capstone,
     get_user_notification_summary, mark_all_notifications_read,
     get_admin_pending_nav_counts,
 )

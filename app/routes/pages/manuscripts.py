@@ -11,6 +11,8 @@ from flask import (
     url_for,
     jsonify,
     send_file,
+    g,
+    current_app,
 )
 from app.db.requests import (
     request_fullview,
@@ -19,9 +21,11 @@ from app.db.requests import (
     get_requestable_capstones,
 )
 from app.db.capstones import get_capstone_details, get_capstone_authors
-from app.routes.decorators import role_required, can_view_full_manuscript
+from app.routes.decorators import role_required, can_view_full_manuscript, can_download_manuscript
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 from app.services.citations import citation_download_metadata, format_citation
+from app.services import manuscript_reader
+from pypdfium2 import PdfiumError
 
 
 @pages.route("/my-requests")
@@ -126,10 +130,13 @@ def view_approved_manuscript(capstone_id):
         flash("Capstone not found.", "danger")
         return redirect(url_for("pages.browse"))
 
-    # The template's inline script always references PDF_URL and START_PAGE
-    # (regardless of max_pages), so both must be passed here — leaving them
-    # out renders as the literal text "Undefined" in the script, which is
-    # not valid JS/JSON and breaks the PDF.js loader.
+    if not can_download_manuscript():
+        return render_template(
+            "global/manuscript_reader.html", capstone=capstone,
+            authors=get_capstone_authors(capstone_id),
+            hide_nav=True, hide_header=False,
+        )
+
     pdf_url = None
     file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
     if file_rel:
@@ -169,7 +176,7 @@ def manuscript_file(capstone_id):
     if not user_id:
         abort(401)
 
-    if not can_view_full_manuscript(capstone_id, user_id):
+    if not can_download_manuscript():
         abort(403)
 
     capstone = get_capstone_details(capstone_id)
@@ -181,6 +188,49 @@ def manuscript_file(capstone_id):
         abort(404)
 
     return send_file(file_path, mimetype=manuscript_mimetype(file_path))
+
+
+def _readable_manuscript(capstone_id):
+    user_id = session.get("user_id")
+    if not user_id or not getattr(g, "user", None):
+        abort(401)
+    if not can_view_full_manuscript(capstone_id, user_id):
+        abort(403)
+    capstone = get_capstone_details(capstone_id)
+    if not capstone:
+        abort(404)
+    path = resolve_manuscript_file(capstone.get("capstone_file"))
+    if not path:
+        abort(404)
+    if not path.lower().endswith(".pdf"):
+        abort(415)
+    return path
+
+
+@pages.route("/manuscript/pages/<int:capstone_id>")
+def manuscript_pages(capstone_id):
+    path = _readable_manuscript(capstone_id)
+    try:
+        return jsonify(page_count=manuscript_reader.page_count(path))
+    except (PdfiumError, ValueError, OSError):
+        current_app.logger.warning("Cannot open manuscript %s for protected reading", capstone_id)
+        abort(422)
+
+
+@pages.route("/manuscript/pages/<int:capstone_id>/<int:page_number>")
+def manuscript_page_image(capstone_id, page_number):
+    path = _readable_manuscript(capstone_id)
+    output_format = "PDF" if request.args.get("format") == "pdf" else "JPEG"
+    try:
+        image = manuscript_reader.page_image(
+            path, page_number, session["user_id"], capstone_id, output_format=output_format,
+        )
+    except IndexError:
+        abort(404)
+    except (PdfiumError, ValueError, OSError):
+        current_app.logger.warning("Cannot render manuscript %s page %s", capstone_id, page_number)
+        abort(422)
+    return Response(image, mimetype="application/pdf" if output_format == "PDF" else "image/jpeg")
 
 
 @pages.route("/cite/<int:capstone_id>", methods=["GET", "POST"])

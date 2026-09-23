@@ -1,5 +1,6 @@
 import os
 import logging
+import posixpath
 from flask import Flask, abort, render_template, request, session, url_for
 from flask_mail import Mail
 from config import Config
@@ -39,13 +40,19 @@ def create_app():
     @app.before_request
     def block_public_uploads():
         static_upload_path = f"{app.static_url_path}/uploads/"
-        if request.path.startswith(static_upload_path):
+        static_filename = (request.view_args or {}).get("filename", "")
+        normalized = posixpath.normpath(static_filename.replace("\\", "/"))
+        # Windows treats case and trailing dots/spaces as aliases for a folder.
+        normalized = "/".join(part.rstrip(" .").casefold() for part in normalized.split("/"))
+        if request.path.startswith(static_upload_path) or (
+            request.endpoint == "static" and (normalized == "uploads" or normalized.startswith("uploads/"))
+        ):
             abort(404)
 
     @app.after_request
     def prevent_protected_page_cache(response):
         if request.path == "/logout" or getattr(request, "endpoint", None) != "static" and request.path != "/":
-            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Cache-Control"] = "private, no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
         response.headers.setdefault("X-Content-Type-Options", "nosniff")

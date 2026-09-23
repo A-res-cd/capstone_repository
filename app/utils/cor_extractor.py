@@ -6,6 +6,8 @@ from io import BytesIO
 
 import pdfplumber
 
+from app.utils.pdf_rendering import pdfium_lock
+
 
 FIELD_KEYS = (
     "registration_no",
@@ -121,7 +123,8 @@ def _ocr_page(page):
     try:
         # Render the complete page. This works for scanned CORs and avoids
         # depending on the PDF's internal image encoding.
-        bitmap = page.to_image(resolution=300).original
+        with pdfium_lock:
+            bitmap = page.to_image(resolution=300).original
         full_text = pytesseract.image_to_string(bitmap, config="--psm 6")
 
         # The template's name row is tightly packed. A focused crop keeps

@@ -2,7 +2,7 @@
 from . import admin
 from flask import abort, render_template, redirect, url_for, flash, send_file, g
 from app.db.capstones import get_capstone_details, get_capstone_authors
-from app.routes.decorators import role_required, can_view_full_manuscript
+from app.routes.decorators import role_required, can_view_full_manuscript, can_download_manuscript
 from app.utils.pdf_extractor import extract_abstract_text
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 
@@ -52,6 +52,13 @@ def view_capstone_pdf(capstone_id):
     if not has_full_access and role_name != 'Student':
         abort(403)
 
+    if has_full_access and not can_download_manuscript():
+        return render_template(
+            "global/manuscript_reader.html", capstone=capstone,
+            authors=get_capstone_authors(capstone_id),
+            hide_nav=True, hide_header=False,
+        )
+
     abstract_only = role_name == 'Student' and not has_full_access
     authors = get_capstone_authors(capstone_id) if abstract_only else []
     max_pages = 1 if abstract_only else None
@@ -85,21 +92,12 @@ def view_capstone_pdf(capstone_id):
 @admin.route("/repository/file/<int:capstone_id>")
 @role_required(1, 2, 3, 4)
 def manuscript_file(capstone_id):
+    if not can_download_manuscript():
+        abort(403)
+
     capstone = get_capstone_details(capstone_id)
     if not capstone:
         abort(404)
-
-    # role_required(1, 2, 3) only confirms the caller is logged in as
-    # *some* role — with just three roles in the system, that's every
-    # authenticated user, not a real permission check. Admin/Faculty get
-    # full access by design (matches the role check in view_capstone_pdf
-    # above), but a Student must have an approved request for this exact
-    # capstone — the same rule pages.manuscript_file already enforces for
-    # the "View Full Manuscript" flow. Without this, any logged-in
-    # student could fetch any capstone's complete PDF straight from this
-    # URL, whether they'd ever requested it or not.
-    if not can_view_full_manuscript(capstone_id):
-        abort(403)
 
     file_path = resolve_manuscript_file(capstone.get("capstone_file"))
     if not file_path:

@@ -1,0 +1,63 @@
+  <!-- Left: Metadata panel -->
+  <div class="meta-panel">
+    <span class="meta-panel__tab">Capstone Record</span>
+    <div class="meta-panel__body">
+    {% set role = session.get('role_name') %}
+    {% if role == 'Admin' or role == 'Capstone Professor' %}
+    <a href="{{ url_for('admin.view_capstone_repository') }}" class="back-link">← Back to Repository</a>
+    {% else %}
+    <a href="{{ url_for('pages.browse') }}" class="back-link">← Back to Archive</a>
+    {% endif %}
+
+    <h1 class="capstone-title">{{ capstone.capstone_title }}</h1>
+
+    <div class="meta-item">
+      <span class="meta-label">Authors</span>
+      {% if authors %}
+      <div class="meta-value meta-authors">
+        {% for author in authors %}
+        <span>{{ author.aut_first_name or '' }}{% if author.aut_middle_name %} {{ author.aut_middle_name }}{% endif %}{% if author.aut_last_name %} {{ author.aut_last_name }}{% endif %}</span>
+        {% endfor %}
+      </div>
+      {% else %}
+      <span class="meta-value">N/A</span>
+      {% endif %}
+    </div>
+
+    <div class="meta-item">
+      <span class="meta-label">Specialization</span>
+      <span class="meta-value">{{ capstone.specialization_name or 'N/A' }}</span>
+    </div>
+
+    <div class="meta-item">
+      <span class="meta-label">Year Completed</span>
+      <span class="meta-value">{{ capstone.capstone_year or 'N/A' }}</span>
+    </div>
+
+    {% if not show_abstract %}
+    <div class="meta-item">
+      <span class="meta-label">Semester</span>
+      <span class="meta-value">{{ capstone.semester or 'N/A' }}</span>
+    </div>
+
+    <div class="meta-item">
+      <span class="meta-label">Program</span>
+      <span class="meta-value">{{ capstone.program_name or 'N/A' }}</span>
+    </div>
+    {% endif %}
+
+    <div class="keywords-section">
+      <span class="meta-label">Keywords</span>
+      {% if capstone.capstone_keywords %}
+      <div class="keyword-tags">
+        {% for kw in capstone.capstone_keywords.split(',') %}
+          {% if kw.strip() %}<span class="keyword-tag">{{ kw.strip() }}</span>{% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <span class="meta-value">N/A</span>
+      {% endif %}
+    </div>
+    </div>
+  </div>
+

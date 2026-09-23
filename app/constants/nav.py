@@ -28,7 +28,7 @@ def get_nav_links(role):
             "title": "User Management",
             "url": "admin.manage_users",
             "icon": "bx bx-group",
-            "roles": ["Admin"],
+            "roles": ["Admin", "Capstone Professor"],
             "section": "Management"
         },
 

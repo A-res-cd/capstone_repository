@@ -47,7 +47,7 @@ def _send_verification_email(recipient, decision, status_reason):
 
 
 @admin.route('/manage_users/verify/<int:request_id>/details')
-@role_required(3)
+@role_required(3, 4)
 def verification_details(request_id):
     details = get_verification_details(request_id)
     if not details:
@@ -61,7 +61,7 @@ def verification_details(request_id):
 
 
 @admin.route('/manage_users/verify/<int:request_id>/document')
-@role_required(3)
+@role_required(3, 4)
 def verification_document(request_id):
     document = get_verification_document(request_id)
     if not document:
@@ -80,7 +80,7 @@ def verification_document(request_id):
 
 
 @admin.route("/manage_users")
-@role_required(3)
+@role_required(3, 4)
 def manage_users():
     search = request.args.get("search", "").strip()
     role_id = request.args.get("role", "").strip()
@@ -114,7 +114,7 @@ def manage_users():
 
 
 @admin.route("/manage_users/verify/<int:request_id>", methods=["POST"])
-@role_required(3)
+@role_required(3, 4)
 def decide_verification(request_id):
     decision = request.form.get("decision")  # 'approved' or 'rejected'
     status_reason = request.form.get("status_reason", "")

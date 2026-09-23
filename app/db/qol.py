@@ -1,88 +1,13 @@
-"""User-facing quality-of-life data: saved capstones and notifications."""
+"""User notifications and pending-request counts."""
 import logging
 from datetime import datetime, timezone
 
 import psycopg2.extras
 
-from app.db.audit import log_audit
 from app.db.connection import db_connect
 
 
 logger = logging.getLogger(__name__)
-
-
-def get_saved_capstone_ids(user_id):
-    conn = db_connect()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            "SELECT capstone_id FROM saved_capstone WHERE user_id = %s",
-            (user_id,),
-        )
-        return {row[0] for row in cursor.fetchall()}
-    except Exception as exc:
-        logger.error("Database error loading saved capstones: %s", exc)
-        return set()
-    finally:
-        cursor.close()
-        conn.close()
-
-
-def toggle_saved_capstone(user_id, capstone_id):
-    conn = db_connect()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            "SELECT pg_advisory_xact_lock(%s, %s)",
-            (int(user_id), int(capstone_id)),
-        )
-        cursor.execute(
-            """
-            SELECT 1
-            FROM saved_capstone
-            WHERE user_id = %s AND capstone_id = %s
-            """,
-            (user_id, capstone_id),
-        )
-
-        if cursor.fetchone():
-            cursor.execute(
-                "DELETE FROM saved_capstone WHERE user_id = %s AND capstone_id = %s",
-                (user_id, capstone_id),
-            )
-            saved = False
-        else:
-            cursor.execute(
-                """
-                INSERT INTO saved_capstone (user_id, capstone_id)
-                SELECT %s, c.capstone_id
-                FROM capstone c
-                WHERE c.capstone_id = %s AND c.is_archived IS NOT TRUE
-                RETURNING capstone_id
-                """,
-                (user_id, capstone_id),
-            )
-            if not cursor.fetchone():
-                conn.rollback()
-                return False, None, "Capstone not found."
-            saved = True
-
-        log_audit(
-            cursor,
-            user_id,
-            "save_capstone" if saved else "unsave_capstone",
-            "saved_capstone",
-            capstone_id,
-        )
-        conn.commit()
-        return True, saved, None
-    except Exception as exc:
-        conn.rollback()
-        logger.error("Database error toggling saved capstone: %s", exc)
-        return False, None, "Could not update saved capstone. Please try again."
-    finally:
-        cursor.close()
-        conn.close()
 
 
 def get_user_notification_summary(user_id, limit=6):

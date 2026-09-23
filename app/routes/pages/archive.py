@@ -1,10 +1,9 @@
 """Pages archive routes and local helpers."""
 from . import pages
-from flask import render_template, request, session, jsonify, g
+from flask import render_template, request, session, g
 from app.db.archive import get_archive_capstones, get_archive_years
 from app.db.requests import get_user_requests
 from app.db.capstones import get_programs, get_specializations
-from app.db.qol import get_saved_capstone_ids, toggle_saved_capstone
 from app.routes.decorators import login_required
 
 
@@ -20,14 +19,12 @@ def browse():
     selected_specialization = request.args.get("specialization", type=int)
     selected_program        = request.args.get("program", type=int)
     sort = request.args.get("sort", "newest")
-    saved_only = request.args.get("saved") == "1"
     page = max(1, request.args.get("page", 1, type=int))
 
     if sort not in {"relevance", "newest", "oldest", "title"}:
         sort = "newest"
 
     user_id = session.get("user_id")
-    saved_capstone_ids = get_saved_capstone_ids(user_id) if user_id else set()
 
     projects, total = get_archive_capstones(
         search=search or None,
@@ -38,7 +35,6 @@ def browse():
         program=selected_program,
         adviser=adviser or None,
         sort=sort,
-        saved_by=user_id if saved_only else None,
     )
 
     years       = get_archive_years()
@@ -74,8 +70,6 @@ def browse():
         selected_program=selected_program,
         selected_specialization=selected_specialization,
         selected_sort=sort,
-        saved_only=saved_only,
-        saved_capstone_ids=saved_capstone_ids,
         page=page,
         page_size=PAGE_SIZE,
         total=total,
@@ -83,12 +77,3 @@ def browse():
         sidebar_project=sidebar_project,
         approved_capstone_ids=approved_capstone_ids,
     )
-
-
-@pages.route("/saved-capstones/<int:capstone_id>", methods=["POST"])
-@login_required
-def toggle_saved_capstone_route(capstone_id):
-    ok, saved, error = toggle_saved_capstone(session.get("user_id"), capstone_id)
-    if not ok:
-        return jsonify({"error": error}), 400
-    return jsonify({"saved": saved})

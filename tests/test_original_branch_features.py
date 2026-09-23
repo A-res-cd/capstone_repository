@@ -364,6 +364,69 @@ def test_separate_manuscript_folder_and_legacy_fallback(feature_app, tmp_path):
         assert Path(resolve_manuscript_file('uploads/old.pdf')) == legacy / 'old.pdf'
 
 
+def test_remove_saved_capstone_migration(feature_db):
+    with closing(feature_db()) as conn, conn.cursor() as cursor:
+        # Fresh installations should not create the retired feature.
+        cursor.execute("SELECT to_regclass('saved_capstone')")
+        assert cursor.fetchone()[0] is None
+        cursor.execute((ROOT / 'migrations/20260831_qol_features.sql').read_text())
+        cursor.execute("SELECT to_regclass('saved_capstone')")
+        assert cursor.fetchone()[0] is not None
+        migration = (ROOT / 'migrations/20260922_remove_saved_capstone.sql').read_text()
+        cursor.execute(migration)
+        cursor.execute(migration)
+        cursor.execute("SELECT to_regclass('saved_capstone'), to_regclass('idx_saved_capstone_capstone')")
+        assert cursor.fetchone() == (None, None)
+        cursor.execute('SELECT COUNT(*) FROM role')
+        assert cursor.fetchone()[0] == 4
+        cursor.execute('SELECT notification_seen_at FROM request LIMIT 1')
+        cursor.execute('SELECT capstone_id FROM capstone LIMIT 1')
+
+
+@pytest.mark.parametrize('width', [1280, 390])
+def test_archive_without_saved_capstones(feature_app, page, monkeypatch, width):
+    client = feature_app.test_client()
+    login(client, 1)
+    with client.session_transaction() as state:
+        state['role_name'] = 'Student'
+    projects = [dict(capstone_id=i, capstone_title=f'Project {i}', capstone_year=2026,
+                     program_name='BSIT', specialization_name='Web', capstone_keywords='web', semester='First')
+                for i in (1, 2)]
+
+    def archive_results(**filters):
+        assert 'saved_by' not in filters
+        return projects, 2
+
+    monkeypatch.setattr(pages.archive, 'get_archive_capstones', archive_results)
+    monkeypatch.setattr(pages.archive, 'get_archive_years', lambda: [2026])
+    monkeypatch.setattr(pages.archive, 'get_programs', lambda: [])
+    monkeypatch.setattr(pages.archive, 'get_specializations', lambda: [])
+
+    def handle(route):
+        url = urlsplit(route.request.url)
+        if url.netloc != 'archive.test':
+            route.abort()
+            return
+        response = client.get(url.path + ('?' + url.query if url.query else ''))
+        route.fulfill(status=response.status_code, body=response.data, content_type=response.content_type)
+
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.route('**/*', handle)
+    page.set_viewport_size({'width': width, 'height': 1000})
+    # Old saved-only bookmarks now open the regular archive.
+    page.goto('http://archive.test/archive?saved=1')
+    expect(page.locator('.archive-card')).to_have_count(2)
+    expect(page.locator('.save-capstone-btn, #sb-save-btn, input[name="saved"]')).to_have_count(0)
+    page.locator('.archive-card[data-id="2"]').click()
+    expect(page.locator('#sb-title')).to_have_text('Project 2')
+    page.locator('#sb-request-link').click()
+    dialog = page.get_by_role('dialog', name='Request Full Manuscript', exact=True)
+    expect(dialog).to_be_visible()
+    expect(dialog.locator('form')).to_have_attribute('action', '/request_manuscript/2')
+    assert not errors
+
+
 @pytest.mark.parametrize('path', ['/signin', '/signup', '/reset_password'])
 def test_password_icons_without_internet(feature_app, page, path):
     client = feature_app.test_client()
@@ -480,10 +543,10 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     monkeypatch.setattr(pages.archive, 'get_archive_years', lambda: [2026])
     monkeypatch.setattr(pages.archive, 'get_programs', lambda: [])
     monkeypatch.setattr(pages.archive, 'get_specializations', lambda: [])
-    monkeypatch.setattr(pages.archive, 'get_saved_capstone_ids', lambda user_id: set())
     with client.session_transaction() as state:
         state['role_name'] = 'Student'
     page.goto('http://features.test/archive')
+    expect(page.locator('.save-capstone-btn, #sb-save-btn, input[name="saved"]')).to_have_count(0)
     page.locator('.archive-card[data-id="2"]').click()
     page.locator('#sb-request-link').click()
     request_dialog = page.get_by_role('dialog', name='Request Full Manuscript', exact=True)

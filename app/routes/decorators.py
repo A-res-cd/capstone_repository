@@ -8,6 +8,12 @@ from app.utils.navigation import last_page_url
 FULL_MANUSCRIPT_ROLES = {"Admin", "Faculty", "Capstone Professor"}
 
 
+def can_download_manuscript():
+    """Original files are reserved for administrators, using the current DB role."""
+    user = getattr(g, "user", None)
+    return bool(session.get("user_id") and user and user.get("role_id") == 3)
+
+
 def login_required(f):
     """Redirect to signin if user is not logged in."""
     @wraps(f)

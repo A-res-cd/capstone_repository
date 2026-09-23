@@ -53,7 +53,7 @@ application's runtime paths remain at their existing locations.
 | `/requests` and review decisions | `admin/requests.py` |
 | `/recyclebin`, archive/delete/restore | `admin/archive.py` |
 | `/audit-logs`, `/dev-debug` | `admin/audit.py`, `admin/diagnostics.py` |
-| `/archive` and saved capstones | `pages/archive.py` |
+| `/archive` browsing and filters | `pages/archive.py` |
 | `/user-info` and account settings | `pages/profile.py` |
 | Manuscript requests, files, citations | `pages/manuscripts.py` |
 | `/propose-topic`, `/api/topic-similarity` | `pages/topics.py` |

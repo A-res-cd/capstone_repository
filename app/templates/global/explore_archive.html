@@ -62,12 +62,8 @@
                         <option value="title" {% if selected_sort == 'title' %}selected{% endif %}>Title A-Z</option>
                     </select>
                 </div>
-                <label class="filter-saved">
-                    <input type="checkbox" name="saved" value="1" {% if saved_only %}checked{% endif %}>
-                    <i class="bx bx-bookmark"></i> Saved only
-                </label>
                 <button type="submit" class="btn-filter">Apply</button>
-                {% if search or selected_year or selected_program or selected_specialization or adviser or saved_only or selected_sort != 'newest' %}
+                {% if search or selected_year or selected_program or selected_specialization or adviser or selected_sort != 'newest' %}
                     <a href="{{ url_for('pages.browse') }}" class="btn-clear">Clear</a>
                 {% endif %}
             </form>
@@ -92,8 +88,7 @@
                              data-keywords="{{ project.capstone_keywords }}"
                              data-year="{{ project.capstone_year }}"
                              data-semester="{{ project.semester }}"
-                             data-approved="{{ 'true' if project.capstone_id in approved_capstone_ids else 'false' }}"
-                             data-saved="{{ 'true' if project.capstone_id in saved_capstone_ids else 'false' }}">
+                             data-approved="{{ 'true' if project.capstone_id in approved_capstone_ids else 'false' }}">
                             <div class="archive-card__icon" aria-hidden="true">
                                 <i class="bx bxs-file-pdf"></i>
                             </div>
@@ -104,13 +99,6 @@
                             <span class="col-spec"><i class="bx bx-shapes"></i> {{ project.specialization_name }}</span>
                             <span class="col-year"><i class="bx bx-calendar"></i> {{ project.capstone_year }}</span>
                             <span class="col-term">{{ project.semester }}</span>
-                            <button type="button"
-                                    class="save-capstone-btn{% if project.capstone_id in saved_capstone_ids %} is-saved{% endif %}"
-                                    data-capstone-id="{{ project.capstone_id }}"
-                                    aria-label="{{ 'Remove from saved capstones' if project.capstone_id in saved_capstone_ids else 'Save capstone' }}"
-                                    aria-pressed="{{ 'true' if project.capstone_id in saved_capstone_ids else 'false' }}">
-                                <i class="bx {{ 'bxs-bookmark' if project.capstone_id in saved_capstone_ids else 'bx-bookmark' }}"></i>
-                            </button>
                             <button type="button" class="compare-capstone-btn"
                                     aria-label="Add capstone to comparison" aria-pressed="false"
                                     title="Compare capstone">
@@ -125,12 +113,12 @@
                         <span>Page {{ page }} of {{ total_pages }}</span>
                         <div class="pagination-controls">
                             {% if page > 1 %}
-                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page-1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort, saved='1' if saved_only else None) }}">
+                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page-1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort) }}">
                                 <i class="bx bx-chevron-left"></i> Previous
                             </a>
                             {% endif %}
                             {% if page < total_pages %}
-                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page+1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort, saved='1' if saved_only else None) }}">
+                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page+1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort) }}">
                                 Next <i class="bx bx-chevron-right"></i>
                             </a>
                             {% endif %}
@@ -142,7 +130,7 @@
                     <div class="archive-empty">
                         <i class="bx bx-folder-open"></i>
                         <p>
-                            {% if search or selected_year or selected_program or selected_specialization or adviser or saved_only %}
+                            {% if search or selected_year or selected_program or selected_specialization or adviser %}
                                 No capstones match your filters.
                                 <a href="{{ url_for('pages.browse') }}">Clear filters</a>
                             {% else %}
@@ -230,14 +218,6 @@
                                 <i class="bx bx-copy"></i> <span>Cite</span>
                             </button>
                             {% endif %}
-                            <button type="button"
-                                    id="sb-save-btn"
-                                    class="btn-cite{% if sidebar_project.capstone_id in saved_capstone_ids %} is-saved{% endif %}"
-                                    data-base-url="{{ url_for('pages.toggle_saved_capstone_route', capstone_id=0) }}"
-                                    aria-pressed="{{ 'true' if sidebar_project.capstone_id in saved_capstone_ids else 'false' }}">
-                                <i class="bx {{ 'bxs-bookmark' if sidebar_project.capstone_id in saved_capstone_ids else 'bx-bookmark' }}"></i>
-                                <span>{{ 'Saved' if sidebar_project.capstone_id in saved_capstone_ids else 'Save' }}</span>
-                            </button>
                         </div>
                     </div>
 

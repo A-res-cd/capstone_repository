@@ -33,12 +33,17 @@
        TAB SWITCHER — Manage Users / Verify Accounts.
        Only one panel is visible at a time; the verification tab
        carries a red notification badge with the pending count.
+       Faculty (Capstone Professor) has no Manage Users tab at all
+       and lands on Verify Accounts by default.
     ══════════════════════════════════════════════════════ #}
+    {% set is_admin = session.get('role_name') == "Admin" %}
     <div class="mu-tabs" role="tablist">
-        <button type="button" class="mu-tab mu-tab--active" id="tab-users" data-target="panel-list-wrap" role="tab" aria-selected="true">
-            <i class="bx bx-group"></i> Manage Users
-        </button>
-        <button type="button" class="mu-tab" id="tab-verify" data-target="panel-pending" role="tab" aria-selected="false">
+        {% if is_admin %}
+            <button type="button" class="mu-tab mu-tab--active" id="tab-users" data-target="panel-list-wrap" role="tab" aria-selected="true">
+                <i class="bx bx-group"></i> Manage Users
+            </button>
+        {% endif %}
+        <button type="button" class="mu-tab {% if not is_admin %}mu-tab--active{% endif %}" id="tab-verify" data-target="panel-pending" role="tab" aria-selected="{{ 'false' if is_admin else 'true' }}">
             <i class="bx bx-user-check"></i> Verify Accounts
             {% if pending_verifications %}
             <span class="mu-tab__badge">{{ pending_verifications|length }}</span>
@@ -49,7 +54,7 @@
     {# ══════════════════════════════════════════════════════
        PANEL — PENDING ACCOUNT VERIFICATIONS
     ══════════════════════════════════════════════════════ #}
-    <div class="mu-panel mu-panel--hidden" id="panel-pending" data-tab-panel>
+    <div class="mu-panel {% if is_admin %}mu-panel--hidden{% endif %}" id="panel-pending" data-tab-panel>
         <div class="mu-panel-header">
             <h3><i class="bx bx-user-check"></i> Pending Account Verifications</h3>
             <p>New sign-ups waiting for approval before they can sign in.</p>
@@ -128,115 +133,117 @@
 
     {# ══════════════════════════════════════════════════════
        USER LIST — edit controls open in a modal from this tab.
+       Admin-only: Faculty (Capstone Professor) never sees this.
     ══════════════════════════════════════════════════════ #}
-    <div class="mu-panel" id="panel-list-wrap" data-tab-panel>
+    {% if is_admin %}
+        <div class="mu-panel" id="panel-list-wrap" data-tab-panel>
 
-    <div class="mu-panel" id="panel-list">
+        <div class="mu-panel" id="panel-list">
 
-        {# ── Filter Bar ── #}
-        <div class="mu-filters">
-            <form method="GET" action="{{ url_for('admin.manage_users') }}" class="mu-filter-form">
-                <div class="filter-group">
-                    <span>Search:</span>
-                    <input type="text" name="search" class="filter-input"
-                           placeholder="Name, university no., or email…" value="{{ search }}">
-                </div>
-                <div class="filter-group">
-                    <span>Role:</span>
-                    <select name="role" class="filter-select">
-                        <option value="">All</option>
-                        {% for r in roles %}
-                        <option value="{{ r[0] }}" {% if selected_role == r[0]|string %}selected{% endif %}>{{ r[1] }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <span>Status:</span>
-                    <select name="status" class="filter-select">
-                        <option value="">All</option>
-                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
-                        <option value="deactivated" {% if selected_status == 'deactivated' %}selected{% endif %}>Deactivated</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-filter">Search</button>
-                {% if search or selected_role or selected_status %}
-                <a href="{{ url_for('admin.manage_users') }}" class="btn-clear">Clear</a>
-                {% endif %}
-            </form>
-        </div>
+            {# ── Filter Bar ── #}
+            <div class="mu-filters">
+                <form method="GET" action="{{ url_for('admin.manage_users') }}" class="mu-filter-form">
+                    <div class="filter-group">
+                        <span>Search:</span>
+                        <input type="text" name="search" class="filter-input"
+                            placeholder="Name, university no., or email…" value="{{ search }}">
+                    </div>
+                    <div class="filter-group">
+                        <span>Role:</span>
+                        <select name="role" class="filter-select">
+                            <option value="">All</option>
+                            {% for r in roles %}
+                            <option value="{{ r[0] }}" {% if selected_role == r[0]|string %}selected{% endif %}>{{ r[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span>Status:</span>
+                        <select name="status" class="filter-select">
+                            <option value="">All</option>
+                            <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                            <option value="deactivated" {% if selected_status == 'deactivated' %}selected{% endif %}>Deactivated</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-filter">Search</button>
+                    {% if search or selected_role or selected_status %}
+                    <a href="{{ url_for('admin.manage_users') }}" class="btn-clear">Clear</a>
+                    {% endif %}
+                </form>
+            </div>
 
-        {% if users %}
-        <p class="mu-results-count">{{ total_users }} user{{ 's' if total_users != 1 else '' }} found</p>
-        <div class="record-list">
-            {% for u in users %}
-            <div class="record-card">
-                <div class="record-card__avatar">{{ u.full_name[:1] }}</div>
-                <div class="record-card__body">
-                    <p class="record-card__title">
-                        {{ u.full_name }}
-                        {% if u.user_id == session.get('user_id') %}<span class="mu-you-tag">You</span>{% endif %}
-                    </p>
-                    <div class="record-card__meta">
-                        <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ u.university_no }}</span>
-                        <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ u.email or '—' }}</span>
-                        <span class="role-badge
-                            {% if u.role == 'Admin' %}role-badge--admin
-                            {% elif u.role == 'Faculty' %}role-badge--faculty
-                            {% else %}role-badge--student{% endif %}">
-                            {{ u.role }}
-                        </span>
-                        <span class="status-badge {% if u.account_status == 'active' %}status-badge--active{% else %}status-badge--inactive{% endif %}">
-                            {{ u.account_status | capitalize }}
-                        </span>
+            {% if users %}
+            <p class="mu-results-count">{{ total_users }} user{{ 's' if total_users != 1 else '' }} found</p>
+            <div class="record-list">
+                {% for u in users %}
+                <div class="record-card">
+                    <div class="record-card__avatar">{{ u.full_name[:1] }}</div>
+                    <div class="record-card__body">
+                        <p class="record-card__title">
+                            {{ u.full_name }}
+                            {% if u.user_id == session.get('user_id') %}<span class="mu-you-tag">You</span>{% endif %}
+                        </p>
+                        <div class="record-card__meta">
+                            <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ u.university_no }}</span>
+                            <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ u.email or '—' }}</span>
+                            <span class="role-badge
+                                {% if u.role == 'Admin' %}role-badge--admin
+                                {% elif u.role == 'Faculty' %}role-badge--faculty
+                                {% else %}role-badge--student{% endif %}">
+                                {{ u.role }}
+                            </span>
+                            <span class="status-badge {% if u.account_status == 'active' %}status-badge--active{% else %}status-badge--inactive{% endif %}">
+                                {{ u.account_status | capitalize }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="record-card__actions">
+                        <button type="button" class="btn-row btn-row--edit" aria-haspopup="dialog" aria-controls="panel-edit"
+                            data-id="{{ u.user_id }}"
+                            data-name="{{ u.full_name }}"
+                            data-univ="{{ u.university_no }}"
+                            data-email="{{ u.email or '' }}"
+                            data-role="{{ u.role }}"
+                            data-role-id="{{ u.role_id }}"
+                            data-status="{{ u.account_status }}"
+                            data-is-self="{{ 'true' if u.user_id == session.get('user_id') else 'false' }}">
+                            <i class="bx bx-edit-alt"></i> Edit
+                        </button>
                     </div>
                 </div>
-                <div class="record-card__actions">
-                    <button type="button" class="btn-row btn-row--edit" aria-haspopup="dialog" aria-controls="panel-edit"
-                        data-id="{{ u.user_id }}"
-                        data-name="{{ u.full_name }}"
-                        data-univ="{{ u.university_no }}"
-                        data-email="{{ u.email or '' }}"
-                        data-role="{{ u.role }}"
-                        data-role-id="{{ u.role_id }}"
-                        data-status="{{ u.account_status }}"
-                        data-is-self="{{ 'true' if u.user_id == session.get('user_id') else 'false' }}">
-                        <i class="bx bx-edit-alt"></i> Edit
-                    </button>
-                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
 
-        {# ── Pagination ── #}
-        {% if total_pages > 1 %}
-        <div class="mu-pagination">
-            {% set qs = {'search': search, 'role': selected_role, 'status': selected_status} %}
-            <a href="{{ url_for('admin.manage_users', page=page-1, **qs) }}"
-               class="btn-pill btn-pill--ghost {% if page <= 1 %}mu-pagination__link--disabled{% endif %}">
-                <i class="bx bx-left-arrow-alt"></i> Prev
-            </a>
-            <span class="mu-pagination__status">Page {{ page }} of {{ total_pages }}</span>
-            <a href="{{ url_for('admin.manage_users', page=page+1, **qs) }}"
-               class="btn-pill btn-pill--ghost {% if page >= total_pages %}mu-pagination__link--disabled{% endif %}">
-                Next <i class="bx bx-right-arrow-alt"></i>
-            </a>
-        </div>
-        {% endif %}
+            {# ── Pagination ── #}
+            {% if total_pages > 1 %}
+            <div class="mu-pagination">
+                {% set qs = {'search': search, 'role': selected_role, 'status': selected_status} %}
+                <a href="{{ url_for('admin.manage_users', page=page-1, **qs) }}"
+                class="btn-pill btn-pill--ghost {% if page <= 1 %}mu-pagination__link--disabled{% endif %}">
+                    <i class="bx bx-left-arrow-alt"></i> Prev
+                </a>
+                <span class="mu-pagination__status">Page {{ page }} of {{ total_pages }}</span>
+                <a href="{{ url_for('admin.manage_users', page=page+1, **qs) }}"
+                class="btn-pill btn-pill--ghost {% if page >= total_pages %}mu-pagination__link--disabled{% endif %}">
+                    Next <i class="bx bx-right-arrow-alt"></i>
+                </a>
+            </div>
+            {% endif %}
 
-        {% else %}
-        <div class="empty-state">
-            <i class="bx bx-group"></i>
-            <p>
-                {% if search or selected_role or selected_status %}
-                No users match your filters. <a href="{{ url_for('admin.manage_users') }}">Clear filters</a>
-                {% else %}
-                No users found in the system.
-                {% endif %}
-            </p>
-        </div>
-        {% endif %}
+            {% else %}
+            <div class="empty-state">
+                <i class="bx bx-group"></i>
+                <p>
+                    {% if search or selected_role or selected_status %}
+                    No users match your filters. <a href="{{ url_for('admin.manage_users') }}">Clear filters</a>
+                    {% else %}
+                    No users found in the system.
+                    {% endif %}
+                </p>
+            </div>
+            {% endif %}
 
-    </div>{# end panel-list #}
+        </div>{# end panel-list #}
 
     {# ══════════════════════════════════════════════════════
        EDIT USER MODAL
@@ -365,6 +372,7 @@
     </dialog>{# end panel-edit #}
 
     </div>{# end panel-list-wrap #}
+    {% endif %}
 
 </section>
 

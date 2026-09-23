@@ -85,7 +85,6 @@ class AdviserForm(AuthorForm):
 class CreateCapstoneForm(FlaskForm):
 
     capstone_id = HiddenField()
-    extracted_filename = HiddenField()
 
     capstone_file = FileField(
         "Upload Capstone File",

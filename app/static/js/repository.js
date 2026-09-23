@@ -274,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const extractInput = document.getElementById('extract-file-input');
     const extractStatus = document.getElementById('extract-status');
-    const extractedFilenameInput = document.getElementById('extracted-filename');
 
     // Builds the status line as real DOM nodes instead of a template
     // template string; the icon class is always ours, but the
@@ -335,10 +334,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 fillForm(json.data);
-
-                if (json.temp_filename) {
-                    extractedFilenameInput.value = json.temp_filename;
-                }
 
                 extractStatus.className = 'extract-status extract-status--success';
                 setExtractStatus('bx bx-check-circle',

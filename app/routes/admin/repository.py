@@ -1,8 +1,8 @@
 """Admin repository routes and local helpers."""
 from . import admin
 from flask import render_template, request, redirect, session, url_for, flash, jsonify
-from werkzeug.utils import secure_filename
 import os, logging
+from tempfile import TemporaryDirectory
 from app.db.capstones import (
     get_all_capstones,
     get_programs,
@@ -21,10 +21,8 @@ from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
 from app.utils.pdf_extractor import extract_capstone_data
 from app.utils.uploads import (
     allowed_manuscript,
-    manuscript_upload_folder,
     save_manuscript_upload,
     stored_manuscript_path,
-    unique_manuscript_filename,
 )
 
 
@@ -89,21 +87,18 @@ def extract_capstone_pdf():
     if not _allowed(file.filename):
         return jsonify({'success': False, 'error': 'Only PDF, DOC, and DOCX files are accepted.'}), 400
 
-    filename = unique_manuscript_filename(file.filename)
-    os.makedirs(manuscript_upload_folder(), exist_ok=True)
-    temp_path = os.path.join(manuscript_upload_folder(), filename)
-    file.save(temp_path)
-
     # Only PDF files can be parsed for metadata — DOC/DOCX silently skip
-    if filename.lower().endswith('.pdf'):
-        data = extract_capstone_data(temp_path)
+    if file.filename.lower().endswith('.pdf'):
+        with TemporaryDirectory(prefix='capstone-extract-') as temp_dir:
+            temp_path = os.path.join(temp_dir, 'manuscript.pdf')
+            file.save(temp_path)
+            data = extract_capstone_data(temp_path)
     else:
         data = {}
 
     return jsonify({
         'success':       True,
         'data':          data,
-        'temp_filename': filename,
     })
 
 
@@ -194,18 +189,11 @@ def admin_create_capstone():
 
     try:
         file = form.capstone_file.data
-        extracted_filename = form.extracted_filename.data
 
         if file and getattr(file, "filename", ""):
             filename, err = _save_file(file)
             if err:
                 flash(err, "danger")
-                return _rerender()
-        elif extracted_filename:
-            filename = secure_filename(extracted_filename)
-            if not _allowed(filename):
-                flash(
-                    "Invalid file type. Only PDF, DOC, and DOCX are allowed.", "danger")
                 return _rerender()
         else:
             flash("Upload a capstone file first.", "danger")

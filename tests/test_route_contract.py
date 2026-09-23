@@ -23,6 +23,10 @@ def test_all_urls_endpoints_and_methods_survive_split(route_app):
     assert actual == expected
 
 
+def test_retired_save_capstone_endpoint_is_not_available(route_app):
+    assert route_app.test_client().post('/saved-capstones/1').status_code == 404
+
+
 @pytest.mark.parametrize("path", [
     "/repository", "/analytics", "/analytics/report.xlsx", "/audit-logs",
     "/manage_users", "/requests", "/recyclebin", "/repository/pdf/1",
