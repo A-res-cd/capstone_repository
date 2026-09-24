@@ -37,7 +37,16 @@
         <!-- USER — moved here from the sidebar to reclaim vertical space -->
         <div class="header-page-actions">
             {% if request.endpoint == 'admin.analytics' %}
-            <button type="button" class="analytics-header-export" data-export-report data-report-scope="dashboard" data-workbook-url="{{ url_for('admin.analytics_workbook') }}" aria-label="Export full analytics report">
+            <form method="GET" action="{{ url_for('admin.analytics') }}" class="analytics-year-filter">
+                <label for="analytics-year">Year</label>
+                <select id="analytics-year" name="year" class="filter-select" aria-label="Filter analytics by year">
+                    <option value="">All years</option>
+                    {% for year in available_years %}
+                    <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <button type="button" class="analytics-header-export" data-export-report data-report-scope="dashboard" data-workbook-url="{{ url_for('admin.analytics_workbook', year=selected_year) }}" aria-label="Export full analytics report">
                 <i class="bx bx-download" aria-hidden="true"></i>
                 <span>Export Analytics Report</span>
             </button>

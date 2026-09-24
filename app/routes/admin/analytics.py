@@ -1,6 +1,6 @@
 """Admin analytics routes and local helpers."""
 from . import admin
-from flask import render_template, flash
+from flask import render_template, flash, request
 from app.db.analytics import (
     get_capstones_by_specialization,
     get_capstones_by_program,
@@ -14,12 +14,13 @@ from app.routes.decorators import role_required
 @role_required(3)
 def analytics():
     db_errors = []
+    selected_year = request.args.get("year", type=int)
 
-    by_specialization, err = get_capstones_by_specialization()
+    by_specialization, err = get_capstones_by_specialization(year=selected_year)
     if err:
         db_errors.append(f"Capstones by specialization: {err}")
 
-    by_program, err = get_capstones_by_program()
+    by_program, err = get_capstones_by_program(year=selected_year)
     if err:
         db_errors.append(f"Capstones by program: {err}")
 
@@ -27,7 +28,15 @@ def analytics():
     if err:
         db_errors.append(f"Capstone trend by specialization: {err}")
 
-    status_flags, err = get_capstone_status_flags()
+    available_years = sorted(trend_years, reverse=True)
+    if selected_year is not None:
+        indices = [i for i, year in enumerate(trend_years) if year == selected_year]
+        trend_series = {name: [values[i] for i in indices] for name, values in trend_series.items()}
+        trend_years = [trend_years[i] for i in indices]
+        if selected_year not in available_years:
+            available_years = sorted([*available_years, selected_year], reverse=True)
+
+    status_flags, err = get_capstone_status_flags(year=selected_year)
     if err:
         db_errors.append(f"Capstone status flags: {err}")
 
@@ -102,6 +111,8 @@ def analytics():
 
     return render_template(
         "admin/analytics.html",
+        selected_year=selected_year,
+        available_years=available_years,
         specialization_labels=specialization_labels,
         specialization_totals=specialization_totals,
         program_labels=program_labels,

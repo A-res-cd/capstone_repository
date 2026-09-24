@@ -69,7 +69,30 @@ main:has(.analytics-section) {
 .header-page-actions {
     display: flex;
     align-items: center;
+    gap: var(--space-md);
     flex-shrink: 0;
+}
+
+.analytics-year-filter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin: 0;
+    color: var(--text-brand);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.analytics-year-filter .custom-select {
+    width: 110px;
+}
+
+.analytics-year-filter select {
+    padding: 6px 8px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-sm);
+    color: var(--text-dark);
+    background: var(--surface-paper);
 }
 
 .analytics-header-export:hover {

@@ -139,7 +139,7 @@
                             <td data-report-field="Presented">{{ row.presented }} <span class="analytics-table__pct">({{ row.presented_pct }}%)</span></td>
                             <td data-report-field="Copyright Registered">{{ row.copyright_registered }} <span class="analytics-table__pct">({{ row.copyright_pct }}%)</span></td>
                             <td>
-                                <button type="button" class="analytics-export-btn" data-export-report data-report-scope="row" data-report-url="{{ url_for('admin.analytics_specialization_report', specialization_id=row.id) }}" data-workbook-url="{{ url_for('admin.analytics_specialization_workbook', specialization_id=row.id) }}" aria-label="Export {{ row.name }} report">
+                                <button type="button" class="analytics-export-btn" data-export-report data-report-scope="row" data-report-url="{{ url_for('admin.analytics_specialization_report', specialization_id=row.id, year=selected_year) }}" data-workbook-url="{{ url_for('admin.analytics_specialization_workbook', specialization_id=row.id, year=selected_year) }}" aria-label="Export {{ row.name }} report">
                                     <i class="bx bx-download" aria-hidden="true"></i>
                                     Export
                                 </button>
@@ -156,7 +156,7 @@
                             <td data-report-field="Presented">{{ summary_totals.presented }}</td>
                             <td data-report-field="Copyright Registered">{{ summary_totals.copyright_registered }}</td>
                             <td>
-                                <button type="button" class="analytics-export-btn" data-export-report data-report-scope="all" data-report-url="{{ url_for('admin.analytics_all_specializations_report') }}" data-workbook-url="{{ url_for('admin.analytics_all_specializations_workbook') }}" aria-label="Export all specialization reports">
+                                <button type="button" class="analytics-export-btn" data-export-report data-report-scope="all" data-report-url="{{ url_for('admin.analytics_all_specializations_report', year=selected_year) }}" data-workbook-url="{{ url_for('admin.analytics_all_specializations_workbook', year=selected_year) }}" aria-label="Export all specialization reports">
                                     <i class="bx bx-download" aria-hidden="true"></i>
                                     Export All
                                 </button>

@@ -92,7 +92,7 @@ function initApp() {
     // needing to touch this file. Debounced on text input so it isn't
     // submitting on every single keystroke; selects submit immediately
     // since picking one is already a deliberate, discrete action.
-    const FILTER_DEBOUNCE_MS = 500;
+    const FILTER_DEBOUNCE_MS = 5000;
     let filterDebounceTimer = null;
 
     document.querySelectorAll(".filter-input").forEach((input) => {
@@ -118,7 +118,7 @@ function initApp() {
         }
     });
 
-    document.querySelectorAll(".filter-select").forEach((select) => {
+    document.querySelectorAll(".filter-select, .archive-search-scope").forEach((select) => {
         if (select.dataset.filterBound) return;
         select.dataset.filterBound = "true";
         select.addEventListener("change", () => {

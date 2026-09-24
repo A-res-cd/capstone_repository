@@ -179,21 +179,21 @@ def _parse_adviser_from_approval(lines: list[str]) -> dict | None:
     logger.debug("No adviser found in approval sheet lines.")
     return None
 
-def _suggest_keywords_yake(text: str, top_n: int = 8) -> list[str]:
+def _suggest_keywords_yake(text: str, top_n: int = 6) -> list[str]:
     """
-    Fallback keyword extraction using YAKE when the PDF doesn't have an
-    explicit 'Keywords:' line (or when you want to supplement it).
+    Suggest up to six topic keywords from the manuscript title and abstract.
     Returns an empty list if yake isn't installed.
     """
-    if not _YAKE_AVAILABLE or not text:
+    if not _YAKE_AVAILABLE or not text.strip() or top_n <= 0:
         return []
+    top_n = min(top_n, 6)
     import yake
     extractor = yake.KeywordExtractor(
         lan='en', n=3, dedupLim=0.7, top=top_n, features=None
     )
     results = extractor.extract_keywords(text)
     logger.debug("YAKE extracted keywords: %s", results)
-    return [phrase for phrase, _score in results]
+    return [phrase for phrase, _score in results[:top_n]]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ def extract_capstone_data(pdf_path: str) -> dict:
                 l.strip()
                 for l in (pdf.pages[2].extract_text() or '').splitlines()
                 if l.strip()
-            ]
+            ] if len(pdf.pages) > 2 else []
             result['adviser'] = _parse_adviser_from_approval(p3_lines)
 
             # ── Abstract page: scan all pages ─────────────────────
@@ -261,9 +261,9 @@ def extract_capstone_data(pdf_path: str) -> dict:
             result['abstract_text'] = abstract_full_text
 
 
-            # YAKE fallback: if no explicit keywords line was found
-            if not result['keywords'] and abstract_full_text:
-                result['keywords'] = _suggest_keywords_yake(abstract_full_text, top_n=8)
+            # Use topic-bearing text rather than front matter or references.
+            topic_text = '\n'.join(filter(None, [result['title'], abstract_full_text]))
+            result['keywords'] = _suggest_keywords_yake(topic_text)
 
     except Exception as exc:
         # Return whatever was collected before the error; never crash the route

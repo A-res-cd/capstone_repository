@@ -1,6 +1,6 @@
 """Admin reports routes and local helpers."""
 from . import admin
-from flask import jsonify, send_file
+from flask import jsonify, send_file, request
 from werkzeug.utils import secure_filename
 from app.db.analytics import (
     get_capstones_by_specialization,
@@ -17,7 +17,7 @@ from app.utils.xlsx_export import build_specialization_workbook, build_table_wor
 @admin.route("/analytics/specialization/<int:specialization_id>/report")
 @role_required(3)
 def analytics_specialization_report(specialization_id):
-    rows, specialization, err = get_specialization_report(specialization_id)
+    rows, specialization, err = get_specialization_report(specialization_id, year=request.args.get("year", type=int))
     if err:
         return jsonify({"success": False, "error": err}), 500
     if specialization is None:
@@ -33,7 +33,7 @@ def analytics_specialization_report(specialization_id):
 @admin.route("/analytics/specialization/<int:specialization_id>/report.xlsx")
 @role_required(3)
 def analytics_specialization_workbook(specialization_id):
-    rows, specialization, err = get_specialization_report(specialization_id)
+    rows, specialization, err = get_specialization_report(specialization_id, year=request.args.get("year", type=int))
     if err:
         return jsonify({"success": False, "error": err}), 500
     if specialization is None:
@@ -56,10 +56,10 @@ def analytics_specialization_workbook(specialization_id):
 @admin.route("/analytics/report.xlsx")
 @role_required(3)
 def analytics_workbook():
-    by_specialization, specialization_err = get_capstones_by_specialization()
-    by_program, program_err = get_capstones_by_program()
-    trend_years, trend_series, trend_err = get_capstone_trend_by_specialization()
-    status_flags, status_err = get_capstone_status_flags()
+    by_specialization, specialization_err = get_capstones_by_specialization(year=request.args.get("year", type=int))
+    by_program, program_err = get_capstones_by_program(year=request.args.get("year", type=int))
+    trend_years, trend_series, trend_err = get_capstone_trend_by_specialization(year=request.args.get("year", type=int))
+    status_flags, status_err = get_capstone_status_flags(year=request.args.get("year", type=int))
     if any((specialization_err, program_err, trend_err, status_err)):
         return jsonify({
             "success": False,
@@ -157,7 +157,7 @@ def analytics_workbook():
 @admin.route("/analytics/specializations/report")
 @role_required(3)
 def analytics_all_specializations_report():
-    specializations, err = get_all_specialization_reports()
+    specializations, err = get_all_specialization_reports(year=request.args.get("year", type=int))
     if err:
         return jsonify({"success": False, "error": err}), 500
 
@@ -170,7 +170,7 @@ def analytics_all_specializations_report():
 @admin.route("/analytics/specializations/report.xlsx")
 @role_required(3)
 def analytics_all_specializations_workbook():
-    specializations, err = get_all_specialization_reports()
+    specializations, err = get_all_specialization_reports(year=request.args.get("year", type=int))
     if err:
         return jsonify({"success": False, "error": err}), 500
 

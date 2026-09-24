@@ -316,7 +316,7 @@ def restore_capstone(capstone_id, acting_user_id=None):
 
 def get_archive_capstones(search=None, year=None, page=1, page_size=12,
                           specialization=None, program=None, adviser=None,
-                          sort="newest"):
+                          sort="newest", search_scope="all"):
     """
     Fetch capstone records for the public archive list view.
     Joins keyword, specialization, and program for display.
@@ -329,7 +329,11 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12,
         conditions = []
         params = []
 
-        if search:
+        if search and search_scope in {"title", "keyword"}:
+            column = "c.capstone_title" if search_scope == "title" else "k.capstone_keywords"
+            conditions.append(f"{column} ILIKE %s")
+            params.append(f"%{search}%")
+        elif search:
             conditions.append(
                 """(
                     c.capstone_title ILIKE %s

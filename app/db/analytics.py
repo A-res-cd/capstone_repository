@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 _QUERY_ERROR = "Analytics data is temporarily unavailable."
 
 
-def get_capstones_by_program():
+def get_capstones_by_program(year=None):
     """Capstone count grouped by program — mirrors the reference dashboard's
     per-program stat cards and program donut chart."""
     conn = db_connect()
@@ -22,9 +22,10 @@ def get_capstones_by_program():
             SELECT p.program_id, p.program_name, COUNT(c.capstone_id) AS total
             FROM program p
             LEFT JOIN capstone c ON c.program_id = p.program_id AND c.is_archived IS NOT TRUE
+              AND (%s IS NULL OR c.capstone_year = %s)
             GROUP BY p.program_id, p.program_name
             ORDER BY total DESC
-        """)
+        """, (year, year))
         return mithrix.fetchall(), None
     except Exception as exc:
         logger.error("Analytics query failed: %s", exc)
@@ -62,7 +63,7 @@ def get_capstone_program_summary():
         mithrix.close()
         conn.close()
 
-def get_capstone_trend_by_specialization():
+def get_capstone_trend_by_specialization(year=None):
     """
     Capstone count per specialization per academic year — feeds the
     multi-line 'Capstone Trend per Year' chart. Returns (years, {specialization_name: [counts...]})
@@ -77,9 +78,10 @@ def get_capstone_trend_by_specialization():
             FROM capstone c
             JOIN specialization s ON s.specialization_id = c.specialization_id
             WHERE c.capstone_year IS NOT NULL AND c.is_archived IS NOT TRUE
+              AND (%s IS NULL OR c.capstone_year = %s)
             GROUP BY c.capstone_year, s.specialization_name
             ORDER BY c.capstone_year ASC
-        """)
+        """, (year, year))
         rows = mithrix.fetchall()
 
         years = sorted({row["capstone_year"] for row in rows})
@@ -99,7 +101,7 @@ def get_capstone_trend_by_specialization():
         mithrix.close()
         conn.close()
 
-def get_capstones_by_specialization():
+def get_capstones_by_specialization(year=None):
     """Capstone counts and status flags grouped by specialization."""
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -112,9 +114,10 @@ def get_capstones_by_specialization():
                    COUNT(c.capstone_id) FILTER (WHERE c.is_copyright_registered) AS copyright_registered
             FROM specialization s
             LEFT JOIN capstone c ON c.specialization_id = s.specialization_id AND c.is_archived IS NOT TRUE
+              AND (%s IS NULL OR c.capstone_year = %s)
             GROUP BY s.specialization_id, s.specialization_name
             ORDER BY total DESC
-        """)
+        """, (year, year))
         return mithrix.fetchall(), None
     except Exception as exc:
         logger.error("Analytics query failed: %s", exc)
@@ -124,7 +127,7 @@ def get_capstones_by_specialization():
         conn.close()
 
 
-def get_specialization_report(specialization_id):
+def get_specialization_report(specialization_id, year=None):
     """Return export-ready capstone records for one specialization."""
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -170,9 +173,10 @@ def get_specialization_report(specialization_id):
             LEFT JOIN Author a ON a.author_id = ca.author_id
             WHERE c.specialization_id = %s
               AND c.is_archived IS NOT TRUE
+              AND (%s IS NULL OR c.capstone_year = %s)
             GROUP BY c.capstone_id, s.specialization_name
             ORDER BY c.capstone_year DESC, c.capstone_id DESC
-        """, (specialization_id,))
+        """, (specialization_id, year, year))
         return list(mithrix.fetchall()), specialization["specialization_name"], None
     except Exception as exc:
         logger.error("Specialization report query failed: %s", exc)
@@ -182,7 +186,7 @@ def get_specialization_report(specialization_id):
         conn.close()
 
 
-def get_all_specialization_reports():
+def get_all_specialization_reports(year=None):
     """Return every specialization and its export-ready capstone records."""
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -226,9 +230,10 @@ def get_all_specialization_reports():
             LEFT JOIN capAuth ca ON ca.capstone_id = c.capstone_id
             LEFT JOIN Author a ON a.author_id = ca.author_id
             WHERE c.is_archived IS NOT TRUE
+              AND (%s IS NULL OR c.capstone_year = %s)
             GROUP BY c.capstone_id, s.specialization_id, s.specialization_name
             ORDER BY s.specialization_name, c.capstone_year DESC, c.capstone_id DESC
-        """)
+        """, (year, year))
         records_by_specialization = {
             specialization["specialization_id"]: []
             for specialization in specializations
@@ -250,7 +255,7 @@ def get_all_specialization_reports():
         conn.close()
 
 
-def get_capstone_status_flags():
+def get_capstone_status_flags(year=None):
     """
     Counts capstones flagged Utilized / Presented / Copyright Registered
     (vs not) among non-archived capstones — feeds the three small
@@ -271,7 +276,8 @@ def get_capstone_status_flags():
                 COUNT(*) FILTER (WHERE NOT is_copyright_registered) AS not_copyright_registered
             FROM capstone
             WHERE is_archived IS NOT TRUE
-        """)
+              AND (%s IS NULL OR capstone_year = %s)
+        """, (year, year))
         return mithrix.fetchone(), None
     except Exception as exc:
         logger.error("Analytics query failed: %s", exc)

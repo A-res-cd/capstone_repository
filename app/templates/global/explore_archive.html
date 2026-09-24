@@ -9,15 +9,20 @@
 {% block content %}
 <section class="explore-archive-section">
     <div class="explore-archive-container">
-        <h2 class="section-title">Capstone Projects</h2>
-
         {# ── Filter Bar ── #}
         <div class="archive-filters">
             <form method="GET" action="{{ url_for('pages.browse') }}" class="filter-form">
-                <div class="filter-group">
-                    <span>Search:</span>
-                    <input type="text" name="search" class="filter-input"
-                           placeholder="Title, keyword, or author…" value="{{ search }}">
+                <div class="archive-search">
+                    <label for="archive-search">Search capstones</label>
+                    <div class="archive-search-controls">
+                        <select name="search_scope" class="archive-search-scope" aria-label="Search field">
+                            <option value="all" {% if search_scope == 'all' %}selected{% endif %}>All fields</option>
+                            <option value="title" {% if search_scope == 'title' %}selected{% endif %}>Title</option>
+                            <option value="keyword" {% if search_scope == 'keyword' %}selected{% endif %}>Keyword</option>
+                        </select>
+                        <input id="archive-search" type="text" name="search" class="filter-input"
+                               placeholder="{{ 'Search by title…' if search_scope == 'title' else 'Search by keyword…' if search_scope == 'keyword' else 'Title, keyword, or author…' }}" value="{{ search }}">
+                    </div>
                 </div>
                 <div class="filter-group">
                     <span>Year:</span>
@@ -49,11 +54,6 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <span>Adviser:</span>
-                    <input type="text" name="adviser" class="filter-input filter-input--compact"
-                           placeholder="Adviser name" value="{{ adviser }}">
-                </div>
-                <div class="filter-group">
                     <span>Sort:</span>
                     <select name="sort" class="filter-select">
                         <option value="relevance" {% if selected_sort == 'relevance' %}selected{% endif %}>Relevance</option>
@@ -63,7 +63,7 @@
                     </select>
                 </div>
                 <button type="submit" class="btn-filter">Apply</button>
-                {% if search or selected_year or selected_program or selected_specialization or adviser or selected_sort != 'newest' %}
+                {% if search or search_scope != 'all' or selected_year or selected_program or selected_specialization or selected_sort != 'newest' %}
                     <a href="{{ url_for('pages.browse') }}" class="btn-clear">Clear</a>
                 {% endif %}
             </form>
@@ -99,11 +99,6 @@
                             <span class="col-spec"><i class="bx bx-shapes"></i> {{ project.specialization_name }}</span>
                             <span class="col-year"><i class="bx bx-calendar"></i> {{ project.capstone_year }}</span>
                             <span class="col-term">{{ project.semester }}</span>
-                            <button type="button" class="compare-capstone-btn"
-                                    aria-label="Add capstone to comparison" aria-pressed="false"
-                                    title="Compare capstone">
-                                <i class="bx bx-git-compare"></i>
-                            </button>
                         </div>
                         {% endfor %}
                     </div>
@@ -113,12 +108,12 @@
                         <span>Page {{ page }} of {{ total_pages }}</span>
                         <div class="pagination-controls">
                             {% if page > 1 %}
-                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page-1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort) }}">
+                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page-1, search=search or None, search_scope=search_scope, year=selected_year or None, program=selected_program, specialization=selected_specialization, sort=selected_sort) }}">
                                 <i class="bx bx-chevron-left"></i> Previous
                             </a>
                             {% endif %}
                             {% if page < total_pages %}
-                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page+1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort) }}">
+                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page+1, search=search or None, search_scope=search_scope, year=selected_year or None, program=selected_program, specialization=selected_specialization, sort=selected_sort) }}">
                                 Next <i class="bx bx-chevron-right"></i>
                             </a>
                             {% endif %}
@@ -130,7 +125,7 @@
                     <div class="archive-empty">
                         <i class="bx bx-folder-open"></i>
                         <p>
-                            {% if search or selected_year or selected_program or selected_specialization or adviser %}
+                            {% if search or selected_year or selected_program or selected_specialization %}
                                 No capstones match your filters.
                                 <a href="{{ url_for('pages.browse') }}">Clear filters</a>
                             {% else %}
@@ -300,33 +295,6 @@
                 </div>
             </div>
 
-            <div id="compare-tray" class="compare-tray" hidden>
-                <div>
-                    <strong>Compare capstones</strong>
-                    <div id="compare-selected" class="compare-selected"></div>
-                    <small id="compare-status" aria-live="polite">Select one more capstone.</small>
-                </div>
-                <div class="compare-tray__actions">
-                    <button type="button" id="compare-clear" class="btn-clear">Clear</button>
-                    <button type="button" id="compare-open" class="btn-filter" disabled>
-                        Compare <span id="compare-count">0/3</span>
-                    </button>
-                </div>
-            </div>
-
-            <div id="compare-modal-overlay" class="compare-modal-overlay" hidden>
-                <section class="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compare-modal-title">
-                    <header class="compare-modal__header">
-                        <div>
-                            <h3 id="compare-modal-title">Capstone comparison</h3>
-                            <p>Review selected archive metadata side by side.</p>
-                        </div>
-                        <button type="button" id="compare-close" class="compare-modal__close" aria-label="Close comparison">&times;</button>
-                    </header>
-                    <div id="compare-table-wrap" class="compare-table-wrap"></div>
-                </section>
-            </div>
-
         </div>{# end archive-layout-wrapper #}
     </div>
 </section>
@@ -335,5 +303,4 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/archive_sidebar.js') }}"></script>
-<script src="{{ url_for('static', filename='js/compare_capstones.js') }}"></script>
 {% endblock %}
