@@ -30,7 +30,7 @@ from app.db.capstones import (
     get_author_account_choices,
 )
 from app.routes.decorators import role_required, can_view_full_manuscript
-from app.constants.roles import ALL_ROLES, ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR, ROLE_FACULTY
+from app.constants.roles import ACADEMIC_ROLES as ALL_ROLES, ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR, ROLE_FACULTY
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
 from app.db.activity import record_capstone_activity
 from app.utils.pdf_extractor import extract_abstract_text, extract_capstone_data
@@ -57,7 +57,7 @@ def _populate_capstone_choices(form):
     form.program_id.choices = [(p[0], p[1]) for p in get_programs()]
     form.specialization_id.choices = [(s[0], s[1]) for s in get_specializations()]
     accounts = [(0, "No linked account")]
-    author_accounts = get_author_account_choices() if getattr(g, "user", None) and g.user.get("role_id") in (3, 4) else []
+    author_accounts = get_author_account_choices() if getattr(g, "user", None) and g.user.get("role_name") in (ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR) else []
     for account in author_accounts:
         name = " ".join(account[key] for key in ("user_first_name", "user_middle_name", "user_last_name") if account[key])
         university_no = f" · {account['university_no']}" if account["university_no"] else ""
@@ -105,7 +105,7 @@ def _people_for_db(form):
 
 
 @admin.route("/repository/extract", methods=["POST"])
-@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def extract_capstone_pdf():
     file = request.files.get('capstone_file')
 
@@ -139,7 +139,7 @@ def _save_file(file_obj):
 
 
 @admin.route("/repository")
-@role_required(ROLE_FACULTY, ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
+@role_required(ROLE_FACULTY, ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def view_capstone_repository():
     search = request.args.get("search", "").strip()
     program_id = request.args.get("program", "").strip()
@@ -173,7 +173,7 @@ def view_capstone_repository():
 
 
 @admin.route("/repository/<int:capstone_id>/people")
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def get_capstone_people_json(capstone_id):
     """Feeds the Edit-panel wizard's Authors/Adviser step — capstone
     people were previously only fetchable server-side, so editing an
@@ -200,7 +200,7 @@ def get_capstone_people_json(capstone_id):
 
 
 @admin.route("/repository/create", methods=["GET", "POST"])
-@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def admin_create_capstone():
     if request.method == "GET":
         return redirect(url_for("admin.view_capstone_repository"))
@@ -280,7 +280,7 @@ def admin_create_capstone():
 
 
 @admin.route("/repository/update/<int:capstone_id>", methods=["POST"])
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def update_capstone(capstone_id):
     used_keywords = get_used_keyword()
     capstone = get_capstone_details(capstone_id)
@@ -359,13 +359,13 @@ def update_capstone(capstone_id):
 
 
 @admin.route("/repository/view/<int:capstone_id>")
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def view_capstone(capstone_id):
     capstone = get_capstone_details(capstone_id)
     authors = get_capstone_authors(capstone_id)
     # g.user is reloaded from the DB on every request (see load_current_user),
     # so this reflects the caller's current role even if it changed mid-session.
-    is_admin = bool(g.user) and g.user.get("role_id") == 3
+    is_admin = bool(g.user) and g.user.get("role_name") == ROLE_RET_CHAIR
     max_pages = None if is_admin else 1  # Non-admin sees only page 1
 
     # The template's inline script always references PDF_URL and

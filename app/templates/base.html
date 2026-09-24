@@ -39,6 +39,7 @@
 
         <div class="main-wrapper">
             <main id="page-content">
+                {% if g.maintenance_notice %}<p role="status">Service notice: {{ g.maintenance_notice }}</p>{% endif %}
                 {% block content %}{% endblock %}
             </main>
         </div>

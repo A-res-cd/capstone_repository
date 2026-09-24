@@ -57,7 +57,7 @@ def inject_global_template_vars():
     notifications, notification_unread_count = get_user_notification_summary(
         session.get("user_id")
     )
-    nav_pending_counts = get_admin_pending_nav_counts() if role == "Admin" else {}
+    nav_pending_counts = get_admin_pending_nav_counts() if role == "RET Chair" else {}
 
     return {
         "nav_links":    nav_links,

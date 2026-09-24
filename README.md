@@ -98,7 +98,9 @@ python scripts/migrate.py upgrade
 
 Migrations run in filename order, are recorded in `schema_migration`, and are
 protected by a PostgreSQL advisory lock. Applied migration checksums cannot be
-changed silently. The web app does not modify the database during startup.
+changed silently. LF/CRLF line-ending differences are accepted without changing
+stored migration records; edits to SQL still fail validation. The web app does
+not modify the database during startup.
 
 ## Production database operations
 
@@ -143,10 +145,12 @@ After review, run the explicit cleanup command:
 python scripts/cleanup_orphaned_uploads.py --confirm
 ```
 
-Automatic daily cleanup is disabled by default. Enable it only after review by
-setting `UPLOAD_RETENTION_CLEANUP_ENABLED = true`. Cleanup skips files whose
-database references cannot be read or whose size/timestamp changed during the
-operation.
+System Administrator cleanup uses an expiring preview, password confirmation,
+and maintenance mode. The old `UPLOAD_RETENTION_CLEANUP_ENABLED` setting no longer
+starts a web-process scheduler. Run `python scripts/system_worker.py` separately
+for scheduled backups, diagnostics, and archive retention. See
+[System Administration](docs/SYSTEM_ADMINISTRATION.md) for role migration,
+operator provisioning, maintenance pages, and recovery instructions.
 
 For production, configure `UPLOAD_ANTIVIRUS_COMMAND` to a ClamAV-compatible
 scanner and set `UPLOAD_ANTIVIRUS_REQUIRED = true`. When required, COR,

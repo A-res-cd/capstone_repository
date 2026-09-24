@@ -38,4 +38,12 @@ def finish_request_observation(response):
                 separators=(",", ":"),
             ),
         )
+        if response.status_code >= 500 and not getattr(g, 'maintenance_active', False):
+            try:
+                from app.db.system import record_event
+                record_event('request_failed', category='request', severity='error', request_id=request_id,
+                             details={'endpoint': request.endpoint, 'method': request.method,
+                                      'status': response.status_code, 'duration_ms': duration_ms})
+            except Exception:
+                logger.warning('Could not persist sanitized request failure %s', request_id)
     return response

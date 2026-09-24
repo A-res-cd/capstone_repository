@@ -28,7 +28,7 @@
             </div>
             {% if profile.role_name %}
             <span class="role-badge
-                {% if profile.role_name == 'Admin' %}role-badge--admin
+                {% if profile.role_name in ['RET Chair', 'System Administrator'] %}role-badge--admin
                 {% elif profile.role_name == 'Faculty' %}role-badge--faculty
                 {% else %}role-badge--student{% endif %}">
                 {{ profile.role_name }}
@@ -71,7 +71,7 @@
             <div class="user-information-update-group">
                 <div class="ui-card-header">
                     <h3><i class="bx bx-id-card"></i> Basic Information</h3>
-                    <p>Managed by the university registrar — reach out to Admin to request a correction.</p>
+                    <p>Managed by the university registrar — reach out to the RET Chair to request a correction.</p>
                 </div>
 
                 <div class="form-row form-row--3col">
@@ -153,18 +153,18 @@
         </div>
 
         {# ── Request Promotion — a user requesting a different role,
-           reviewed by Admin (DFD 2.4.1/2.4.2). Distinct from account
+           reviewed by the RET Chair (DFD 2.4.1/2.4.2). Distinct from account
            verification, which only applies to new sign-ups. ── #}
         <div class="user-information-update-group">
             <div class="ui-card-header">
                 <h3><i class="bx bx-up-arrow-circle"></i> Request Role Promotion</h3>
-                <p>Request a different role — an Admin will review and decide.</p>
+                <p>Request a different role — a RET Chair will review and decide.</p>
             </div>
 
-            {% if profile.role_name == 'Admin' %}
+            {% if profile.role_name in ['RET Chair', 'System Administrator'] %}
                 <div class="promotion-pending-notice promotion-pending-notice--disabled">
                     <i class="bx bx-shield-quarter"></i>
-                    <span>Admins already hold the highest role and can't request a promotion.</span>
+                    <span>Privileged accounts cannot request a promotion.</span>
                 </div>
             {% elif has_pending_promotion %}
                 {% for pr in promotion_requests if pr.request_status == 'pending' %}
@@ -186,7 +186,7 @@
                             <select id="target_role_id" name="target_role_id" required>
                                 <option value="" disabled selected>Select a role</option>
                                 {% for r in roles %}
-                                {% if r[1] != profile.role_name and r[1] != 'Admin' %}
+                                {% if r[1] != profile.role_name and r[1] not in ['RET Chair', 'System Administrator'] %}
                                 <option value="{{ r[0] }}">{{ r[1] }}</option>
                                 {% endif %}
                                 {% endfor %}

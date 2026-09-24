@@ -1,5 +1,7 @@
 from pathlib import Path
 from importlib import import_module
+import hashlib
+import pytest
 
 from flask import Flask
 
@@ -40,15 +42,18 @@ class HealthConnection:
         self.closed = True
 
 
-def test_database_is_ready_when_schema_and_migrations_match(monkeypatch):
+@pytest.mark.parametrize('recorded_eol', [b'\n', b'\r\n'])
+def test_database_is_ready_when_schema_and_migrations_match(monkeypatch, tmp_path, recorded_eol):
+    path = tmp_path / '001.sql'
+    path.write_bytes(b'SELECT 1;\r\n')
+    checksum = hashlib.sha256(b'SELECT 1;' + recorded_eol).hexdigest()
     cursor = HealthCursor(
         ("user", "capstone", "schema_migration"),
-        [("001.sql", "checksum")],
+        [("001.sql", checksum)],
     )
     connection = HealthConnection(cursor)
     monkeypatch.setattr(health, "db_connect", lambda: connection)
-    monkeypatch.setattr(health, "migration_files", lambda: [Path("001.sql")])
-    monkeypatch.setattr(health, "migration_checksum", lambda path: "checksum")
+    monkeypatch.setattr(health, "migration_files", lambda: [path])
 
     assert health.database_is_ready()
     assert cursor.closed and connection.closed
@@ -62,7 +67,6 @@ def test_database_is_not_ready_when_a_migration_is_pending(monkeypatch):
     connection = HealthConnection(cursor)
     monkeypatch.setattr(health, "db_connect", lambda: connection)
     monkeypatch.setattr(health, "migration_files", lambda: [Path("001.sql")])
-    monkeypatch.setattr(health, "migration_checksum", lambda path: "checksum")
 
     assert not health.database_is_ready()
 

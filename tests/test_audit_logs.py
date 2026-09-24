@@ -81,7 +81,7 @@ def test_admin_only_and_no_mutations(audit_app):
     assert b'&lt;script&gt;' in response.data and b'SECRET' not in response.data
     assert b'page=2' in response.data and b'q=Maria' in response.data
     assert client.post('/audit-logs').status_code == 405
-    assert any(link['url'] == 'admin.audit_logs' for link in get_nav_links('Admin')[0])
+    assert any(link['url'] == 'admin.audit_logs' for link in get_nav_links('RET Chair')[0])
     assert not any(link['url'] == 'admin.audit_logs' for link in get_nav_links('Student')[0])
 
 

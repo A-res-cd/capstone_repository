@@ -14,7 +14,7 @@
     <span class="meta-panel__tab">Capstone Record</span>
     <div class="meta-panel__body">
     {% set role = session.get('role_name') %}
-    {% if role == 'Admin' or role == 'Capstone Professor' %}
+    {% if role == 'RET Chair' or role == 'Capstone Professor' %}
     <a href="{{ url_for('admin.view_capstone_repository') }}" class="back-link">← Back to Repository</a>
     {% else %}
     <a href="{{ url_for('pages.browse') }}" class="back-link">← Back to Archive</a>

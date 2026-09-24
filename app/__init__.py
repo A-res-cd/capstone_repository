@@ -4,7 +4,6 @@ from flask import Flask, abort, g, render_template, request, session, url_for
 from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect, CSRFError
-from apscheduler.schedulers.background import BackgroundScheduler
 from flask_debugtoolbar import DebugToolbarExtension
 
 from .utils.auth_utils import load_current_user
@@ -20,6 +19,10 @@ logger = logging.getLogger(__name__)
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.config["MAINTENANCE_BACKUP_ROOT"] = os.environ.get("MAINTENANCE_BACKUP_ROOT", os.path.join(app.root_path, "..", "backups", "system"))
+    app.config["MAINTENANCE_RESTORE_TEST_DB"] = os.environ.get("MAINTENANCE_RESTORE_TEST_DB")
+    app.config["PUBLIC_BASE_URL"] = os.environ.get("PUBLIC_BASE_URL")
+    app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "Not configured")
     for name in ('UPLOAD_MANUSCRIPT_FOLDER', 'UPLOAD_REGISTRATION_FOLDER', 'UPLOAD_AVATAR_FOLDER'):
         app.config[name] = os.environ.get(name, app.config.get(name))
 
@@ -37,6 +40,8 @@ def create_app():
 
     app.before_request(load_current_user)
     app.before_request(start_request_observation)
+    from app.utils.maintenance_gate import maintenance_gate
+    app.before_request(maintenance_gate)
 
     @app.before_request
     def block_public_uploads():
@@ -128,33 +133,6 @@ def create_app():
             back_url=last_page_url(url_for("main.home")),
         ), 500
 
-    # Run once on startup, then every 24h. WERKZEUG_RUN_MAIN check avoids
-    # starting the job twice under the Flask dev server's reloader.
-    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        from datetime import datetime, timedelta
-        from app.db.archive import purge_expired_archived_capstones
-        scheduler = BackgroundScheduler(daemon=True)
-        scheduler.add_job(
-            purge_expired_archived_capstones,
-            "interval",
-            hours=24,
-            next_run_time=datetime.now(),
-        )
-        if app.config.get("UPLOAD_RETENTION_CLEANUP_ENABLED"):
-            from app.utils.upload_cleanup import delete_orphaned_uploads
-
-            def cleanup_uploads_job():
-                with app.app_context():
-                    deleted = delete_orphaned_uploads()
-                    if deleted:
-                        logger.info("Removed %s orphaned upload(s)", deleted)
-
-            scheduler.add_job(
-                cleanup_uploads_job,
-                "interval",
-                hours=24,
-                next_run_time=datetime.now() + timedelta(hours=24),
-            )
-        scheduler.start()
+    # Scheduled work runs only in scripts/system_worker.py.
 
     return app

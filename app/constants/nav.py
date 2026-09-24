@@ -1,5 +1,21 @@
 def get_nav_links(role):
+    if role == "System Administrator":
+        names = [
+            ("overview", "System Overview"), ("diagnostics", "Diagnostics"),
+            ("database", "Database Health"), ("storage", "Storage Maintenance"),
+            ("backups", "Backups & Recovery"), ("jobs", "Scheduled Jobs"),
+            ("logs", "Errors & Logs"), ("security", "Account Security"),
+            ("maintenance", "Maintenance Mode"), ("configuration", "System Configuration"),
+            ("history", "Maintenance History"),
+        ]
+        links = [{"name": name, "title": name, "url": "system." + endpoint,
+                  "icon": "bx bx-cog", "section": "System Maintenance"} for endpoint, name in names]
+        account = {"name": "My Account", "title": "My Account", "url": "pages.user_info",
+                   "icon": "bx bx-user", "section": "Account"}
+        return links + [account], {"System Maintenance": links, "Account": [account]}
     links = [
+        {"name": "Academic Overview", "title": "Academic Overview", "url": "admin.overview",
+         "icon": "bx bx-home", "roles": ["RET Chair"], "section": "Overview"},
         # --- Process 6.0: Generate System Analytics and Report — Admin only ---
         # Sub-processes: View Audit Logs (6.1), Generate Informational Reports (6.2),
         # View Informational Reports (6.3), Generate Informational Analytics (6.5)
@@ -8,7 +24,7 @@ def get_nav_links(role):
             "title": "Analytics & Reports",
             "url": "admin.analytics",
             "icon": "bx bx-bar-chart-alt-2",
-            "roles": ["Admin"],
+            "roles": ["RET Chair"],
             "section": "Reports & Audit"
         },
 
@@ -17,7 +33,7 @@ def get_nav_links(role):
             "title": "Audit Logs",
             "url": "admin.audit_logs", 
             "icon": "bx bx-history",
-            "roles": ["Admin"], 
+            "roles": ["RET Chair"],
             "section": "Reports & Audit"
         },
         
@@ -28,7 +44,7 @@ def get_nav_links(role):
             "title": "User Management",
             "url": "admin.manage_users",
             "icon": "bx bx-group",
-            "roles": ["Admin"],
+            "roles": ["RET Chair"],
             "section": "Management"
         },
 
@@ -38,7 +54,7 @@ def get_nav_links(role):
             "title": "Manage Repository",
             "url": "admin.view_capstone_repository",
             "icon": "bx bx-folder-open",
-            "roles": ["Admin", "Capstone Professor", "Faculty"],
+            "roles": ["RET Chair", "Capstone Professor", "Faculty"],
             "section": "Capstone"
         },
 
@@ -47,7 +63,7 @@ def get_nav_links(role):
             "title": "Recycle Bin",
             "url": "admin.view_archived_capstones",
             "icon": "bx bx-trash",
-            "roles": ["Admin"],
+            "roles": ["RET Chair"],
             "section": "Management"
         },
 
@@ -57,7 +73,7 @@ def get_nav_links(role):
             "title": "Explore Capstone Archive",
             "url": "pages.browse",
             "icon": "bx bx-search-alt",
-            "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
+            "roles": ["RET Chair", "Capstone Professor", "Faculty", "Student"],
             "section": "Capstone"
         },
 
@@ -84,7 +100,7 @@ def get_nav_links(role):
             "title": "Requests",
             "url": "admin.view_requests",
             "icon": "bx bx-file-blank",
-            "roles": ["Admin"],
+            "roles": ["RET Chair"],
             "section": "Management"
         },
 
@@ -93,7 +109,7 @@ def get_nav_links(role):
             "title": "Capstoner Review",
             "url": "admin.capstoner_review",
             "icon": "bx bx-user-check",
-            "roles": ["Admin","Capstone Professor"],
+            "roles": ["RET Chair","Capstone Professor"],
             "section": "Management"
         },
 
@@ -128,7 +144,7 @@ def get_nav_links(role):
             "title": "Profile Overview",
             "url": "pages.profile_overview",
             "icon": "bx bx-user",
-            "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
+            "roles": ["RET Chair", "Capstone Professor", "Faculty", "Student"],
             "section": "Account"
         },
 
@@ -140,7 +156,7 @@ def get_nav_links(role):
         #     "title": "Developer Debug Tool",
         #     "url": "admin.dev_debug",
         #     "icon": "bx bx-terminal",
-        #     "roles": ["Admin"],
+        #     "roles": ["RET Chair"],
         #     "section": "Account"
         # },
     ]
@@ -249,10 +265,13 @@ def get_role_meta(role):
     Used to render the role badge in the navbar.
     """
     meta = {
-        "Admin": {
-            "label": "Administrator",
+        "RET Chair": {
+            "label": "RET Chair",
             "badge_class": "badge-admin",
             "icon": "bx bx-crown",
+        },
+        "System Administrator": {
+            "label": "System Administrator", "badge_class": "badge-admin", "icon": "bx bx-cog",
         },
         "Capstone Professor": {
             "label": "Capstone Professor",

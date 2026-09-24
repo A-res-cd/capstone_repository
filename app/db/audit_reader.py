@@ -6,7 +6,8 @@ from app.utils.audit_summary import ACTION_GROUPS, summarize_audit
 
 
 def get_audit_logs(filters, page=1):
-    clauses, params = [], []
+    clauses = ["NOT EXISTS (SELECT 1 FROM role ar WHERE ar.role_id=u.role_id AND ar.role_name='System Administrator')"]
+    params = []
     for name, operator in [('start', '>='), ('end', '<')]:
         if filters.get(name):
             clauses.append(f'a.action_timestamp {operator} %s')

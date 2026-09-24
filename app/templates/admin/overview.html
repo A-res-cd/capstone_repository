@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Academic Overview · CAPRE{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_system.css') }}">{% endblock %}
+{% block content %}
+<section class="system-console"><header class="system-page-header"><span class="system-eyebrow"><i class="bx bx-book-open" aria-hidden="true"></i> RET Chair workspace</span><h1>Academic Overview</h1><p>Review pending academic decisions and manage the research repository.</p></header>
+<div class="system-grid system-overview-grid">
+<article><span class="system-card-icon"><i class="bx bx-user-check" aria-hidden="true"></i></span><h2>Account verification and promotions</h2><p class="system-card-count">{{ counts.get('admin.manage_users', 'Unavailable') }} <span>pending</span></p><a href="{{ url_for('admin.manage_users') }}">Review accounts and academic roles <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+<article><span class="system-card-icon"><i class="bx bx-envelope" aria-hidden="true"></i></span><h2>Manuscript access</h2><p class="system-card-count">{{ counts.get('admin.view_requests', 'Unavailable') }} <span>pending</span></p><a href="{{ url_for('admin.view_requests') }}">Review manuscript requests <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+<article><span class="system-card-icon"><i class="bx bx-library" aria-hidden="true"></i></span><h2>Capstone repository</h2><p>Manage research records and author links.</p><a href="{{ url_for('admin.view_capstone_repository') }}">Manage repository <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+<article><span class="system-card-icon"><i class="bx bx-group" aria-hidden="true"></i></span><h2>Capstoner review</h2><p>Review registrations and author assignments.</p><a href="{{ url_for('admin.capstoner_review') }}">Review capstoners <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+<article><span class="system-card-icon"><i class="bx bx-bar-chart-alt-2" aria-hidden="true"></i></span><h2>Analytics and reports</h2><p>Research distribution and activity.</p><a href="{{ url_for('admin.analytics') }}">View academic reports <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+<article><span class="system-card-icon"><i class="bx bx-history" aria-hidden="true"></i></span><h2>Academic audit history</h2><p>Trace academic decisions and record changes.</p><a href="{{ url_for('admin.audit_logs') }}">View academic audit history <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+</div></section>
+{% endblock %}

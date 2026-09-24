@@ -2,7 +2,7 @@
 from . import admin
 from flask import render_template, redirect, session, url_for, flash
 from app.routes.decorators import role_required
-from app.constants.roles import ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR
+from app.constants.roles import ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR
 from app.routes.forms import CapstonerReviewForm, CapstonerAssignmentForm
 from app.db.capstoners import (
     get_pending_capstoners,
@@ -39,13 +39,13 @@ def _render_capstoner_review(assignment_form=None):
 
 
 @admin.route("/capstoners")
-@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def capstoner_review():
     return _render_capstoner_review()
 
 
 @admin.route("/capstoners/review/<int:request_id>", methods=["POST"])
-@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def decide_capstoner(request_id):
     form = CapstonerReviewForm()
     if not form.validate_on_submit():
@@ -59,7 +59,7 @@ def decide_capstoner(request_id):
 
 
 @admin.route("/capstoners/assign", methods=["POST"])
-@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def assign_capstoner():
     form = _capstoner_assignment_form()
     if not form.validate_on_submit():

@@ -3,6 +3,6 @@ from .authentication     import auth
 from .admin    import admin
 from .pages import pages
 from .faculty import faculty
-from .mobile import mobile
+from .system import system
 
-blueprints = [main, auth, admin, pages, faculty, mobile]
+blueprints = [main, auth, admin, pages, faculty, system]

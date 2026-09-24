@@ -219,8 +219,8 @@ def submit_promotion_request_route():
     # Use g.user (loaded fresh from the DB this request) rather than the
     # session copy, so a role change takes effect immediately.
     current_role = g.user.get("role_name") if g.user else None
-    if current_role == "Admin":
-        flash("Admins can't request a role promotion.", "danger")
+    if current_role in ("RET Chair", "System Administrator"):
+        flash("Privileged accounts cannot request a role promotion.", "danger")
         return redirect(url_for("pages.user_info"))
 
     if not target_role_id or not target_role_id.isdigit():
@@ -232,8 +232,8 @@ def submit_promotion_request_route():
     target_role_id = int(target_role_id)
     roles = get_all_roles()
     target_role_name = next((r[1] for r in roles if r[0] == target_role_id), None)
-    if target_role_name == "Admin":
-        flash("The Admin role can't be requested — it must be assigned by an existing admin.", "danger")
+    if target_role_name in ("RET Chair", "System Administrator"):
+        flash("Privileged roles must be assigned through an authorized operator.", "danger")
         return redirect(url_for("pages.user_info"))
 
     if not reason:

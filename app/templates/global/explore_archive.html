@@ -180,7 +180,7 @@
                         {% set is_approved = sidebar_project.capstone_id in approved_capstone_ids %}
 
                         <div class="sidebar-actions">
-                            {% if session.get('role_name') in ['Admin', 'Faculty', 'Capstone Professor'] %}
+                            {% if session.get('role_name') in ['RET Chair', 'Faculty', 'Capstone Professor'] %}
                             <a href="{{ url_for('admin.view_capstone_pdf', capstone_id=sidebar_project.capstone_id) }}" 
                                 id="sb-abstract-link" 
                                 class="btn-abstract"

@@ -98,7 +98,7 @@ def feature_db(isolated_database, monkeypatch):
         cursor.execute(f'CREATE SCHEMA "{schema}"')
         cursor.execute(f'SET search_path TO "{schema}"')
         cursor.execute((ROOT / 'database/capreDB.sql').read_text(encoding='utf-8'))
-        cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'Admin'), (4, 'Capstone Professor')")
+        cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'RET Chair'), (4, 'Capstone Professor')")
         conn.commit()
 
     class ClosingPool:
@@ -367,7 +367,7 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
                  affected_table='contact', new_values='SECRET', old_values=None, action_timestamp=None)
     monkeypatch.setattr(admin.audit, 'get_audit_logs', lambda *args: dict(events=[summarize_audit(event, {})], counts=dict(account=1, capstone=0, workflow=0, other=0), total=1, page=1, pages=1))
     monkeypatch.setattr(admin.users, 'get_users', lambda **kwargs: ([dict(user_id=2, full_name='Maria Cruz', university_no='2026-002', email='maria@example.com', role='Student', role_id=1, account_status='active')], 1))
-    monkeypatch.setattr(admin.users, 'get_all_roles', lambda: [(1, 'Student'), (3, 'Admin'), (4, 'Faculty')])
+    monkeypatch.setattr(admin.users, 'get_all_roles', lambda: [(1, 'Student'), (3, 'RET Chair'), (4, 'Faculty')])
     monkeypatch.setattr(admin.users, 'get_pending_promotions', lambda: [], raising=False)
     monkeypatch.setattr(admin.users, 'get_pending_promotion_requests', lambda: [])
     monkeypatch.setattr(admin.users, 'get_pending_verifications', lambda: [dict(request_id=1, full_name='Maria Cruz', role='Student', email='maria@example.com', university_no=None)])

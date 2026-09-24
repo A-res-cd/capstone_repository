@@ -1,6 +1,9 @@
 from pathlib import Path
+import hashlib
+import pytest
 
 from app.db.migration_runner import _migration_sql, migration_checksum, migration_files
+from app.db.migration_runner import _validate_applied_files, MigrationError
 
 
 def test_migration_files_are_sql_only_and_sorted(tmp_path):
@@ -34,3 +37,17 @@ def test_migration_checksum_is_stable(tmp_path):
 
     assert migration_checksum(path) == migration_checksum(path)
     assert len(migration_checksum(path)) == 64
+
+
+@pytest.mark.parametrize('recorded_eol', [b'\n', b'\r\n'])
+@pytest.mark.parametrize('checkout_eol', [b'\n', b'\r\n'])
+def test_checksum_accepts_platform_newlines_only(tmp_path, recorded_eol, checkout_eol):
+    path = tmp_path / 'sample.sql'
+    original = b'SELECT 1;\nSELECT 2;\n'
+    recorded = hashlib.sha256(original.replace(b'\n', recorded_eol)).hexdigest()
+    path.write_bytes(original.replace(b'\n', checkout_eol))
+    assert migration_checksum(path) == hashlib.sha256(original).hexdigest()
+    _validate_applied_files({path.name: recorded}, [path])
+    path.write_bytes(b'SELECT 9;\nSELECT 2;\n'.replace(b'\n', checkout_eol))
+    with pytest.raises(MigrationError, match='checksum changed'):
+        _validate_applied_files({path.name: recorded}, [path])

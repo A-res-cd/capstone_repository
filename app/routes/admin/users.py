@@ -30,7 +30,7 @@ from app.db.auth import (
     review_verification_request,
 )
 from app.routes.decorators import role_required
-from app.constants.roles import ROLE_ADMIN
+from app.constants.roles import ROLE_RET_CHAIR
 from app import mail
 
 
@@ -51,7 +51,7 @@ def _send_verification_email(recipient, decision, status_reason):
 
 
 @admin.route("/manage_users")
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def manage_users():
     search = request.args.get("search", "").strip()
     role_id = request.args.get("role", "").strip()
@@ -87,7 +87,7 @@ def manage_users():
 
 
 @admin.route('/manage_users/verify/<int:request_id>/details')
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def verification_details(request_id):
     details = get_verification_details(request_id)
     if not details:
@@ -101,7 +101,7 @@ def verification_details(request_id):
 
 
 @admin.route('/manage_users/verify/<int:request_id>/document')
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def verification_document(request_id):
     document = get_verification_document(request_id)
     if not document:
@@ -124,7 +124,7 @@ def verification_document(request_id):
 
 
 @admin.route("/manage_users/promotion/<int:request_id>", methods=["POST"])
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def decide_promotion(request_id):
     decision = request.form.get("decision")  # 'approved' or 'rejected'
     status_reason = request.form.get("status_reason", "")
@@ -145,7 +145,7 @@ def decide_promotion(request_id):
 
 
 @admin.route("/manage_users/verify/<int:request_id>", methods=["POST"])
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def decide_verification(request_id):
     decision = request.form.get("decision")  # 'approved' or 'rejected'
     status_reason = request.form.get("status_reason", "")
@@ -172,7 +172,7 @@ def decide_verification(request_id):
 
 
 @admin.route("/manage_users/update_role/<int:user_id>", methods=["GET","POST"])
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def update_role(user_id):
     new_role_id = request.form.get("role_id")
     # Derived from the session, not a client-supplied form field — a
@@ -194,7 +194,7 @@ def update_role(user_id):
 
 
 @admin.route("/manage_users/delete/<int:user_id>", methods=["POST"])
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def delete_user(user_id):
     acting_admin_id = session.get("user_id")
     ok, err = delete_user_account(user_id, acting_admin_id)
@@ -206,7 +206,7 @@ def delete_user(user_id):
 
 
 @admin.route("/manage_users/status/<int:user_id>", methods=["POST"])
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def change_account_status(user_id):
     new_status = request.form.get("status")
     acting_admin_id = session.get("user_id")

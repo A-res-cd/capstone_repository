@@ -38,7 +38,7 @@ def detect_role(university_no):
     if PROFESSOR_PATTERN.match(university_no):
         return "Faculty"
     if ADMIN_PATTERN.match(university_no):
-        return "Admin"
+        return "Faculty"
     return None
 
 #new role assignment also returs something so we can assign it to the righgt (verificationist)
@@ -46,7 +46,7 @@ def detect_role(university_no):
 def get_verifier_track(role_name):
     if role_name == "Student":
         return "student"
-    if role_name in ("Faculty", "Admin"):
+    if role_name == "Faculty":
         return "faculty"
     
     return None
@@ -289,7 +289,8 @@ def sign_in(username, password, device_ip=None):
         mithrix.execute("""
         SELECT u.user_id, u.locked_until, u.account_status, k.username, r.password AS password_hash,
                ro.role_id, ro.role_name,
-               u.user_first_name, u.user_last_name
+               u.user_first_name, u.user_last_name,
+               COALESCE((to_jsonb(u)->>'session_version')::int, 0) AS session_version
         FROM kappa k
         JOIN slug sl ON sl.username_id = k.username_id AND sl.is_current = TRUE
         JOIN ror   r  ON r.password_id  = sl.password_id
@@ -396,6 +397,7 @@ def sign_in(username, password, device_ip=None):
             "user_first_name": row["user_first_name"],
             "user_last_name":  row["user_last_name"],
             "log_in_id":       log_in_id,
+            "session_version": row["session_version"],
         }, None
 
     except Exception as exc:
@@ -741,6 +743,9 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
 
         user_id = row["user_id"]
 
+        from app.db.role_security import guard_account_change
+        guard_account_change(conn, user_id)
+
         mithrix.execute("""
             UPDATE request SET
                 request_status = %s,
@@ -762,6 +767,9 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
 
         conn.commit()
         return True, None
+    except ValueError as exc:
+        conn.rollback()
+        return False, str(exc)
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)

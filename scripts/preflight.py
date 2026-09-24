@@ -46,8 +46,6 @@ def configuration_failures(config=Config, environ=None):
         failures.append("UPLOAD_ANTIVIRUS_REQUIRED must be true")
     elif not _scanner_available(getattr(config, "UPLOAD_ANTIVIRUS_COMMAND", None)):
         failures.append("UPLOAD_ANTIVIRUS_COMMAND is unavailable")
-    if not getattr(config, "UPLOAD_RETENTION_CLEANUP_ENABLED", False):
-        failures.append("UPLOAD_RETENTION_CLEANUP_ENABLED must be true")
     if getattr(config, "UPLOAD_ORPHAN_RETENTION_DAYS", 0) < 1:
         failures.append("UPLOAD_ORPHAN_RETENTION_DAYS must be positive")
     if getattr(config, "UPLOAD_ANTIVIRUS_TIMEOUT_SECONDS", 0) < 1:

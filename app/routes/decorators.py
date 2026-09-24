@@ -4,12 +4,12 @@ from flask import session, g, redirect, url_for, flash
 from app.db.requests import get_user_requests
 from app.utils.navigation import last_page_url
 from app.constants.roles import (
-    LEGACY_ROLE_NAMES_BY_ID, ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR,
-    ROLE_FACULTY,
+    LEGACY_ROLE_NAMES_BY_ID, ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR,
+    ROLE_FACULTY, ROLE_ADMIN,
 )
 
 
-FULL_MANUSCRIPT_ROLES = {ROLE_ADMIN, ROLE_FACULTY, ROLE_CAPSTONE_PROFESSOR}
+FULL_MANUSCRIPT_ROLES = {ROLE_RET_CHAIR, ROLE_FACULTY, ROLE_CAPSTONE_PROFESSOR}
 
 
 def login_required(f):
@@ -51,6 +51,8 @@ def role_required(*allowed_roles):
 
 def can_view_full_manuscript(capstone_id, user_id=None):
     role_name = g.user.get("role_name") if getattr(g, "user", None) else session.get("role_name")
+    if role_name == ROLE_ADMIN:
+        return False
     if role_name in FULL_MANUSCRIPT_ROLES:
         return True
 

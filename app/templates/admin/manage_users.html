@@ -73,7 +73,7 @@
                         <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ pv.university_no }}</span>
                         <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ pv.email or '—' }}</span>
                         <span class="role-badge
-                            {% if pv.role == 'Admin' %}role-badge--admin
+                            {% if pv.role == 'RET Chair' %}role-badge--admin
                             {% elif pv.role == 'Faculty' %}role-badge--faculty
                             {% else %}role-badge--student{% endif %}">
                             {{ pv.role }}
@@ -155,14 +155,14 @@
                     </div>
                     <div class="record-card__meta">
                         <span class="role-badge
-                            {% if pr.current_role == 'Admin' %}role-badge--admin
+                            {% if pr.current_role == 'RET Chair' %}role-badge--admin
                             {% elif pr.current_role == 'Faculty' %}role-badge--faculty
                             {% else %}role-badge--student{% endif %}">
                             {{ pr.current_role }}
                         </span>
                         <i class="bx bx-right-arrow-alt"></i>
                         <span class="role-badge
-                            {% if pr.target_role == 'Admin' %}role-badge--admin
+                            {% if pr.target_role == 'RET Chair' %}role-badge--admin
                             {% elif pr.target_role == 'Faculty' %}role-badge--faculty
                             {% else %}role-badge--student{% endif %}">
                             {{ pr.target_role }}
@@ -251,7 +251,7 @@
                         <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ u.university_no }}</span>
                         <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ u.email or '—' }}</span>
                         <span class="role-badge
-                            {% if u.role == 'Admin' %}role-badge--admin
+                            {% if u.role == 'RET Chair' %}role-badge--admin
                             {% elif u.role == 'Faculty' %}role-badge--faculty
                             {% else %}role-badge--student{% endif %}">
                             {{ u.role }}
@@ -494,7 +494,7 @@ document.querySelectorAll('.btn-row--edit').forEach(btn => {
         const roleEl = document.getElementById('info-role');
         roleEl.textContent = role;
         roleEl.className = 'role-badge ' + (
-            role === 'Admin' ? 'role-badge--admin' :
+            role === 'RET Chair' ? 'role-badge--admin' :
             role === 'Faculty' ? 'role-badge--faculty' : 'role-badge--student'
         );
         setStatusBadge(document.getElementById('info-status'), status);

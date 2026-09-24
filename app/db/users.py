@@ -8,6 +8,7 @@ from werkzeug.security import check_password_hash
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+from app.db.role_security import guard_account_change, require_requestable_role
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ def get_users(search=None, role_id=None, status=None, page=1, page_size=20):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        conditions = []
+        conditions = ["r.role_name <> 'System Administrator'"]
         params = []
 
         if search:
@@ -165,6 +166,9 @@ def upsert_user_contact(user_id, contact_type, contact_value, is_primary=True):
 
         conn.commit()
         return True, None
+    except ValueError as exc:
+        conn.rollback()
+        return False, str(exc)
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
@@ -179,7 +183,7 @@ def get_all_roles():
     mithrix = conn.cursor()
     try:
         mithrix.execute(
-            'SELECT role_id, role_name FROM "role" ORDER BY role_id')
+            "SELECT role_id, role_name FROM role WHERE role_name != 'System Administrator' ORDER BY role_id")
         return mithrix.fetchall()
     except Exception as exc:
         logger.error("Database error: %s", exc)
@@ -196,6 +200,7 @@ def update_user_role(user_id, new_role_id, acting_admin_id):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
+        guard_account_change(conn, user_id, target_role_id=new_role_id)
         # capture old role for audit
         mithrix.execute(
             'SELECT role_id FROM "user" WHERE user_id = %s', (user_id,)
@@ -236,8 +241,8 @@ def _run_delete_cascade(mithrix, user_id, acting_id):
         (user_id,),
     )
     credential_rows = mithrix.fetchall()
-    username_ids = [row[0] for row in credential_rows]
-    password_ids = [row[1] for row in credential_rows]
+    username_ids = [row['username_id'] if isinstance(row, dict) else row[0] for row in credential_rows]
+    password_ids = [row['password_id'] if isinstance(row, dict) else row[1] for row in credential_rows]
 
     # audit first, while user still exists
     log_audit(mithrix, acting_id, "delete_user", "user", user_id)
@@ -295,9 +300,13 @@ def delete_user_account(user_id, acting_admin_id):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
+        guard_account_change(conn, user_id)
         _run_delete_cascade(mithrix, user_id, acting_admin_id)
         conn.commit()
         return True, None
+    except ValueError as exc:
+        conn.rollback()
+        return False, str(exc)
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
@@ -318,6 +327,7 @@ def delete_own_account(user_id, password):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
+        guard_account_change(conn, user_id, academic=False)
         mithrix.execute("""
             SELECT r.password AS password_hash, u.role_id
             FROM "user" u
@@ -331,26 +341,12 @@ def delete_own_account(user_id, password):
         if not row or not check_password_hash(row["password_hash"], password):
             return False, "Incorrect password."
 
-        if row["role_id"] == 3:  # Admin
-            mithrix.execute(
-                'SELECT COUNT(*) AS n FROM "user" WHERE role_id = 3 AND account_status = \'active\''
-            )
-            admin_count = mithrix.fetchone()["n"]
-            if admin_count <= 1:
-                return False, "You're the only remaining Admin — deleting your account would lock everyone out. Assign another Admin first."
-    except Exception as exc:
-        logger.error("Database error: %s", exc)
-        return False, "A database error occurred. Please try again."
-    finally:
-        mithrix.close()
-        conn.close()
-
-    conn = db_connect()
-    mithrix = conn.cursor()
-    try:
         _run_delete_cascade(mithrix, user_id, user_id)
         conn.commit()
         return True, None
+    except ValueError as exc:
+        conn.rollback()
+        return False, str(exc)
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
@@ -378,6 +374,7 @@ def set_account_status(user_id, new_status, acting_admin_id):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
+        guard_account_change(conn, user_id)
         mithrix.execute(
             'SELECT account_status FROM "user" WHERE user_id = %s', (user_id,)
         )
@@ -397,6 +394,9 @@ def set_account_status(user_id, new_status, acting_admin_id):
 
         conn.commit()
         return True, None
+    except ValueError as exc:
+        conn.rollback()
+        return False, str(exc)
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
@@ -422,6 +422,7 @@ def submit_promotion_request(user_id, target_role_id, reason):
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     now = datetime.now(timezone.utc)
     try:
+        require_requestable_role(mithrix, target_role_id)
         mithrix.execute("""
             SELECT request_id FROM request
             WHERE user_id = %s AND request_type = 'promotion' AND request_status = 'pending'
@@ -447,6 +448,9 @@ def submit_promotion_request(user_id, target_role_id, reason):
 
         conn.commit()
         return True, None
+    except ValueError as exc:
+        conn.rollback()
+        return False, str(exc)
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)
@@ -525,13 +529,16 @@ def review_promotion_request(request_id, decision, status_reason, reviewed_by):
     try:
         mithrix.execute("""
             SELECT user_id, target_role_id FROM request
-            WHERE request_id = %s AND request_type = 'promotion'
+            WHERE request_id = %s AND request_type = 'promotion' AND request_status = 'pending'
             FOR UPDATE
         """, (request_id,))
         row = mithrix.fetchone()
         if not row:
             conn.rollback()
             return False, "Promotion request not found."
+
+        require_requestable_role(mithrix, row["target_role_id"])
+        guard_account_change(conn, row["user_id"], target_role_id=row["target_role_id"])
 
         mithrix.execute("""
             UPDATE request SET
@@ -553,6 +560,9 @@ def review_promotion_request(request_id, decision, status_reason, reviewed_by):
 
         conn.commit()
         return True, None
+    except ValueError as exc:
+        conn.rollback()
+        return False, str(exc)
     except Exception as exc:
         conn.rollback()
         logger.error("Database error: %s", exc)

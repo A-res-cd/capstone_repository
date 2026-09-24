@@ -66,7 +66,7 @@ def author_db(author_postgres, monkeypatch):
         cursor.execute((ROOT / "database/capreDB.sql").read_text(encoding="utf-8").split("CREATE DATABASE capre;", 1)[1])
         cursor.execute('''
             INSERT INTO role (role_id, role_name) VALUES
-                (1, 'Student'), (2, 'Faculty'), (3, 'Admin'), (4, 'Capstone Professor');
+                (1, 'Student'), (2, 'Faculty'), (3, 'RET Chair'), (4, 'Capstone Professor');
             INSERT INTO "user" (user_id, user_first_name, user_last_name, role_id, account_status)
                 VALUES (1, 'Maria', 'Cruz', 1, 'active'), (2, 'Maria', 'Cruz', 1, 'active');
             INSERT INTO request (user_id, request_type, request_status)
@@ -206,7 +206,7 @@ def test_people_endpoint_returns_failure_without_exposing_database_error(monkeyp
 
     @app.before_request
     def load_admin():
-        g.user = {"role_id": 3}
+        g.user = {"role_id": 3, "role_name": "RET Chair"}
 
     def fail(_):
         raise RuntimeError("private database detail")

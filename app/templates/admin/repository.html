@@ -15,7 +15,7 @@
             <h2>Capstone Repository</h2>
             <p>Manage capstone projects — create, edit, or remove records from the archive.</p>
         </div>
-        {% if session.get('role_name') in ['Admin', 'Capstone Professor'] %}
+        {% if session.get('role_name') in ['RET Chair', 'Capstone Professor'] %}
         <button class="btn-pill btn-pill--primary" id="btn-open-create">
             <i class="bx bx-plus"></i> New Capstone
         </button>
@@ -92,7 +92,7 @@
                         data-copyright="{{ 'true' if c.is_copyright_registered else 'false' }}">
                         <i class="bx bx-edit-alt"></i> Edit
                     </button>
-                    {% if session.get('role_name') in ['Admin'] %}
+                    {% if session.get('role_name') in ['RET Chair'] %}
                     <button type="button" class="btn-row btn-row--delete"
                         data-delete-trigger
                         data-delete-mode="recycle"

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · CAPRE{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_system.css') }}">{% endblock %}
+{% macro reason_fields(sensitive=false) %}
+<label>Reason<input name="reason" required minlength="5" maxlength="500"></label>
+{% if sensitive %}<label>Current password<input type="password" name="password" required autocomplete="current-password"></label>{% endif %}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endmacro %}
+{% macro queue(kind, label, backup_id=none, sensitive=false) %}
+<form method="post" action="{{ url_for('system.queue_job') }}" class="system-form">
+<input type="hidden" name="kind" value="{{ kind }}">
+{% if backup_id %}<input type="hidden" name="backup_id" value="{{ backup_id }}">{% endif %}
+{{ reason_fields(sensitive) }}<button class="btn-pill btn-pill--primary">{{ label }}</button></form>
+{% endmacro %}
+{% block content %}
+<section class="system-console">
+<header class="system-page-header"><span class="system-eyebrow"><i class="bx bx-cog" aria-hidden="true"></i> System administration</span><h1>{{ title }}</h1><p>{{ description }}</p></header>
+{% for category, message in get_flashed_messages(with_categories=true) %}<p class="system-notice" role="status">{{ message }}</p>{% endfor %}
+{% if active %}<p class="system-notice">Maintenance is active. {{ state.notice }}</p>{% endif %}
+{% if current_page == 'overview' %}
+<div class="system-grid system-overview-grid">
+<article><span class="system-card-icon"><i class="bx bx-data" aria-hidden="true"></i></span><h2>Database</h2><p class="status-healthy">Connected</p><a href="{{ url_for('system.database') }}">Inspect database health <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+<article><span class="system-card-icon"><i class="bx bx-cog" aria-hidden="true"></i></span><h2>Maintenance worker</h2><p class="status-{{ 'healthy' if worker_healthy else 'unavailable' }}">{{ 'Healthy' if worker_healthy else 'Unavailable / not started' }}</p><a href="{{ url_for('system.jobs') }}">Inspect scheduled jobs <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+<article><span class="system-card-icon"><i class="bx bx-archive" aria-hidden="true"></i></span><h2>Latest backup</h2><p>{{ backups[0].created_at if backups else 'Not checked — no backups recorded' }}</p><a href="{{ url_for('system.backups') }}">Backups and recovery <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+<article><span class="system-card-icon"><i class="bx bx-error-circle" aria-hidden="true"></i></span><h2>Recent failed jobs</h2><p>{{ jobs|selectattr('status', 'equalto', 'failed')|list|length }} in latest {{ jobs|length }} jobs</p><a href="{{ url_for('system.jobs') }}">Review failures <i class="bx bx-right-arrow-alt" aria-hidden="true"></i></a></article>
+</div><nav class="system-shortcuts" aria-label="More system checks"><a href="{{ url_for('system.storage') }}"><i class="bx bx-hdd" aria-hidden="true"></i> Inspect storage capacity</a><a href="{{ url_for('system.logs') }}"><i class="bx bx-list-ul" aria-hidden="true"></i> Review request errors</a></nav>
+{% endif %}
+<div class="system-workspace">
+{% if current_page in ['overview','diagnostics'] %}
+<h2>Last diagnostic run</h2>
+{% if diagnostic %}<p>Checked {{ diagnostic.result.checked_at }}</p><div class="system-grid">{% for check in diagnostic.result.checks %}<article><h3>{{ check.name }}</h3><p class="status-{{ check.status|replace(' ', '-') }}">{{ check.status }}</p><p>{{ check.detail }}</p></article>{% endfor %}</div>
+{% else %}<p>Not checked. Queue diagnostics to measure service availability.</p>{% endif %}
+{{ queue('diagnostics', 'Run diagnostics') }}
+{% endif %}
+{% if current_page == 'database' %}
+<dl>{% for key, value in database.items() %}<dt>{{ key|replace('_',' ')|title }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+<p>Long-running queries are counted after 5 seconds; query text is not exposed.</p>
+<h2>Migrations</h2><p>{{ migrations.applied|length }} applied; {{ migrations.pending|length }} pending.</p>
+{% for migration in migrations.pending %}<p>{{ migration }}</p>{% endfor %}
+<p>Apply migrations through the deployment process.</p>
+{% endif %}
+{% if current_page == 'storage' %}
+<div class="system-grid">{% for area in storage.areas %}<article><h2>Private storage {{ area.area }}</h2><p>{{ area.status }}</p><p>{{ area.files }} files · {{ area.bytes }} bytes · {{ area.free_bytes if area.free_bytes is not none else 'unknown' }} bytes free</p></article>{% endfor %}</div>
+<p>{{ storage.missing_references }} referenced filenames missing. Orphan retention: {{ storage.retention_days }} days.</p>
+<h2>Cleanup preview</h2><p>{{ storage.candidates|length }} old, unreferenced files are eligible. A fresh reference check runs before deletion.</p>
+<ul>{% for item in storage.candidates %}<li>{{ item.path|replace('\\','/')|split_filename }} — {{ item.size_bytes }} bytes</li>{% endfor %}</ul>
+{% if storage.candidates %}<form method="post" action="{{ url_for('system.queue_job') }}" class="system-form">
+<input type="hidden" name="kind" value="cleanup"><input type="hidden" name="preview" value="{{ cleanup_token }}">
+<label>Type CLEANUP to confirm this preview<input name="confirm" required pattern="CLEANUP"></label>
+{{ reason_fields(true) }}<p>Maintenance mode must be active when cleanup runs. Preview expires after 10 minutes.</p><button class="btn-pill btn-pill--danger">Queue cleanup</button></form>{% endif %}
+{% endif %}
+{% if current_page == 'backups' %}
+{{ queue('backup', 'Create database and file backup') }}
+<p>Archive verification checks integrity. A restore test checks a separate, dedicated database; it does not overwrite this application.</p>
+{% for backup in backups %}<article><h2>Backup {{ backup.id }}</h2><p>Created: {{ backup.created_at or 'Incomplete' }}</p><p>Verified: {{ backup.verified_at or 'Not checked' }} · Restore tested: {{ backup.restore_tested_at or 'Not checked' }}</p>
+{{ queue('verify_backup','Verify backup',backup.id) }}{{ queue('restore_test','Test database restore',backup.id,true) }}</article>{% else %}<p>No backups recorded.</p>{% endfor %}
+<h2>Production recovery</h2><ol><li>Verify the selected backup and run a restore test.</li><li>Activate maintenance mode. Stop application and maintenance-worker services.</li><li>On the server, run <code>python scripts/system_recover.py --backup-id BACKUP_ID --confirm RESTORE --services-stopped</code>.</li><li>Restart services, inspect diagnostics and private files, then end maintenance.</li></ol>
+<p>Recovery replaces database contents and restores private files. The command requires explicit confirmation and records a recovery receipt.</p>
+{% endif %}
+{% if current_page == 'jobs' %}
+<p>Worker: {{ 'healthy' if worker_healthy else 'unavailable / not started' }}. Last heartbeat: {{ state.worker_seen_at or 'Never' }}.</p>
+<p>Backups every {{ state.backup_interval_hours }} hours; archive retention every 24 hours; diagnostics every hour. Missed runs are picked up by the worker.</p>
+{% for job in jobs %}<article><h2>#{{ job.job_id }} · {{ job.kind|replace('_',' ')|title }} · {{ job.status }}</h2><p>Actor: {{ job.actor_id or 'Scheduler' }} · {{ job.reason }}</p><p>Queued {{ job.created_at }} · Started {{ job.started_at or 'Not started' }} · Finished {{ job.finished_at or 'Not finished' }}</p><pre>{{ job.result|tojson(indent=2) }}</pre>
+{% if job.status == 'failed' and job.kind not in ['cleanup','archive_purge'] %}<form method="post" action="{{ url_for('system.retry_job',job_id=job.job_id) }}" class="system-form">{{ reason_fields(job.kind == 'restore_test') }}<button class="btn-pill btn-pill--secondary">Retry job</button></form>{% endif %}</article>{% else %}<p>No jobs recorded.</p>{% endfor %}
+{% endif %}
+{% if current_page in ['logs','history'] %}
+<form method="get" class="system-form"><label>Request ID<input name="request_id" maxlength="50" value="{{ request.args.get('request_id','') }}"></label><label>Severity<select name="severity"><option value="">All</option>{% for level in ['info','warning','error'] %}<option {% if request.args.get('severity') == level %}selected{% endif %}>{{ level }}</option>{% endfor %}</select></label><label>From (UTC)<input type="datetime-local" name="start" value="{{ request.args.get('start','') }}"></label><label>Until (UTC)<input type="datetime-local" name="end" value="{{ request.args.get('end','') }}"></label><button class="btn-pill btn-pill--primary">Filter</button></form>
+{% if current_page == 'logs' %}<a href="{{ url_for('system.export_logs',request_id=request.args.get('request_id','')) }}">Export latest 50 matching request events</a>{% endif %}
+{% for event in events %}<article><h2>{{ event.action }} · {{ event.severity }}</h2><p>{{ event.created_at }} · Actor {{ event.actor_id or 'System' }} · {{ event.reason }}</p><p>Request ID: {{ event.request_id or '—' }}</p><pre>{{ event.details|tojson(indent=2) }}</pre></article>{% else %}<p>No events match these filters.</p>{% endfor %}
+<div class="system-pager">{% if number > 1 %}<a href="{{ url_for(request.endpoint, page=number-1, severity=request.args.get('severity'), request_id=request.args.get('request_id'),start=request.args.get('start'),end=request.args.get('end')) }}">Previous</a>{% endif %}<span>Page {{ number }}</span>{% if events|length == 50 %}<a href="{{ url_for(request.endpoint,page=number+1,severity=request.args.get('severity'),request_id=request.args.get('request_id'),start=request.args.get('start'),end=request.args.get('end')) }}">Next</a>{% endif %}</div>
+{% endif %}
+{% if current_page == 'security' %}
+<form method="get" class="system-form"><label>Search accounts<input name="q" maxlength="100" value="{{ request.args.get('q','') }}"></label><button class="btn-pill btn-pill--primary">Search</button></form>
+<p>Showing up to 50 matching accounts. Password recovery uses the existing verified-email recovery flow; passwords are never displayed.</p>
+{% for account in accounts %}<article><h2>{{ account.name }} · #{{ account.user_id }}</h2><p>{{ account.role_name }} · {{ account.account_status }} · Locked until {{ account.locked_until or 'Not locked' }}</p>
+{% if account.user_id != g.user.user_id %}<form method="post" action="{{ url_for('system.account_action',user_id=account.user_id) }}" class="system-form"><label>Action<select name="action"><option value="revoke">Revoke all sessions</option><option value="unlock">Clear lockout and revoke sessions</option><option value="suspend">Suspend compromised account</option><option value="reactivate">Reactivate suspended account</option><option value="recovery">Send account recovery instructions</option></select></label>{{ reason_fields(true) }}<button class="btn-pill btn-pill--danger">Apply security action</button></form>{% endif %}</article>{% endfor %}
+{% endif %}
+{% if current_page == 'maintenance' %}
+<p>Current state: {{ 'active' if active else 'scheduled' if state.maintenance_enabled else 'disabled' }}.</p>
+<form method="post" class="system-form"><label>Mode<select name="enabled"><option value="yes" {% if state.maintenance_enabled %}selected{% endif %}>Enable / schedule maintenance</option><option value="no" {% if not state.maintenance_enabled %}selected{% endif %}>End maintenance after health checks</option></select></label>
+<label>Public notice<textarea name="notice" required maxlength="500">{{ state.notice }}</textarea></label>
+<label>Start (UTC; blank means now)<input type="datetime-local" name="start" value="{{ state.maintenance_start.strftime('%Y-%m-%dT%H:%M') if state.maintenance_start else '' }}"></label>
+<label>End (UTC; blank means until manually ended)<input type="datetime-local" name="end" value="{{ state.maintenance_end.strftime('%Y-%m-%dT%H:%M') if state.maintenance_end else '' }}"></label>
+{{ reason_fields(true) }}<button class="btn-pill btn-pill--primary">Save maintenance schedule</button></form>
+{% endif %}
+{% if current_page == 'configuration' %}
+<dl>{% for name,value in configuration.items() %}<dt>{{ name }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+<p>Database, mail, signing secrets, storage paths, and deployment configuration remain server-managed.</p>
+<form method="post" class="system-form"><label>Backup interval (hours)<input type="number" name="interval" min="1" max="720" value="{{ state.backup_interval_hours }}" required></label><label>Verified backups to keep<input type="number" name="keep" min="2" max="365" value="{{ state.backup_keep }}" required></label>{{ reason_fields() }}<button class="btn-pill btn-pill--primary">Save backup settings</button></form>
+{% endif %}
+</div>
+</section>
+{% endblock %}

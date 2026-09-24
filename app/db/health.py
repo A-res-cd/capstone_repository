@@ -3,7 +3,7 @@
 import logging
 
 from app.db.connection import db_connect
-from app.db.migration_runner import migration_checksum, migration_files
+from app.db.migration_runner import _validate_applied_files, migration_files
 
 
 logger = logging.getLogger(__name__)
@@ -30,10 +30,8 @@ def database_is_ready():
 
         cursor.execute("SELECT migration_name, checksum FROM schema_migration")
         applied = {name: checksum for name, checksum in cursor.fetchall()}
-        expected = {
-            path.name: migration_checksum(path)
-            for path in migration_files()
-        }
+        files = migration_files()
+        expected = {path.name for path in files}
 
         if set(expected) - set(applied):
             logger.warning("Database readiness failed: migrations are pending")
@@ -41,9 +39,7 @@ def database_is_ready():
         if set(applied) - set(expected):
             logger.warning("Database readiness failed: an applied migration is missing")
             return False
-        if any(applied[name] != checksum for name, checksum in expected.items()):
-            logger.warning("Database readiness failed: a migration checksum changed")
-            return False
+        _validate_applied_files(applied, files)
         return True
     except Exception:
         logger.exception("Database readiness check failed")

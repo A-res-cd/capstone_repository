@@ -1,4 +1,5 @@
 from flask import Blueprint, flash, render_template, request, redirect, url_for, session, jsonify
+from app.constants.roles import landing_endpoint
 from app.utils.account_emails import password_reset_email
 from smtplib import SMTPException
 import logging
@@ -47,6 +48,8 @@ def signin():
 
             return render_template("authentication/signin.html", form=form, hide_nav=True, hide_header=True, locked_until=locked_until)
         if user:
+            session.clear()
+            session["session_version"] = user.get("session_version", 0)
             session["user_id"]    = user["user_id"]
             session["username"]   = user["username"]
             session["role_id"]    = user["role_id"]
@@ -55,14 +58,7 @@ def signin():
             session["last_name"]  = user.get("user_last_name", "")
             session["log_in_id"]  = user.get("log_in_id")
 
-            if user["role_id"] == 3:    # Admin
-                return redirect(url_for("admin.analytics"))
-            elif user["role_id"] == 4:  # Capstone Professor
-                return redirect(url_for("admin.view_capstone_repository"))
-            elif user["role_id"] == 2:  # Faculty
-                return redirect(url_for("pages.browse"))
-            else:                        # Student (1)
-                return redirect(url_for("pages.browse"))
+            return redirect(url_for(landing_endpoint(user["role_name"])))
         else:
             flash(error, "error")
 

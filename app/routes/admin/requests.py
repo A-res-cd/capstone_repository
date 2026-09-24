@@ -3,11 +3,11 @@ from . import admin
 from flask import render_template, request, redirect, session, url_for, flash
 from app.db.requests import get_all_requests, review_request
 from app.routes.decorators import role_required
-from app.constants.roles import ROLE_ADMIN
+from app.constants.roles import ROLE_RET_CHAIR
 
 
 @admin.route("/requests")
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def view_requests():
     selected_status = request.args.get("status", "all").lower()
 
@@ -30,7 +30,7 @@ def view_requests():
 
 
 @admin.route("/repository/decide/<int:request_id>", methods=["POST"])
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_RET_CHAIR)
 def decide_request(request_id):
     status = request.form.get("status")
     status_reason = request.form.get("status_reason", "")

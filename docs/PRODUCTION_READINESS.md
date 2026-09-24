@@ -10,7 +10,7 @@ experimental until every release gate below is satisfied.
 | --- | --- | --- |
 | CAP-01 | Account access | Users can register, verify their email/OTP, sign in case-insensitively, reset passwords, and receive verification decisions. |
 | CAP-02 | COR verification | Signup validates the COR file, extracts the supported fields, rejects unsupported year levels, and lets an authorized admin review the private document. |
-| CAP-03 | Role access | Students, faculty, capstone professors, and admins can access only their permitted routes and records. |
+| CAP-03 | Role access | Students, faculty, capstone professors, RET Chairs, and System Administrators can access only their permitted routes and records. Academic and maintenance authority are separate. |
 | CAP-04 | Repository | Authorized users can create, update, search, archive, view, request, and cite capstone records. |
 | CAP-05 | Author identity | A capstone author may remain unlinked to a user account. Linking is explicit, scoped to one author credit, audited, and never inferred from a matching name. |
 | CAP-06 | Similarity | Topic similarity uses title text only, uses the documented TF-IDF behavior, and returns safe results for empty, short, invalid, and duplicate titles. |
@@ -18,7 +18,8 @@ experimental until every release gate below is satisfied.
 | CAP-08 | Advisory roster | Active capstone professors can create and rename groups, add at most four verified students, and remove roster membership without changing account, registration, or authorship state. |
 | CAP-09 | User profile | Users can view their identity, linked works, contacts, role status, COR status, and profile image. |
 | CAP-10 | Author activity | The system records deduplicated views, citations, and requests, calculates author totals, and sends privacy-safe notifications to linked authors. |
-| CAP-11 | Administration | Admins can review accounts, verification requests, capstoner requests, audit history, and analytics with summarized and filterable results. |
+| CAP-11 | Academic administration | RET Chairs can review accounts, verification requests, capstoner requests, academic audit history, and analytics. |
+| CAP-12 | System maintenance | System Administrators use the maintenance console for diagnostics, durable jobs, verified backups/recovery, storage cleanup, account security, maintenance mode, and operational history. A separate supervised worker runs scheduled work. |
 
 ## Data and privacy rules
 

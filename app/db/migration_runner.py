@@ -30,7 +30,17 @@ def migration_files(migrations_dir=MIGRATIONS_DIR):
 
 
 def migration_checksum(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+
+
+def _checksum_matches(path, recorded):
+    # Older deployments hashed raw Windows bytes. Preserve their records while
+    # accepting only platform line-ending differences, never changed SQL.
+    canonical = path.read_bytes().replace(b'\r\n', b'\n')
+    return recorded in {
+        hashlib.sha256(canonical).hexdigest(),
+        hashlib.sha256(canonical.replace(b'\n', b'\r\n')).hexdigest(),
+    }
 
 
 def _migration_sql(path):
@@ -61,6 +71,9 @@ def _validate_applied_files(applied, files):
             "Applied migration file is missing from the repository: "
             + ", ".join(missing)
         )
+    for path in files:
+        if path.name in applied and not _checksum_matches(path, applied[path.name]):
+            raise MigrationError(f"Migration checksum changed after application: {path.name}")
 
 
 def migration_status(migrations_dir=MIGRATIONS_DIR):
@@ -101,7 +114,7 @@ def upgrade_database(migrations_dir=MIGRATIONS_DIR):
             existing = cursor.fetchone()
 
             if existing:
-                if existing[0] != checksum:
+                if not _checksum_matches(path, existing[0]):
                     raise MigrationError(
                         f"Migration checksum changed after application: {path.name}"
                     )

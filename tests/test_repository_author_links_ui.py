@@ -23,7 +23,7 @@ def repository_page(page):
         app.jinja_loader,
     ])
     with app.test_request_context():
-        session["role_name"] = "Admin"
+        session["role_name"] = "RET Chair"
         form = CreateCapstoneForm()
         form.program_id.choices = [(1, "Information Technology")]
         form.specialization_id.choices = [(1, "Data Science")]

@@ -27,8 +27,6 @@ def get_archived_capstones(search=None, program_id=None, page=1, page_size=20):
     Returns:
         (rows, total)
     """
-    purge_expired_archived_capstones()
-
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -111,7 +109,7 @@ def get_archived_capstones(search=None, program_id=None, page=1, page_size=20):
         mithrix.close()
         conn.close()
 
-def purge_expired_archived_capstones():
+def purge_expired_archived_capstones(raise_errors=False):
     """Delete archived capstones that have stayed in the recycle bin longer than 30 days."""
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -134,10 +132,14 @@ def purge_expired_archived_capstones():
             ok, _ = delete_capstone(row["capstone_id"], acting_user_id=None)
             if ok:
                 deleted_count += 1
+            elif raise_errors:
+                raise RuntimeError('Archive retention did not complete; inspect the affected records.')
 
         return deleted_count
     except Exception as exc:
         logger.error("Error purging archived capstones: %s", exc)
+        if raise_errors:
+            raise
         return 0
     finally:
         mithrix.close()

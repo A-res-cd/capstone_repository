@@ -1,7 +1,0 @@
-{
-  "appId": "edu.capre.mobile",
-  "appName": "CAPRE",
-  "webDir": "dist",
-  "server": { "androidScheme": "https" },
-  "android": { "allowMixedContent": false }
-}
