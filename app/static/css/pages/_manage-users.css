@@ -235,6 +235,19 @@ main:has(.mu-section) {
 
 .filter-input { width: 220px; }
 
+.mu-filter-form .filter-group:has(.filter-input) {
+    flex: 1 1 320px;
+}
+
+.mu-filter-form .filter-group:has(.filter-input) .filter-input {
+    flex: 1;
+    min-width: 180px;
+    height: 44px;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+}
+
 .mu-results-count {
     flex-shrink: 0;
     font-size: var(--text-xs);

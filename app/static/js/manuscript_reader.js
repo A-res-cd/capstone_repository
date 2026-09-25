@@ -206,6 +206,7 @@
     }
 
     const listen = (target, name, handler) => target.addEventListener(name, handler, { signal: events.signal });
+    listen(stage, 'contextmenu', event => event.preventDefault());
     listen(previous, 'click', () => jumpToPage(pageNumber - 1));
     listen(next, 'click', () => jumpToPage(pageNumber + 1));
     listen(retry, 'click', () => loadPage(pageNumber));
