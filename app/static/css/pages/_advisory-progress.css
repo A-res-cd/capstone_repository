@@ -1,0 +1,208 @@
+.advisory-progress-page {
+    display: grid;
+    gap: var(--space-lg);
+}
+
+.progress-page__header,
+.progress-panel__heading,
+.progress-requirement__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.progress-page__header h1,
+.progress-panel__heading h2,
+.progress-requirement__header h3,
+.progress-student__identity h4 {
+    margin: 0;
+    color: var(--text-dark);
+}
+
+.progress-page__header h1 { font-size: var(--text-xxl); }
+.progress-page__header p { margin: var(--space-sm) 0 0; color: var(--color-gray-dark); }
+.progress-page__header > a { flex: 0 0 auto; }
+
+.progress-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-md);
+}
+
+.progress-summary > div,
+.progress-panel,
+.progress-requirement,
+.student-progress-advisor {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    background: var(--surface-paper);
+    box-shadow: var(--shadow-sm);
+}
+
+.progress-summary > div {
+    display: grid;
+    gap: var(--space-xs);
+    padding: var(--space-md) var(--space-lg);
+}
+
+.progress-summary span { color: var(--color-gray-dark); font-size: var(--text-sm); }
+.progress-summary strong { color: var(--text-brand); font-size: var(--text-xl); }
+
+.progress-panel,
+.student-progress-advisor { padding: var(--space-lg); }
+
+.progress-panel__heading { align-items: center; margin-bottom: var(--space-md); }
+.progress-panel__heading h2,
+.student-progress-advisor > .progress-panel__heading h2 { font-size: var(--text-lg); }
+.progress-panel__heading > .helper-text { margin: 0; }
+
+.progress-requirement-form,
+.progress-student-submit {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr);
+    gap: var(--space-md);
+    align-items: end;
+}
+
+.progress-requirement-form label,
+.progress-student-submit label,
+.progress-review-form label {
+    display: grid;
+    gap: var(--space-xs);
+    color: var(--color-gray-dark);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.progress-requirement-form input,
+.progress-requirement-form textarea,
+.progress-student-submit input,
+.progress-student-submit textarea,
+.progress-review-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    color: var(--text-dark);
+    background: var(--surface-paper);
+    font: inherit;
+}
+
+.progress-requirement-form input:focus,
+.progress-requirement-form textarea:focus,
+.progress-student-submit input:focus,
+.progress-student-submit textarea:focus,
+.progress-review-form textarea:focus {
+    outline: 2px solid var(--text-brand);
+    outline-offset: 1px;
+}
+
+.progress-requirement-form__instructions { grid-column: 1 / -1; }
+.progress-requirement-form button { justify-self: start; }
+.progress-requirements { display: grid; gap: var(--space-md); }
+.progress-requirements > .progress-panel__heading { margin: 0; }
+
+.progress-requirement { padding: var(--space-lg); }
+.progress-requirement__header { align-items: center; }
+.progress-requirement__header .helper-text { margin: var(--space-xs) 0 0; }
+.progress-requirement__instructions { margin: var(--space-md) 0; white-space: pre-wrap; }
+.progress-requirement__header form { flex: 0 0 auto; }
+
+.progress-student-list { border-top: 1px solid var(--border-light); }
+.progress-student {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto;
+    gap: var(--space-sm) var(--space-md);
+    align-items: start;
+    padding: var(--space-md) 0;
+}
+.progress-student + .progress-student { border-top: 1px solid var(--border-light); }
+.progress-student__identity h4 { font-size: var(--text-lg); }
+.progress-student__identity .helper-text { display: block; margin-top: var(--space-xs); }
+.progress-student__empty { grid-column: 1 / -1; margin: 0; }
+
+.progress-status {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: var(--hover-tint);
+    color: var(--text-brand);
+    font-size: var(--text-xs);
+    font-weight: 700;
+}
+.progress-status--approved { background: #e6f4ea; color: #23643a; }
+.progress-status--revision_requested { background: #fff2d8; color: #805700; }
+.progress-status--submitted { background: #e8f0fe; color: #214f9b; }
+.progress-status--not_submitted { background: var(--bg-card-neutral); color: var(--color-gray-dark); }
+
+.progress-submission {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, .9fr);
+    gap: var(--space-lg);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    background: var(--bg-card-neutral);
+}
+.progress-submission__details { display: grid; align-content: start; gap: var(--space-xs); }
+.progress-submission a,
+.progress-history a { color: var(--text-brand); font-weight: 600; overflow-wrap: anywhere; }
+.progress-submission p,
+.progress-history p { margin: var(--space-xs) 0 0; overflow-wrap: anywhere; }
+.progress-feedback { padding-left: var(--space-sm); border-left: 3px solid var(--text-brand); }
+
+.progress-review-form { display: grid; gap: var(--space-sm); }
+.progress-review-form__actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.progress-review-form textarea { resize: vertical; }
+
+.progress-empty {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xl);
+    border: 1px dashed var(--border-input);
+    border-radius: var(--radius-lg);
+    color: var(--color-gray-dark);
+    text-align: center;
+}
+.progress-empty i { color: var(--text-brand); font-size: 2rem; }
+.progress-empty p { margin: 0; }
+
+.student-progress-advisor { display: grid; gap: var(--space-md); }
+.student-progress-group { margin: 0; color: var(--text-brand); font-size: var(--text-lg); }
+.student-progress-requirement { box-shadow: none; }
+.progress-history { margin-top: var(--space-md); }
+.progress-history summary { color: var(--text-brand); font-weight: 600; cursor: pointer; }
+.progress-history ol { display: grid; gap: var(--space-md); padding-left: 1.5rem; }
+.progress-history li { padding-left: var(--space-xs); }
+.progress-history li > * { margin-right: var(--space-sm); }
+.progress-student-submit {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border-light);
+}
+.progress-submit-divider { align-self: center; color: var(--color-gray-dark); font-size: var(--text-sm); }
+.progress-student-submit__note { grid-column: 1 / -1; }
+.progress-student-submit button { justify-self: start; }
+.progress-approved-note { margin: var(--space-md) 0 0; color: var(--color-gray-dark); }
+
+@media (max-width: 760px) {
+    .advisory-progress-page { padding: var(--space-md); }
+    .progress-page__header,
+    .progress-panel__heading { align-items: stretch; flex-direction: column; }
+    .progress-page__header > a { align-self: flex-start; }
+    .progress-summary { grid-template-columns: 1fr; }
+    .progress-requirement-form,
+    .progress-student-submit,
+    .progress-submission { grid-template-columns: 1fr; }
+    .progress-requirement-form__instructions,
+    .progress-student-submit__note { grid-column: auto; }
+    .progress-student { grid-template-columns: 1fr; }
+    .progress-status { grid-row: 2; }
+    .progress-review-form__actions { align-items: stretch; flex-direction: column; }
+}

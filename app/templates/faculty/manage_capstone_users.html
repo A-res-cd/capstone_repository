@@ -79,6 +79,10 @@
                             </span>
                         </summary>
                         <div class="advisory-group__body">
+                            <div class="advisory-progress-entry">
+                                <div><strong>Student progress</strong><span class="helper-text">Set requirements and review submissions for this group.</span></div>
+                                <a class="profile-action profile-action--primary" href="{{ url_for('faculty.advisory_group_progress', group_id=group.group_id) }}">Open progress</a>
+                            </div>
                             {% if group.student_count > group_limit %}
                             <p class="helper-text">This existing group exceeds the {{ group_limit }}-student limit. Remove students from this group before adding more; no one has been removed automatically.</p>
                             {% endif %}

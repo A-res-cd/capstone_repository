@@ -17,3 +17,4 @@ from . import archive
 from . import profile
 from . import manuscripts
 from . import topics
+from . import progress

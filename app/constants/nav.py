@@ -91,6 +91,14 @@ def get_nav_links(role):
             "roles": ["Student"],
             "section": "Capstone"
         },
+        {
+            "name": "My Progress",
+            "title": "Advisory Progress",
+            "url": "pages.my_progress",
+            "icon": "bx bx-list-check",
+            "roles": ["Student"],
+            "section": "Capstone"
+        },
 
         # --- Sub-process 4.5 (Level3ViewCapstoneData): Request approval — Admin only ---
         # Students submit access requests; Admin reviews and decides.

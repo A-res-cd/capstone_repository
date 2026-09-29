@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_advisory-students.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_advisory-progress.css') }}">
+{% endblock %}
+
+{% block title %}My Progress | CAPRE{% endblock %}
+
+{% block content %}
+<section class="advisory-page advisory-progress-page student-progress-page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}<ul class="flash-list">{% for category, message in messages %}<li class="flash-{{ category }}">{{ message }}</li>{% endfor %}</ul>{% endif %}
+    {% endwith %}
+
+    <header class="progress-page__header">
+        <div>
+            <span class="profile-eyebrow">Capstone work</span>
+            <h1>My Progress</h1>
+            <p>See your advisor’s requirements and submit a file or a share link for each one.</p>
+        </div>
+    </header>
+
+    {% if requirements %}
+        {% for professor_name, advisor_requirements in requirements | groupby('professor_name') %}
+        <section class="student-progress-advisor" aria-label="Requirements from {{ professor_name }}">
+            <div class="progress-panel__heading"><div><span class="profile-eyebrow">Advisor</span><h2>{{ professor_name }}</h2></div></div>
+            {% for group_name, group_requirements in advisor_requirements | groupby('group_name') %}
+                <h3 class="student-progress-group">{{ group_name }}</h3>
+                {% for requirement in group_requirements %}
+                    {% set state = requirement.review_status or 'not_submitted' %}
+                    <article class="progress-requirement student-progress-requirement">
+                        <header class="progress-requirement__header">
+                            <div>
+                                <h3>{{ requirement.title }}</h3>
+                                {% if requirement.due_date %}<p class="helper-text">Due {{ requirement.due_date.strftime('%b %d, %Y') }}</p>{% endif %}
+                            </div>
+                            <span class="progress-status progress-status--{{ state }}">
+                                {% if state == 'approved' %}Approved{% elif state == 'revision_requested' %}Revision requested{% elif state == 'submitted' %}Submitted{% else %}Not submitted{% endif %}
+                            </span>
+                        </header>
+                        {% if requirement.instructions %}<p class="progress-requirement__instructions">{{ requirement.instructions }}</p>{% endif %}
+                        {% if requirement.advisor_feedback %}<p class="progress-feedback"><strong>Advisor feedback:</strong> {{ requirement.advisor_feedback }}</p>{% endif %}
+
+                        {% if requirement.history %}
+                        <details class="progress-history">
+                            <summary>{{ requirement.history | length }} {{ 'submission' if requirement.history | length == 1 else 'submissions' }} and review history</summary>
+                            <ol>
+                                {% for submission in requirement.history %}
+                                <li>
+                                    <span class="progress-status progress-status--{{ submission.review_status }}">{{ 'Approved' if submission.review_status == 'approved' else 'Revision requested' if submission.review_status == 'revision_requested' else 'Submitted' }}</span>
+                                    {% if submission.submission_kind == 'link' %}
+                                        <a href="{{ submission.external_url }}" target="_blank" rel="noopener noreferrer">Open submitted link</a>
+                                    {% else %}
+                                        <a href="{{ url_for('pages.my_progress_file', submission_id=submission.submission_id) }}">Download {{ submission.original_filename }}</a>
+                                    {% endif %}
+                                    <span class="helper-text">{{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                                    {% if submission.student_note %}<p>{{ submission.student_note }}</p>{% endif %}
+                                    {% if submission.advisor_feedback %}<p class="progress-feedback"><strong>Advisor feedback:</strong> {{ submission.advisor_feedback }}</p>{% endif %}
+                                </li>
+                                {% endfor %}
+                            </ol>
+                        </details>
+                        {% endif %}
+
+                        {% if requirement.professor_status != 'active' %}
+                        <p class="progress-approved-note">This advisor account is inactive. Contact your department about this requirement.</p>
+                        {% elif state != 'approved' %}
+                        <form class="progress-student-submit" method="POST" enctype="multipart/form-data" action="{{ url_for('pages.submit_progress', requirement_id=requirement.requirement_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <label>Google Docs or Drive link<input type="url" name="external_url" maxlength="2000" placeholder="https://docs.google.com/…"><span class="helper-text">Set link sharing so your advisor can view it.</span></label>
+                            <span class="progress-submit-divider">or</span>
+                            <label>Upload a file<input type="file" name="upload" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.rtf"><span class="helper-text">PDF, Office, RTF, or TXT. Maximum 20 MB.</span></label>
+                            <label class="progress-student-submit__note">Note for your advisor <span class="helper-text">Optional</span><textarea name="student_note" maxlength="2000" rows="2" placeholder="Add a short note about this submission"></textarea></label>
+                            <button class="btn-pill btn-pill--primary" type="submit">{{ 'Resubmit work' if state == 'revision_requested' else 'Submit work' }}</button>
+                        </form>
+                        {% else %}
+                        <p class="progress-approved-note">This requirement is approved. Contact your advisor if you need to submit a new version.</p>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% endfor %}
+        </section>
+        {% endfor %}
+    {% else %}
+        <div class="progress-empty"><i class="bx bx-list-check" aria-hidden="true"></i><p>Your advisor has not added progress requirements yet. New requirements will appear here.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

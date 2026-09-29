@@ -162,6 +162,21 @@
     border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
+.advisory-progress-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+    padding: var(--space-md);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--surface-paper);
+}
+
+.advisory-progress-entry > div { display: grid; gap: var(--space-xs); }
+.advisory-progress-entry strong { color: var(--text-dark); }
+
 .advisory-group .advisory-student {
     margin: 0;
     border-color: var(--border-tag);
@@ -469,6 +484,10 @@
 .advisory-error {
     color: var(--status-rejected);
     font-size: var(--text-xs);
+}
+
+@media (max-width: 680px) {
+    .advisory-progress-entry { align-items: stretch; flex-direction: column; }
 }
 
 @media (max-width: 1100px) {

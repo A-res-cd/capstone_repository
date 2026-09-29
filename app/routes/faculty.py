@@ -1,11 +1,18 @@
 """Capstone Professor interfaces, separate from admin management routes."""
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, session, url_for
+from datetime import date
+
+from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, session, url_for
 
 from app.db.advisories import (
     add_advisory_students, get_advisory_groups,
     create_advisory_group_with_students, get_advisory_roster,
     get_available_advisory_students, remove_advisory_student,
     rename_advisory_group, MAX_ADVISORY_GROUP_STUDENTS,
+)
+from app.db.advisory_progress import (
+    archive_advisory_requirement, create_advisory_requirement,
+    get_advisor_group_progress, get_professor_submission_file,
+    review_advisory_submission,
 )
 from app.routes.decorators import role_required
 from app.constants.roles import ROLE_CAPSTONE_PROFESSOR
@@ -14,6 +21,7 @@ from app.routes.forms import (
     RemoveAdvisoryStudentForm,
 )
 from app.db.avatars import get_user_avatar
+from app.utils.progress_uploads import resolve_progress_upload
 
 faculty = Blueprint("faculty", __name__, url_prefix="/faculty")
 
@@ -161,3 +169,107 @@ def remove_student(student_id):
     if not ok:
         return _render_advisory_students(), 400
     return redirect(url_for("faculty.manage_capstone_users"))
+
+
+@faculty.route("/advisory-students/groups/<int:group_id>/progress")
+@role_required(ROLE_CAPSTONE_PROFESSOR)
+def advisory_group_progress(group_id):
+    try:
+        progress = get_advisor_group_progress(session["user_id"], group_id)
+    except PermissionError:
+        abort(403)
+    if not progress:
+        abort(404)
+    return render_template(
+        "faculty/advisory_progress.html", progress=progress,
+        avatar=get_user_avatar(session["user_id"]),
+    )
+
+
+@faculty.route("/advisory-students/groups/<int:group_id>/requirements", methods=["POST"])
+@role_required(ROLE_CAPSTONE_PROFESSOR)
+def create_progress_requirement(group_id):
+    title = request.form.get("title", "").strip()
+    instructions = request.form.get("instructions", "").strip()
+    due_value = request.form.get("due_date", "").strip()
+    due_date = None
+    try:
+        if due_value:
+            try:
+                due_date = date.fromisoformat(due_value)
+            except ValueError as exc:
+                raise ValueError("Enter a valid due date.") from exc
+        if not title or len(title) > 160:
+            raise ValueError("Requirement name must be between 1 and 160 characters.")
+        if len(instructions) > 3000:
+            raise ValueError("Instructions must be 3,000 characters or fewer.")
+        requirement_id = create_advisory_requirement(
+            session["user_id"], group_id, title, instructions, due_date
+        )
+        if not requirement_id:
+            abort(404)
+        flash("Progress requirement added to this group.", "success")
+    except ValueError as exc:
+        flash(str(exc) or "Enter a valid due date.", "danger")
+    except PermissionError:
+        abort(403)
+    return redirect(url_for("faculty.advisory_group_progress", group_id=group_id))
+
+
+@faculty.route("/advisory-students/requirements/<int:requirement_id>/archive", methods=["POST"])
+@role_required(ROLE_CAPSTONE_PROFESSOR)
+def archive_progress_requirement(requirement_id):
+    try:
+        changed = archive_advisory_requirement(session["user_id"], requirement_id)
+    except PermissionError:
+        abort(403)
+    if not changed:
+        abort(404)
+    group_id = request.form.get("group_id", type=int)
+    flash("Requirement archived. Existing submission history is kept.", "success")
+    if group_id:
+        return redirect(url_for("faculty.advisory_group_progress", group_id=group_id))
+    return redirect(url_for("faculty.manage_capstone_users"))
+
+
+@faculty.route("/advisory-progress/submissions/<int:submission_id>/review", methods=["POST"])
+@role_required(ROLE_CAPSTONE_PROFESSOR)
+def review_progress_submission(submission_id):
+    status = request.form.get("status", "")
+    feedback = request.form.get("feedback", "").strip()
+    group_id = request.form.get("group_id", type=int)
+    if status not in {"approved", "revision_requested"}:
+        abort(400)
+    if len(feedback) > 2000 or (status == "revision_requested" and not feedback):
+        flash("Add feedback (up to 2,000 characters) when requesting a revision.", "danger")
+    else:
+        try:
+            review_advisory_submission(session["user_id"], submission_id, status, feedback)
+            flash("Submission review saved.", "success")
+        except PermissionError:
+            abort(404)
+        except ValueError as exc:
+            flash(str(exc), "danger")
+    if group_id:
+        return redirect(url_for("faculty.advisory_group_progress", group_id=group_id))
+    return redirect(url_for("faculty.manage_capstone_users"))
+
+
+@faculty.route("/advisory-progress/submissions/<int:submission_id>/file")
+@role_required(ROLE_CAPSTONE_PROFESSOR)
+def progress_submission_file(submission_id):
+    try:
+        submission = get_professor_submission_file(session["user_id"], submission_id)
+    except PermissionError:
+        abort(403)
+    if not submission:
+        abort(404)
+    path = resolve_progress_upload(submission["storage_key"])
+    if not path or not path.is_file():
+        abort(404)
+    response = send_file(
+        path, mimetype=submission["mime_type"], as_attachment=True,
+        download_name=submission["original_filename"], conditional=True,
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response

@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_advisory-students.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_advisory-progress.css') }}">
+{% endblock %}
+
+{% block title %}Student Progress | CAPRE{% endblock %}
+
+{% block content %}
+<section class="advisory-page advisory-progress-page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}<ul class="flash-list">{% for category, message in messages %}<li class="flash-{{ category }}">{{ message }}</li>{% endfor %}</ul>{% endif %}
+    {% endwith %}
+
+    <header class="progress-page__header">
+        <div>
+            <span class="profile-eyebrow">Advisory group</span>
+            <h1>{{ progress.group.group_name }} progress</h1>
+            <p>Set shared requirements, review each submission, and leave feedback for students.</p>
+        </div>
+        <a class="profile-action" href="{{ url_for('faculty.manage_capstone_users', _anchor='advisory-group-' ~ progress.group.group_id) }}">Back to Advisory Students</a>
+    </header>
+
+    <div class="progress-summary" aria-label="Group progress summary">
+        <div><span>Students</span><strong>{{ progress.students | length }}</strong></div>
+        <div><span>Submissions received</span><strong>{{ progress.submitted_count }}</strong></div>
+        <div><span>Approved submissions</span><strong>{{ progress.approved_count }}</strong></div>
+    </div>
+
+    <section class="progress-panel" aria-labelledby="add-requirement-heading">
+        <div class="progress-panel__heading">
+            <div><span class="profile-eyebrow">Group checklist</span><h2 id="add-requirement-heading">Add a requirement</h2></div>
+            <p class="helper-text">Requirements apply to current and future students in this group.</p>
+        </div>
+        <form class="progress-requirement-form" method="POST" action="{{ url_for('faculty.create_progress_requirement', group_id=progress.group.group_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Requirement name<input name="title" maxlength="160" required placeholder="Example: Chapter 1 draft"></label>
+            <label>Due date <span class="helper-text">Optional</span><input type="date" name="due_date"></label>
+            <label class="progress-requirement-form__instructions">Instructions<textarea name="instructions" maxlength="3000" rows="3" placeholder="Describe what the student should submit."></textarea></label>
+            <button class="btn-pill btn-pill--primary" type="submit">Add requirement</button>
+        </form>
+    </section>
+
+    <section class="progress-requirements" aria-labelledby="requirements-heading">
+        <div class="progress-panel__heading">
+            <div><span class="profile-eyebrow">Monitoring</span><h2 id="requirements-heading">Requirements and submissions</h2></div>
+            <span class="helper-text">{{ progress.requirements | length }} active {{ 'requirement' if progress.requirements | length == 1 else 'requirements' }}</span>
+        </div>
+
+        {% if progress.requirements %}
+            {% for requirement in progress.requirements %}
+            <article class="progress-requirement">
+                <header class="progress-requirement__header">
+                    <div>
+                        <h3>{{ requirement.title }}</h3>
+                        {% if requirement.due_date %}<p class="helper-text">Due {{ requirement.due_date.strftime('%b %d, %Y') }}</p>{% else %}<p class="helper-text">No due date</p>{% endif %}
+                    </div>
+                    <form method="POST" action="{{ url_for('faculty.archive_progress_requirement', requirement_id=requirement.requirement_id) }}" onsubmit="return confirm('Archive this requirement? Existing submissions will stay saved.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="group_id" value="{{ progress.group.group_id }}">
+                        <button class="profile-action" type="submit">Archive</button>
+                    </form>
+                </header>
+                {% if requirement.instructions %}<p class="progress-requirement__instructions">{{ requirement.instructions }}</p>{% endif %}
+
+                {% if requirement.progress %}
+                    <div class="progress-student-list">
+                    {% for student in requirement.progress %}
+                        {% set submission = student.submission %}
+                        {% set state = submission.review_status if submission else 'not_submitted' %}
+                        <article class="progress-student">
+                            <div class="progress-student__identity">
+                                <h4>{{ student.full_name }}</h4>
+                                <span class="helper-text">{{ student.university_no or ('Account #' ~ student.user_id) }}</span>
+                            </div>
+                            <span class="progress-status progress-status--{{ state }}">
+                                {% if state == 'approved' %}Approved{% elif state == 'revision_requested' %}Revision requested{% elif state == 'submitted' %}Submitted{% else %}Not submitted{% endif %}
+                            </span>
+                            {% if submission %}
+                                <div class="progress-submission">
+                                    <div class="progress-submission__details">
+                                        {% if submission.submission_kind == 'link' %}
+                                            <a href="{{ submission.external_url }}" target="_blank" rel="noopener noreferrer">Open submitted link</a>
+                                        {% else %}
+                                            <a href="{{ url_for('faculty.progress_submission_file', submission_id=submission.submission_id) }}">Download {{ submission.original_filename }}</a>
+                                        {% endif %}
+                                        <span class="helper-text">Submitted {{ submission.submitted_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                                        {% if submission.student_note %}<p>{{ submission.student_note }}</p>{% endif %}
+                                        {% if submission.advisor_feedback %}<p class="progress-feedback"><strong>Your last feedback:</strong> {{ submission.advisor_feedback }}</p>{% endif %}
+                                    </div>
+                                    <form class="progress-review-form" method="POST" action="{{ url_for('faculty.review_progress_submission', submission_id=submission.submission_id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <input type="hidden" name="group_id" value="{{ progress.group.group_id }}">
+                                        <label>Feedback<textarea name="feedback" maxlength="2000" rows="2" placeholder="Add feedback for the student">{{ submission.advisor_feedback or '' }}</textarea></label>
+                                        <div class="progress-review-form__actions">
+                                            <button class="btn-pill btn-pill--primary" type="submit" name="status" value="approved">Approve</button>
+                                            <button class="btn-pill btn-pill--ghost" type="submit" name="status" value="revision_requested">Request revision</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <p class="helper-text progress-student__empty">Waiting for the student to submit.</p>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="helper-text">No students are assigned to this group yet. New group members will inherit this requirement.</p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        {% else %}
+            <div class="progress-empty"><i class="bx bx-list-check" aria-hidden="true"></i><p>No active requirements yet. Add the group’s first checklist item above.</p></div>
+        {% endif %}
+    </section>
+</section>
+{% endblock %}

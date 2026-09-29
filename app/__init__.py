@@ -23,7 +23,7 @@ def create_app():
     app.config["MAINTENANCE_RESTORE_TEST_DB"] = os.environ.get("MAINTENANCE_RESTORE_TEST_DB")
     app.config["PUBLIC_BASE_URL"] = os.environ.get("PUBLIC_BASE_URL")
     app.config["APP_VERSION"] = os.environ.get("APP_VERSION", "Not configured")
-    for name in ('UPLOAD_MANUSCRIPT_FOLDER', 'UPLOAD_REGISTRATION_FOLDER', 'UPLOAD_AVATAR_FOLDER'):
+    for name in ('UPLOAD_MANUSCRIPT_FOLDER', 'UPLOAD_REGISTRATION_FOLDER', 'UPLOAD_AVATAR_FOLDER', 'UPLOAD_PROGRESS_FOLDER'):
         app.config[name] = os.environ.get(name, app.config.get(name))
 
     mail.init_app(app)
