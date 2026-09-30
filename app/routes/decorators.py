@@ -3,15 +3,24 @@ from flask import session, g, redirect, url_for, flash
 
 from app.db.requests import get_user_requests
 from app.utils.navigation import last_page_url
+from app.constants.roles import (
+    LEGACY_ROLE_NAMES_BY_ID,
+    ROLE_ADMIN,
+    ROLE_CAPSTONE_PROFESSOR,
+    ROLE_FACULTY,
+)
 
 
-FULL_MANUSCRIPT_ROLES = {"Admin", "Faculty", "Capstone Professor"}
+FULL_MANUSCRIPT_ROLES = {ROLE_ADMIN, ROLE_FACULTY, ROLE_CAPSTONE_PROFESSOR}
 
 
 def can_download_manuscript():
     """Original files are reserved for administrators, using the current DB role."""
     user = getattr(g, "user", None)
-    return bool(session.get("user_id") and user and user.get("role_id") == 3)
+    role_name = user.get("role_name") if user else None
+    if role_name is None and user:
+        role_name = LEGACY_ROLE_NAMES_BY_ID.get(user.get("role_id"))
+    return bool(session.get("user_id") and role_name == ROLE_ADMIN)
 
 
 def login_required(f):
@@ -36,8 +45,13 @@ def role_required(*allowed_roles):
 
             user_role = None
             if getattr(g, 'user', None):
-                user_role = g.user.get("role_id")
-            if user_role not in allowed_roles:
+                user_role = g.user.get("role_name")
+                if user_role is None:
+                    user_role = LEGACY_ROLE_NAMES_BY_ID.get(g.user.get("role_id"))
+            user_role = user_role or session.get("role_name")
+            if user_role is None:
+                user_role = LEGACY_ROLE_NAMES_BY_ID.get(session.get("role_id"))
+            if user_role not in set(allowed_roles):
                 flash("You don't have permission to access that page.", "danger")
                 return redirect(last_page_url(url_for("main.home"), avoid_current=True))
 

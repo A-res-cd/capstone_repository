@@ -10,10 +10,11 @@ from app.db.archive import (
 )
 from app.db.capstones import get_programs
 from app.routes.decorators import role_required
+from app.constants.roles import ROLE_ADMIN
 
 
 @admin.route("/recyclebin")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def view_archived_capstones():
     search = request.args.get("search", "").strip()
     program_id = request.args.get("program", "").strip()
@@ -42,7 +43,7 @@ def view_archived_capstones():
 
 
 @admin.route("/delete_capstone/<int:capstone_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def delete_capstone_route(capstone_id):
     try:
         success, message = delete_capstone(capstone_id, acting_user_id=session.get("user_id"))
@@ -55,7 +56,7 @@ def delete_capstone_route(capstone_id):
 
 
 @admin.route("/repository/archive/<int:capstone_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def archive_capstone(capstone_id):
     success, message = add_to_bin(capstone_id, acting_user_id=session.get("user_id"))
     flash(message, "success" if success else "danger")
@@ -63,7 +64,7 @@ def archive_capstone(capstone_id):
 
 
 @admin.route("/recyclebin/restore/<int:capstone_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def restore_capstone_route(capstone_id):
     success, message = restore_capstone(capstone_id, acting_user_id=session.get("user_id"))
     flash(message, "success" if success else "danger")

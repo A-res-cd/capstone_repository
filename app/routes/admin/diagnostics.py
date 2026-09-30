@@ -3,6 +3,7 @@ from . import admin
 from flask import abort, render_template, request, session, current_app
 import os, sys, random, flask
 from app.routes.decorators import role_required
+from app.constants.roles import ROLE_ADMIN
 
 
 DEV_DEBUG_REAL_TOOL_CHANCE = 1
@@ -17,7 +18,7 @@ def _dev_debug_enabled():
 
 
 @admin.route("/dev-debug")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def dev_debug():
     if not _dev_debug_enabled():
         abort(404)

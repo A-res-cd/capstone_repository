@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         deleteTrigger = trigger;
         deleteEndpoint = trigger.dataset.deleteEndpoint || '';
-        deleteMessage.textContent = `Are you sure you want to delete this item: ${itemName}?`;
+        deleteMessage.textContent = `Are you sure you want to archive this item: ${itemName}?`;
         deleteNote.textContent = isPermanent
             ? 'This action permanently deletes the item and cannot be undone.'
             : 'This item will be moved to the Recycle Bin and can be restored later.';

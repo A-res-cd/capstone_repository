@@ -6,13 +6,14 @@ from datetime import date, timedelta
 from app.db.audit_reader import get_audit_logs
 from app.utils.audit_summary import ACTIONS, CATEGORIES
 from app.routes.decorators import role_required
+from app.constants.roles import ROLE_ADMIN
 
 
 logger = logging.getLogger(__name__)
 
 
 @admin.route('/audit-logs')
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def audit_logs():
     filters = {key: request.args.get(key, '').strip() for key in ('q', 'category', 'action', 'start', 'end')}
     try:

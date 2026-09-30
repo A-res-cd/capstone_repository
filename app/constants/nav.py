@@ -43,10 +43,10 @@ def get_nav_links(role):
         },
 
         {
-            "name": "Recycle Bin",
-            "title": "Recycle Bin",
+            "name": "Archived",
+            "title": "Archived",
             "url": "admin.view_archived_capstones",
-            "icon": "bx bx-trash",
+            "icon": "bx bx-archive",
             "roles": ["Admin"],
             "section": "Management"
         },

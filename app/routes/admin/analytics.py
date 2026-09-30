@@ -8,10 +8,11 @@ from app.db.analytics import (
     get_capstone_status_flags,
 )
 from app.routes.decorators import role_required
+from app.constants.roles import ROLE_ADMIN
 
 
 @admin.route("/analytics")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics():
     db_errors = []
     selected_year = request.args.get("year", type=int)

@@ -3,17 +3,18 @@ from . import pages
 from flask import render_template, request, jsonify
 from app.db.capstones import get_capstones_corpus
 from app.routes.decorators import role_required
+from app.constants.roles import ROLE_STUDENT
 from app.services.recommender import TopicRecommender
 
 
 @pages.route("/propose-topic")
-@role_required(1)
+@role_required(ROLE_STUDENT)
 def propose_topic():
     return render_template("global/propose_topic.html")
 
 
 @pages.route("/api/topic-similarity", methods=["POST"])
-@role_required(1)
+@role_required(ROLE_STUDENT)
 def topic_similarity():
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or not isinstance(data.get('title'), str):

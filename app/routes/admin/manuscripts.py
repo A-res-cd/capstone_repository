@@ -3,12 +3,13 @@ from . import admin
 from flask import abort, render_template, redirect, url_for, flash, send_file, g
 from app.db.capstones import get_capstone_details, get_capstone_authors
 from app.routes.decorators import role_required, can_view_full_manuscript, can_download_manuscript
+from app.constants.roles import ALL_ROLES, ROLE_ADMIN
 from app.utils.pdf_extractor import extract_abstract_text
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 
 
 @admin.route("/repository/view/<int:capstone_id>")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def view_capstone(capstone_id):
     capstone = get_capstone_details(capstone_id)
     authors = get_capstone_authors(capstone_id)
@@ -36,7 +37,7 @@ def view_capstone(capstone_id):
 
 
 @admin.route("/repository/pdf/<int:capstone_id>")
-@role_required(1, 2, 3, 4)
+@role_required(*ALL_ROLES)
 def view_capstone_pdf(capstone_id):
     capstone = get_capstone_details(capstone_id)
     if not capstone:
@@ -90,7 +91,7 @@ def view_capstone_pdf(capstone_id):
 
 
 @admin.route("/repository/file/<int:capstone_id>")
-@role_required(1, 2, 3, 4)
+@role_required(*ALL_ROLES)
 def manuscript_file(capstone_id):
     if not can_download_manuscript():
         abort(403)

@@ -17,6 +17,7 @@ from app.db.capstones import (
     get_capstone_people,
 )
 from app.routes.decorators import role_required
+from app.constants.roles import ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR, ROLE_FACULTY
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
 from app.utils.pdf_extractor import extract_capstone_data
 from app.utils.uploads import (
@@ -77,7 +78,7 @@ def _people_for_db(form):
 
 
 @admin.route("/repository/extract", methods=["POST"])
-@role_required(3, 4)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def extract_capstone_pdf():
     file = request.files.get('capstone_file')
 
@@ -111,7 +112,7 @@ def _save_file(file_obj):
 
 
 @admin.route("/repository")
-@role_required(2, 3, 4)
+@role_required(ROLE_FACULTY, ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def view_capstone_repository():
     search = request.args.get("search", "").strip()
     program_id = request.args.get("program", "").strip()
@@ -145,7 +146,7 @@ def view_capstone_repository():
 
 
 @admin.route("/repository/<int:capstone_id>/people")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def get_capstone_people_json(capstone_id):
     """Feeds the Edit-panel wizard's Authors/Adviser step — capstone
     people were previously only fetchable server-side, so editing an
@@ -167,7 +168,7 @@ def get_capstone_people_json(capstone_id):
 
 
 @admin.route("/repository/create", methods=["GET", "POST"])
-@role_required(3, 4)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def admin_create_capstone():
     if request.method == "GET":
         return redirect(url_for("admin.view_capstone_repository"))
@@ -240,7 +241,7 @@ def admin_create_capstone():
 
 
 @admin.route("/repository/update/<int:capstone_id>", methods=["POST"])
-@role_required(3)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def update_capstone(capstone_id):
     used_keywords = get_used_keyword()
     capstone = get_capstone_details(capstone_id)

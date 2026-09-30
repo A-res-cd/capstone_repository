@@ -22,6 +22,7 @@ from app.db.requests import (
 )
 from app.db.capstones import get_capstone_details, get_capstone_authors
 from app.routes.decorators import role_required, can_view_full_manuscript, can_download_manuscript
+from app.constants.roles import ROLE_STUDENT
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 from app.services.citations import citation_download_metadata, format_citation
 from app.services import manuscript_reader
@@ -29,7 +30,7 @@ from pypdfium2 import PdfiumError
 
 
 @pages.route("/my-requests")
-@role_required(1)
+@role_required(ROLE_STUDENT)
 def all_requests():
     user_id = session.get("user_id")
     if not user_id:

@@ -11,11 +11,12 @@ from app.db.analytics import (
     get_specialization_report,
 )
 from app.routes.decorators import role_required
+from app.constants.roles import ROLE_ADMIN
 from app.utils.xlsx_export import build_specialization_workbook, build_table_workbook
 
 
 @admin.route("/analytics/specialization/<int:specialization_id>/report")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_specialization_report(specialization_id):
     rows, specialization, err = get_specialization_report(specialization_id, year=request.args.get("year", type=int))
     if err:
@@ -31,7 +32,7 @@ def analytics_specialization_report(specialization_id):
 
 
 @admin.route("/analytics/specialization/<int:specialization_id>/report.xlsx")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_specialization_workbook(specialization_id):
     rows, specialization, err = get_specialization_report(specialization_id, year=request.args.get("year", type=int))
     if err:
@@ -54,7 +55,7 @@ def analytics_specialization_workbook(specialization_id):
 
 
 @admin.route("/analytics/report.xlsx")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_workbook():
     by_specialization, specialization_err = get_capstones_by_specialization(year=request.args.get("year", type=int))
     by_program, program_err = get_capstones_by_program(year=request.args.get("year", type=int))
@@ -155,7 +156,7 @@ def analytics_workbook():
 
 
 @admin.route("/analytics/specializations/report")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_all_specializations_report():
     specializations, err = get_all_specialization_reports(year=request.args.get("year", type=int))
     if err:
@@ -168,7 +169,7 @@ def analytics_all_specializations_report():
 
 
 @admin.route("/analytics/specializations/report.xlsx")
-@role_required(3)
+@role_required(ROLE_ADMIN)
 def analytics_all_specializations_workbook():
     specializations, err = get_all_specialization_reports(year=request.args.get("year", type=int))
     if err:
