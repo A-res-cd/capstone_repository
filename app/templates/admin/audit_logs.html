@@ -13,7 +13,7 @@
         {% endfor %}
     </div>
     <form class="audit-filters" method="GET" action="{{ url_for('admin.audit_logs') }}">
-        <div class="form-group"><label for="audit-search">Actor name or record / event ID</label><input id="audit-search" name="q" value="{{ filters.q }}" maxlength="100" placeholder="Search recorded activity"></div>
+        <!-- <div class="form-group"><label for="audit-search">Actor name or record / event ID</label><input id="audit-search" name="q" value="{{ filters.q }}" maxlength="100" placeholder="Search recorded activity"></div> -->
         <div class="form-group"><label for="audit-category">Category</label><select id="audit-category" name="category"><option value="">All categories</option>{% for key, label in categories.items() %}<option value="{{ key }}" {% if filters.category == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
         <div class="form-group"><label for="audit-action">Action</label><select id="audit-action" name="action"><option value="">All actions</option>{% for key, label in actions|dictsort %}<option value="{{ key }}" {% if filters.action == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
         <div class="form-group"><label for="audit-start">From (UTC)</label><input id="audit-start" type="date" name="start" value="{{ filters.start }}"></div>

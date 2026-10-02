@@ -186,6 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.chartData.trend_series || {};
         const specializations =
             Object.keys(series);
+        const hasYearFilter =
+            Number.isInteger(window.chartData.selected_year);
 
         if (!years.length || !specializations.length) {
             showEmpty(
@@ -200,29 +202,36 @@ document.addEventListener('DOMContentLoaded', () => {
                         p => series[p]
                     )
                 );
-            let axisMax = 50;
-            while (dataMax > axisMax) {
-                axisMax += 50;
-            }
             const axisStep = 10;
+            const axisMax = Math.max(
+                axisStep,
+                Math.ceil((dataMax + axisStep) / axisStep) * axisStep
+            );
             charts.trend = new Chart(trendCanvas, {
-                type: 'line',
+                type: hasYearFilter ? 'bar' : 'line',
                 data: {
                     labels: years,
                     datasets: specializations.map(
-                        (specialization, i) => ({
-                            label: specialization,
-                            data:
-                                series[specialization],
-                            borderColor:
-                                colorFor(i),
-                            backgroundColor:
-                                colorFor(i),
-                            pointRadius: 3,
-                            pointHoverRadius: 5,
-                            tension: 0.35,
-                            fill: false
-                        })
+                        (specialization, i) => {
+                            const dataset = {
+                                label: specialization,
+                                data: series[specialization],
+                                borderColor: colorFor(i),
+                                backgroundColor: colorFor(i)
+                            };
+
+                            if (hasYearFilter) {
+                                dataset.borderRadius = 4;
+                                dataset.borderSkipped = false;
+                            } else {
+                                dataset.pointRadius = 3;
+                                dataset.pointHoverRadius = 5;
+                                dataset.tension = 0.35;
+                                dataset.fill = false;
+                            }
+
+                            return dataset;
+                        }
                     )
                 },
                 options: {

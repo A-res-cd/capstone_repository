@@ -41,10 +41,26 @@
         {# ── Filter Bar ── #}
         <div class="repo-filters">
             <form method="GET" action="{{ url_for('admin.view_capstone_repository') }}" class="filter-form">
+                <div class="repo-search">
+                    <label for="repo-search">Search capstones</label>
+                    <div class="repo-search-controls">
+                        <select name="search_scope" class="repo-search-scope" aria-label="Search field">
+                            <option value="all" {% if search_scope == 'all' %}selected{% endif %}>All fields</option>
+                            <option value="title" {% if search_scope == 'title' %}selected{% endif %}>Title</option>
+                            <option value="keyword" {% if search_scope == 'keyword' %}selected{% endif %}>Keyword</option>
+                        </select>
+                        <input id="repo-search" type="text" name="search" class="filter-input"
+                               placeholder="{{ 'Search by title…' if search_scope == 'title' else 'Search by keyword…' if search_scope == 'keyword' else 'Title, keyword, or author…' }}" value="{{ search }}">
+                    </div>
+                </div>
                 <div class="filter-group">
-                    <span>Search:</span>
-                    <input type="text" name="search" class="filter-input"
-                           placeholder="Title or keyword…" value="{{ search }}">
+                    <span>Year:</span>
+                    <select name="year" class="filter-select">
+                        <option value="">All</option>
+                        {% for yr in years %}
+                        <option value="{{ yr }}" {% if selected_year == yr|string %}selected{% endif %}>{{ yr }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="filter-group">
                     <span>Program:</span>
@@ -55,8 +71,17 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="filter-group">
+                    <span>Specialization:</span>
+                    <select name="specialization" class="filter-select">
+                        <option value="">All</option>
+                        {% for spec in specializations %}
+                        <option value="{{ spec[0] }}" {% if selected_specialization == spec[0]|string %}selected{% endif %}>{{ spec[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <button type="submit" class="btn-filter">Search</button>
-                {% if search or selected_program %}
+                {% if search or search_scope != 'all' or selected_year or selected_program or selected_specialization %}
                 <a href="{{ url_for('admin.view_capstone_repository') }}" class="btn-clear">Clear</a>
                 {% endif %}
             </form>
@@ -109,7 +134,7 @@
         {# ── Pagination ── #}
         {% if total_pages > 1 %}
         <div class="repo-pagination">
-            {% set qs = {'search': search, 'program': selected_program} %}
+            {% set qs = {'search': search, 'search_scope': search_scope, 'year': selected_year, 'program': selected_program, 'specialization': selected_specialization} %}
             <a href="{{ url_for('admin.view_capstone_repository', page=page-1, **qs) }}"
                class="btn-pill btn-pill--ghost {% if page <= 1 %}repo-pagination__link--disabled{% endif %}">
                 <i class="bx bx-left-arrow-alt"></i> Prev
@@ -125,7 +150,7 @@
         {% else %}
         <div class="empty-state">
             <i class="bx bx-folder-open"></i>
-            {% if search or selected_program %}
+            {% if search or search_scope != 'all' or selected_year or selected_program or selected_specialization %}
             <p>No capstones match your filters. <a href="{{ url_for('admin.view_capstone_repository') }}">Clear filters</a></p>
             {% else %}
             <p>No capstone records yet.</p>

@@ -7,7 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteSubmit = document.getElementById('delete-confirm-submit');
     const deleteSpinner = document.getElementById('delete-confirm-spinner');
     const deleteLabel = document.getElementById('delete-confirm-label');
+    const deleteIcon = deleteModal?.querySelector('.delete-confirm-modal__icon i');
     let deleteEndpoint = '';
+    let deleteMode = 'recycle';
     let deleteTimer = null;
     let deleteTrigger = null;
 
@@ -15,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!deleteEndpoint || deleteSubmit.disabled) return;
         deleteSubmit.disabled = true;
         deleteSpinner.hidden = false;
-        deleteLabel.textContent = 'Deleting...';
+        deleteLabel.textContent = deleteMode === 'restore' ? 'Restoring...' : 'Deleting...';
 
         const token = document.querySelector('meta[name="csrf-token"]')?.content;
         const f = document.createElement('form');
@@ -47,22 +49,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!deleteModal) return;
         const itemName = trigger.dataset.deleteItem || 'Untitled item';
         const isPermanent = trigger.dataset.deleteMode === 'permanent';
+        const isRestore = trigger.dataset.deleteMode === 'restore';
         let secondsLeft = 5;
 
         deleteTrigger = trigger;
         deleteEndpoint = trigger.dataset.deleteEndpoint || '';
-        deleteMessage.textContent = `Are you sure you want to archive this item: ${itemName}?`;
-        deleteNote.textContent = isPermanent
-            ? 'This action permanently deletes the item and cannot be undone.'
-            : 'This item will be moved to the Recycle Bin and can be restored later.';
-        deleteSubmit.disabled = true;
-        deleteSpinner.hidden = false;
-        deleteLabel.textContent = `Confirm (${secondsLeft})`;
+        deleteMode = trigger.dataset.deleteMode || 'recycle';
+        deleteMessage.textContent = isRestore
+            ? `Restore this capstone to the repository: ${itemName}?`
+            : `Are you sure you want to archive this item: ${itemName}?`;
+        deleteNote.textContent = isRestore
+            ? 'This capstone will be available in the repository again.'
+            : isPermanent
+                ? 'This action permanently deletes the item and cannot be undone.'
+                : 'This item will be moved to the Recycle Bin and can be restored later.';
+        deleteSubmit.disabled = !isRestore;
+        deleteSpinner.hidden = isRestore;
+        deleteSubmit.classList.toggle('btn-pill--primary', isRestore);
+        deleteSubmit.classList.toggle('btn-pill--danger', !isRestore);
+        deleteModal.classList.toggle('delete-confirm-modal--restore', isRestore);
+        if (deleteIcon) deleteIcon.className = isRestore ? 'bx bx-undo' : 'bx bx-error';
+        deleteLabel.textContent = isRestore ? 'Restore' : `Confirm (${secondsLeft})`;
         deleteModal.hidden = false;
         document.body.classList.add('repo-modal-open');
         deleteCancel.focus();
 
         window.clearInterval(deleteTimer);
+        if (isRestore) return;
+
         deleteTimer = window.setInterval(() => {
             secondsLeft -= 1;
             if (secondsLeft > 0) {
@@ -78,7 +92,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.querySelectorAll('[data-delete-trigger]').forEach((trigger) => {
-        trigger.addEventListener('click', () => openDeleteModal(trigger));
+        trigger.addEventListener('click', (event) => {
+            event.preventDefault();
+            openDeleteModal(trigger);
+        });
     });
     deleteClose?.addEventListener('click', closeDeleteModal);
     deleteCancel?.addEventListener('click', closeDeleteModal);

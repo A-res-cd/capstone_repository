@@ -5,6 +5,7 @@ import os, logging
 from tempfile import TemporaryDirectory
 from app.db.capstones import (
     get_all_capstones,
+    get_capstone_years,
     get_programs,
     get_specializations,
     get_used_keyword,
@@ -115,13 +116,21 @@ def _save_file(file_obj):
 @role_required(ROLE_FACULTY, ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def view_capstone_repository():
     search = request.args.get("search", "").strip()
+    search_scope = request.args.get("search_scope", "all")
+    if search_scope not in {"all", "title", "keyword"}:
+        search_scope = "all"
+    year = request.args.get("year", "").strip()
     program_id = request.args.get("program", "").strip()
+    specialization_id = request.args.get("specialization", "").strip()
     page = request.args.get("page", 1, type=int)
     page_size = 20
 
     capstones, total = get_all_capstones(
         search=search or None,
+        search_scope=search_scope,
         program_id=int(program_id) if program_id.isdigit() else None,
+        year=year or None,
+        specialization_id=int(specialization_id) if specialization_id.isdigit() else None,
         page=page,
         page_size=page_size,
     )
@@ -129,6 +138,7 @@ def view_capstone_repository():
 
     programs = get_programs()
     specializations = get_specializations()
+    years = get_capstone_years()
     form = CreateCapstoneForm()
     _populate_capstone_choices(form)
     return render_template(
@@ -136,9 +146,13 @@ def view_capstone_repository():
         capstones=capstones,
         programs=programs,
         specializations=specializations,
+        years=years,
         form=form,
         search=search,
+        search_scope=search_scope,
+        selected_year=year,
         selected_program=program_id,
+        selected_specialization=specialization_id,
         page=page,
         total_pages=total_pages,
         total_capstones=total,
@@ -182,6 +196,11 @@ def admin_create_capstone():
             "admin/repository.html", hide_nav=False, form=form,
             capstones=capstones,
             programs=get_programs(), specializations=get_specializations(),
+            years=get_capstone_years(),
+            # filter bar reads search_scope; an omitted value renders as
+            # Jinja Undefined, which compares != 'all' and would leave the
+            # "Clear" link and the "no matches" empty state switched on.
+            search_scope="all",
         )
 
     if not form.validate_on_submit():
@@ -259,7 +278,9 @@ def update_capstone(capstone_id):
             "admin/repository.html", hide_nav=False, form=form,
             capstones=capstones,
             programs=get_programs(), specializations=get_specializations(),
+            years=get_capstone_years(),
             used_keywords=used_keywords, capstone=capstone,
+            search_scope="all",
         )
 
     if not form.validate_on_submit():

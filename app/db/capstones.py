@@ -91,6 +91,25 @@ def get_specializations():
         mithrix.close()
         conn.close()
 
+def get_capstone_years():
+    """Return years used by active repository records, newest first."""
+    conn = db_connect()
+    mithrix = conn.cursor()
+    try:
+        mithrix.execute("""
+            SELECT DISTINCT capstone_year
+            FROM capstone
+            WHERE is_archived = FALSE AND capstone_year IS NOT NULL
+            ORDER BY capstone_year DESC
+        """)
+        return [row[0] for row in mithrix.fetchall()]
+    except Exception as exc:
+        logger.error("Database error: %s", exc)
+        return []
+    finally:
+        mithrix.close()
+        conn.close()
+
 def get_used_keyword():
     conn = db_connect()
     mithrix = conn.cursor()
@@ -189,10 +208,13 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
         mithrix.close()
         conn.close()
 
-def get_all_capstones(search=None, program_id=None, page=1, page_size=20):
+def get_all_capstones(search=None, program_id=None, page=1, page_size=20,
+                      search_scope="all", year=None, specialization_id=None):
     """
-    Retrieve capstone projects — search by title/keywords, filter by
-    program, paginated. Returns (rows: list[RealDictRow], total: int).
+    Retrieve capstone projects — search by title/keywords/author (scoped to a
+    single field via search_scope), filter by year, program, and specialization,
+    paginated.
+    Returns (rows: list[RealDictRow], total: int).
     """
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -200,14 +222,41 @@ def get_all_capstones(search=None, program_id=None, page=1, page_size=20):
         conditions = ["c.is_archived = FALSE"]
         params = []
 
-        if search:
-            conditions.append("(c.capstone_title ILIKE %s OR k.capstone_keywords ILIKE %s)")
+        if search and search_scope in {"title", "keyword"}:
+            column = "c.capstone_title" if search_scope == "title" else "k.capstone_keywords"
+            conditions.append(f"{column} ILIKE %s")
+            params.append(f"%{search}%")
+        elif search:
+            conditions.append(
+                """(
+                    c.capstone_title ILIKE %s
+                    OR k.capstone_keywords ILIKE %s
+                    OR EXISTS (
+                        SELECT 1
+                        FROM capauth search_ca
+                        JOIN author search_author
+                          ON search_author.author_id = search_ca.author_id
+                        WHERE search_ca.capstone_id = c.capstone_id
+                          AND CONCAT_WS(' ', search_author.aut_first_name,
+                                             search_author.aut_middle_name,
+                                             search_author.aut_last_name) ILIKE %s
+                    )
+                )"""
+            )
             like = f"%{search}%"
-            params += [like, like]
+            params += [like, like, like]
 
         if program_id:
             conditions.append("c.program_id = %s")
             params.append(program_id)
+
+        if year:
+            conditions.append("c.capstone_year = %s")
+            params.append(year)
+
+        if specialization_id:
+            conditions.append("c.specialization_id = %s")
+            params.append(specialization_id)
 
         where = "WHERE " + " AND ".join(conditions)
 
