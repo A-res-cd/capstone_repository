@@ -25,13 +25,15 @@ def test_exact_and_reordered_titles_match():
         assert match["similarity"] == 1.0
 
 
-def test_keywords_and_abstracts_do_not_affect_scores():
+def test_keywords_and_abstracts_contribute_to_scores():
     with_metadata = [
-        {**record, "capstone_keywords": "orchard weather " * 20, "abstract": "orchard " * 50}
+        {**record, "capstone_keywords": "orchard weather " * 20, "abstract_text": "orchard " * 50}
         for record in CORPUS
     ]
     expected = TopicRecommender(CORPUS).find_similar("orchard weather")
-    assert TopicRecommender(with_metadata).find_similar("orchard weather") == expected
+    matches = TopicRecommender(with_metadata).find_similar("orchard weather")
+    assert matches != expected
+    assert all(match["matched_keywords"] == ["orchard", "weather"] for match in matches)
 
 
 def test_empty_short_unrelated_and_missing_titles_are_safe():
@@ -85,7 +87,7 @@ def client(monkeypatch):
 
 
 @pytest.mark.parametrize("legacy_fields", [
-    {"mode": "tf"}, {"mode": []}, {"keywords": "gateway " * 50},
+    {"mode": "tf"}, {"mode": []},
 ])
 def test_api_uses_tfidf_and_ignores_legacy_fields(client, legacy_fields):
     payload = {"title": "Orchard Weather"}
@@ -105,6 +107,10 @@ def test_api_handles_exact_and_short_titles(client):
 @pytest.mark.parametrize("payload", [
     [], ["weather"], {}, {"title": None}, {"title": 42}, {"title": ["weather"]},
     {"title": "x" * 256},
+    {"title": "weather", "abstract": None},
+    {"title": "weather", "keywords": []},
+    {"title": "weather", "abstract": "x" * 10001},
+    {"title": "weather", "keywords": "x" * 1001},
 ])
 def test_api_rejects_invalid_inputs_without_querying_archive(client, monkeypatch, payload):
     def unexpected_query():

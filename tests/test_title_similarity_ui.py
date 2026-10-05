@@ -51,11 +51,12 @@ def test_title_input_and_reset(topic_page):
         route.fulfill(json={"matches": matches})
 
     page.route("**/api/topic-similarity", respond)
-    expect(page.locator("#pt-keywords")).to_have_count(0)
+    expect(page.locator("#pt-keywords")).to_have_count(1)
+    expect(page.locator("#pt-abstract")).to_have_count(1)
     expect(page.locator("#pt-mode")).to_have_count(0)
     page.locator("#pt-title").fill("Orchard Sensor Sensor")
     expect(page.locator(".pt-badge").last).to_have_text("High overlap · 100%")
-    assert payloads[-1] == {"title": "Orchard Sensor Sensor"}
+    assert payloads[-1] == {"title": "Orchard Sensor Sensor", "abstract": "", "keywords": ""}
     expect(page.locator("#pt-results-label")).to_have_text("Similar titles")
     expect(page.locator(".pt-match")).to_have_count(1)
     page.locator("#pt-title").fill("Marine Conservation")

@@ -18,3 +18,4 @@ from . import profile
 from . import manuscripts
 from . import topics
 from . import progress
+from . import history

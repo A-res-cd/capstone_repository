@@ -185,6 +185,7 @@ class CreateCapstoneForm(FlaskForm):
         ]
     )
 
+    is_published = BooleanField("Published")
     is_utilized = BooleanField("Utilized")
     is_presented = BooleanField("Presented")
     is_copyright_registered = BooleanField(

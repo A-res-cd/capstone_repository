@@ -13,7 +13,7 @@ import pytest
 from werkzeug.datastructures import MultiDict
 from wtforms.validators import ValidationError
 
-from app.db import capstones
+from app.db import capstones, view_history
 from app.routes.forms import AuthorForm, UpdateCapstoneForm
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,6 +77,7 @@ def author_db(author_postgres, monkeypatch):
         ''')
     conn.close()
     monkeypatch.setattr(capstones, "db_connect", connect)
+    monkeypatch.setattr(view_history, "db_connect", connect)
     return connect
 
 

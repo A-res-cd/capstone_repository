@@ -52,11 +52,23 @@ class TopicRecommender:
                 capstone_id, capstone_title
         """
         self.records = corpus
-        self.doc_tokens = [_tokenize(r.get("capstone_title") or "") for r in corpus]
+        self.doc_tokens = [_tokenize(" ".join(str(r.get(field) or "") for field in
+                            ("capstone_title", "abstract_text", "capstone_keywords"))) for r in corpus]
         self._df = self._build_document_frequencies()
         self._doc_vectors = [
-            self._vectorize(tokens) for tokens in self.doc_tokens
+            self._record_vector(record) for record in corpus
         ]
+
+    def _record_vector(self, record):
+        combined = Counter()
+        for field, weight in (("capstone_title", .5), ("abstract_text", .35), ("capstone_keywords", .15)):
+            tokens = _tokenize(str(record.get(field) or ""))
+            if field == "capstone_keywords":
+                tokens = sorted(set(tokens))
+            for token, value in self._vectorize(tokens).items():
+                combined[token] += weight * value
+        norm = math.sqrt(sum(value * value for value in combined.values())) or 1
+        return {token: value / norm for token, value in combined.items()}
 
     def _build_document_frequencies(self):
         df = Counter()
@@ -89,14 +101,14 @@ class TopicRecommender:
             vec_a, vec_b = vec_b, vec_a
         return sum(w * vec_b.get(term, 0.0) for term, w in vec_a.items())
 
-    def find_similar(self, query_title, top_n=5, min_score=0.12):
+    def find_similar(self, query_title, top_n=5, min_score=0.12, abstract="", keywords=""):
         """
         Returns the top_n most similar existing capstones to the given
         proposed title, sorted highest similarity first.
         Scores below min_score are dropped as noise.
         """
-        query_tokens = _tokenize(query_title)
-        query_vec = self._vectorize(query_tokens)
+        query_tokens = _tokenize(" ".join((query_title, abstract, keywords)))
+        query_vec = self._record_vector({"capstone_title": query_title, "abstract_text": abstract, "capstone_keywords": keywords})
 
         scored = []
         for record, doc_vec in zip(self.records, self._doc_vectors):
@@ -107,6 +119,7 @@ class TopicRecommender:
                     "capstone_title": record.get("capstone_title"),
                     "specialization_name": record.get("specialization_name") or "",
                     "similarity": round(score, 3),
+                    "matched_keywords": sorted(set(_tokenize(record.get("capstone_keywords") or "")) & set(query_tokens)),
                 })
 
         scored.sort(key=lambda r: r["similarity"], reverse=True)

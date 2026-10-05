@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Recently Viewed | CAPRE{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_audit-logs.css') }}">
+{% endblock %}
+{% block content %}
+<section class="audit-page" aria-label="Recently viewed">
+    <h1>Recently Viewed</h1>
+    <p class="audit-note">Your capstone viewing history, newest first. Reopening a capstone moves it to the top. Times shown in Philippine time.</p>
+    <div class="profile-paper audit-paper">
+        <div class="audit-paper-heading">Viewed capstones <span>{{ total }} capstones · {{ page_size }} per page</span></div>
+            {% for project in projects %}
+            <article class="audit-event">
+                <div class="audit-event-meta"><time datetime="{{ project.viewed_at.isoformat() }}">{{ project.viewed_local }}</time><span>Last viewed</span></div>
+                <div class="audit-event-copy">
+                    <strong>{{ project.capstone_title }}</strong>
+                    <p><span title="{{ project.program_name }}">{{ project.program_code or project.program_name }}</span> · <span title="{{ project.specialization_name }}">{{ project.specialization_code or project.specialization_name }}</span> · {{ project.capstone_year }}</p>
+                </div>
+                <a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.view_capstone_pdf', capstone_id=project.capstone_id) }}">View capstone<span class="audit-sr-only">: {{ project.capstone_title }}</span></a>
+            </article>
+            {% else %}
+            <p class="audit-empty">No viewing history yet. <a href="{{ url_for('pages.browse') }}">Explore the archive</a> to get started.</p>
+            {% endfor %}
+    </div>
+    {% if total > page_size %}
+    <nav class="audit-pagination" aria-label="Viewing history pages">
+        {% if page > 1 %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('pages.view_history', page=page-1) }}">Previous</a>{% endif %}
+        <span>Page {{ page }}</span>
+        {% if page * page_size < total %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('pages.view_history', page=page+1) }}">Next</a>{% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

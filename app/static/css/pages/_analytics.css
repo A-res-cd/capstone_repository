@@ -69,7 +69,30 @@ main:has(.analytics-section) {
 .header-page-actions {
     display: flex;
     align-items: center;
+    gap: var(--space-md);
     flex-shrink: 0;
+}
+
+.analytics-year-filter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin: 0;
+    color: var(--text-brand);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
+.analytics-year-filter .custom-select {
+    width: 110px;
+}
+
+.analytics-year-filter select {
+    padding: 6px 8px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-sm);
+    color: var(--text-dark);
+    background: var(--surface-paper);
 }
 
 .analytics-header-export:hover {
@@ -470,7 +493,7 @@ body.analytics-export-modal-open {
 
 .analytics-export-formats {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
     margin: 0;
     padding: 0;
@@ -726,3 +749,42 @@ body.analytics-export-modal-open {
         min-height: 310px;
     }
 }
+
+
+.analytics-abbreviations {
+    position: relative;
+    align-self: flex-end;
+    margin-left: auto;
+    font-size: var(--text-sm);
+    color: var(--text-dark);
+}
+.analytics-abbreviations summary {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    list-style: none;
+}
+.analytics-abbreviations summary::-webkit-details-marker { display: none; }
+.analytics-abbreviations dl {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 20;
+    width: min(340px, calc(100vw - 48px));
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--space-md);
+    background: var(--surface-paper);
+    border: 1px solid var(--border-tag);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+}
+.analytics-abbreviations[open] dl,
+.analytics-abbreviations:hover dl,
+.analytics-abbreviations:focus-within dl { display: block; }
+.analytics-abbreviations dl div { display: grid; grid-template-columns: 5.5rem 1fr; gap: .5rem; }
+.analytics-abbreviations dl div + div { margin-top: .5rem; }
+.analytics-abbreviations dt { font-weight: 700; }
+.analytics-abbreviations dd { margin: 0; overflow-wrap: anywhere; }

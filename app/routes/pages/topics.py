@@ -26,6 +26,11 @@ def topic_similarity():
     if len(title) < 4:
         return jsonify({"matches": []})
 
-    matches = find_similar_topics(title)
+    abstract = data.get("abstract", "")
+    keywords = data.get("keywords", "")
+    if (not isinstance(abstract, str) or not isinstance(keywords, str)
+            or len(abstract) > 10000 or len(keywords) > 1000):
+        return jsonify({"error": "Abstract must be text up to 10000 characters; keywords up to 1000."}), 400
+    matches = find_similar_topics(title, abstract=abstract, keywords=keywords)
 
     return jsonify({"matches": matches})

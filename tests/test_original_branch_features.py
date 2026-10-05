@@ -56,12 +56,12 @@ def test_cor_validation():
             read_cor_upload(FileStorage(stream=BytesIO(content), filename=name))
 
 
-def test_title_only_similarity():
+def test_title_has_more_weight_than_keywords():
     corpus = [dict(capstone_id=1, capstone_title='Attendance Tracking System', capstone_keywords='gardening'),
               dict(capstone_id=2, capstone_title='Garden Irrigation', capstone_keywords='Attendance Tracking System')]
     matches = TopicRecommender(corpus).find_similar('Attendance Tracking System')
-    assert matches[0]['capstone_id'] == 1 and matches[0]['similarity'] == 1
-    assert all(match['capstone_id'] != 2 for match in matches)
+    assert matches[0]['capstone_id'] == 1 and matches[0]['similarity'] > .9
+    assert matches[0]['similarity'] > matches[1]['similarity']
     assert TopicRecommender([]).find_similar('Anything') == []
 
 
@@ -227,7 +227,7 @@ def test_title_api_validation(feature_app):
     login(client, 1)
     for data in ([], {'title': 5}, {'title': 'a' * 256}):
         assert client.post('/api/topic-similarity', json=data).status_code == 400
-    response = client.post('/api/topic-similarity', json={'title': 'Attendance Tracking System', 'keywords': 'ignored'})
+    response = client.post('/api/topic-similarity', json={'title': 'Attendance Tracking System'})
     assert response.json['matches'][0]['similarity'] == 1
 
 
@@ -431,7 +431,8 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     login(client, 1)
     page.goto('http://features.test/propose-topic')
     expect(page.locator('#pt-description')).to_contain_text('term frequency')
-    expect(page.locator('#pt-keywords')).to_have_count(0)
+    expect(page.locator('#pt-keywords')).to_have_count(1)
+    expect(page.locator('#pt-abstract')).to_have_count(1)
     page.locator('#pt-title').fill('Attendance Tracking System')
     expect(page.locator('#pt-list')).to_contain_text('Attendance Tracking System')
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')

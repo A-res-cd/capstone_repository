@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Review History{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_audit-logs.css') }}">
+{% endblock %}
+{% block content %}
+<section class="audit-page" aria-label="Review history">
+    <h1>{{ 'Recently Reviewed' if recent else 'Review History' }}</h1>
+    <p class="audit-note">Completed reviews. Decision times shown as recorded.</p>
+    <p class="audit-filter-actions"><a class="btn-pill {{ 'btn-pill--primary' if recent else 'btn-pill--ghost' }}" href="{{ url_for('admin.review_history', view='recent') }}">Recently reviewed</a><a class="btn-pill {{ 'btn-pill--ghost' if recent else 'btn-pill--primary' }}" href="{{ url_for('admin.review_history') }}">Full history</a></p>
+    <div class="profile-paper audit-paper">
+        <div class="audit-paper-heading">Completed reviews <span>{{ total }} reviews · {{ page_size }} per page</span></div>
+        {% for item in reviews %}
+        <article class="audit-event">
+            <div class="audit-event-meta"><time>{{ item.decision_date }}</time><span>{{ item.request_status | capitalize }}</span></div>
+            <div class="audit-event-copy">
+                <strong>{{ item.capstone_title or item.request_type.replace('_', ' ') | capitalize }}</strong>
+                <p>#{{ item.request_id }} · {{ item.request_type.replace('_', ' ') }} · {{ item.requester }}</p>
+                <p>Reviewed by {{ item.reviewer or 'Former reviewer' }}</p>
+                {% if item.status_reason %}<p>Reason: {{ item.status_reason }}</p>{% endif %}
+            </div>
+        </article>
+        {% else %}<p class="audit-empty">No completed reviews yet.</p>{% endfor %}
+    </div>
+    {% if not recent %}<nav class="audit-pagination" aria-label="History pages">
+        {% if page > 1 %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.review_history', page=page-1) }}">Previous</a>{% endif %}
+        <span>Page {{ page }}</span>
+        {% if page * page_size < total %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.review_history', page=page+1) }}">Next</a>{% endif %}
+    </nav>{% endif %}
+</section>
+{% endblock %}

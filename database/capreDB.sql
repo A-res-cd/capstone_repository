@@ -234,7 +234,8 @@ CREATE TABLE IF NOT EXISTS password_reset (
 -- =========================================
 CREATE TABLE IF NOT EXISTS program (
     program_id SERIAL PRIMARY KEY,
-    program_name VARCHAR(100)
+    program_name VARCHAR(100),
+    program_code VARCHAR(30)
 );
 
 -- =========================================
@@ -242,7 +243,8 @@ CREATE TABLE IF NOT EXISTS program (
 -- =========================================
 CREATE TABLE IF NOT EXISTS specialization (
     specialization_id SERIAL PRIMARY KEY,
-    specialization_name VARCHAR(100)
+    specialization_name VARCHAR(100),
+    specialization_code VARCHAR(30)
 );
 
 -- =========================================
@@ -271,6 +273,8 @@ CREATE TABLE IF NOT EXISTS capstone (
     is_utilized BOOLEAN DEFAULT FALSE,
     is_presented BOOLEAN DEFAULT FALSE,
     is_copyright_registered BOOLEAN DEFAULT FALSE,
+    is_published BOOLEAN DEFAULT FALSE,
+    abstract_text TEXT,
 
     CONSTRAINT fk_capstone_keyword
         FOREIGN KEY (keyword_id)
@@ -407,6 +411,17 @@ CREATE TABLE IF NOT EXISTS saved_capstone (
 
 CREATE INDEX IF NOT EXISTS idx_saved_capstone_capstone
     ON saved_capstone(capstone_id);
+
+CREATE TABLE IF NOT EXISTS capstone_view_history (
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    capstone_id INTEGER NOT NULL REFERENCES capstone(capstone_id) ON DELETE CASCADE,
+    viewed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, capstone_id)
+);
+CREATE INDEX IF NOT EXISTS capstone_view_history_recent_idx
+    ON capstone_view_history (user_id, viewed_at DESC, capstone_id DESC);
+CREATE INDEX IF NOT EXISTS request_review_history_idx
+    ON request (decision_date DESC, request_id DESC) WHERE decision_date IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_request_user_decision
     ON request(user_id, decision_date DESC)

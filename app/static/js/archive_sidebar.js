@@ -111,6 +111,13 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedCapstoneId = id;
             const isApproved = card.dataset.approved === 'true';
             setSaveButton(sidebarSaveBtn, card.dataset.saved === 'true');
+            if (card.dataset.historyUrl) {
+                const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                fetch(card.dataset.historyUrl, {
+                    method: 'POST',
+                    headers: token ? {'X-CSRFToken': token} : {},
+                }).catch(() => {});
+            }
 
             const abstractLink = document.getElementById('sb-abstract-link');
             if (abstractLink) {

@@ -16,6 +16,7 @@ from werkzeug.utils import secure_filename
 import os, logging
 from app.db.capstones import (
     get_all_capstones,
+    get_capstone_years,
     get_programs,
     get_specializations,
     get_used_keyword,
@@ -31,6 +32,7 @@ from app.db.capstones import (
 )
 from app.routes.decorators import role_required, can_view_full_manuscript
 from app.constants.roles import ACADEMIC_ROLES as ALL_ROLES, ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR, ROLE_FACULTY
+from app.constants.programs import PROGRAM_SPECIALIZATION_CODES
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
 from app.db.activity import record_capstone_activity
 from app.utils.pdf_extractor import extract_abstract_text, extract_capstone_data
@@ -54,8 +56,14 @@ def _allowed(filename):
 def _populate_capstone_choices(form):
     """SelectField choices must be set before validate()/rendering —
     pulled fresh from the DB each request rather than hardcoded."""
-    form.program_id.choices = [(p[0], p[1]) for p in get_programs()]
-    form.specialization_id.choices = [(s[0], s[1]) for s in get_specializations()]
+    programs = get_programs(include_codes=True)
+    form.program_id.choices = [(p[0], p[1]) for p in programs]
+    program_code = next((p[2] for p in programs if p[0] == form.program_id.data), None)
+    allowed = PROGRAM_SPECIALIZATION_CODES.get(program_code)
+    form.specialization_id.choices = [
+        (s[0], s[1]) for s in get_specializations(include_codes=True)
+        if allowed is None or s[2] in allowed
+    ]
     accounts = [(0, "No linked account")]
     author_accounts = get_author_account_choices() if getattr(g, "user", None) and g.user.get("role_name") in (ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR) else []
     for account in author_accounts:
@@ -64,6 +72,19 @@ def _populate_capstone_choices(form):
         accounts.append((account["user_id"], f"{name or 'Unnamed user'}{university_no} · Account #{account['user_id']}"))
     for author in form.authors:
         author.user_id.choices = accounts
+
+
+def _repository_context():
+    return dict(programs=get_programs(include_codes=True),
+                specializations=get_specializations(include_codes=True),
+                specialization_rules=PROGRAM_SPECIALIZATION_CODES,
+                years=get_capstone_years(), search_scope="all",
+                selected_year="", selected_specialization="")
+
+
+def _abstract_for_manuscript(filename):
+    path = resolve_manuscript_file(filename)
+    return extract_abstract_text(path) if path and str(path).lower().endswith('.pdf') else ''
 
 
 def _first_form_error(form):
@@ -143,26 +164,34 @@ def _save_file(file_obj):
 def view_capstone_repository():
     search = request.args.get("search", "").strip()
     program_id = request.args.get("program", "").strip()
+    search_scope = request.args.get("search_scope", "all")
+    if search_scope not in ("all", "title", "keyword"):
+        search_scope = "all"
+    year = request.args.get("year", "").strip()
+    specialization_id = request.args.get("specialization", "").strip()
     page = request.args.get("page", 1, type=int)
     page_size = 20
 
     capstones, total = get_all_capstones(
         search=search or None,
         program_id=int(program_id) if program_id.isdigit() else None,
+        search_scope=search_scope,
+        year=int(year) if year.isdigit() else None,
+        specialization_id=int(specialization_id) if specialization_id.isdigit() else None,
         page=page,
         page_size=page_size,
     )
     total_pages = max(1, (total + page_size - 1) // page_size)
 
-    programs = get_programs()
-    specializations = get_specializations()
+    context = _repository_context()
+    context.update(search_scope=search_scope, selected_year=year,
+                   selected_specialization=specialization_id)
     form = CreateCapstoneForm()
     _populate_capstone_choices(form)
     return render_template(
         "admin/repository.html",
         capstones=capstones,
-        programs=programs,
-        specializations=specializations,
+        **context,
         form=form,
         search=search,
         selected_program=program_id,
@@ -213,7 +242,7 @@ def admin_create_capstone():
         return render_template(
             "admin/repository.html", hide_nav=False, form=form,
             capstones=capstones,
-            programs=get_programs(), specializations=get_specializations(),
+            **_repository_context(),
         )
 
     if not form.validate_on_submit():
@@ -253,7 +282,9 @@ def admin_create_capstone():
                 acting_user_id=session.get("user_id"),
                 is_utilized=form.is_utilized.data,
                 is_presented=form.is_presented.data,
-                is_copyright_registered=form.is_copyright_registered.data
+                is_copyright_registered=form.is_copyright_registered.data,
+                is_published=form.is_published.data,
+                abstract_text=_abstract_for_manuscript(file_path),
             )
             if success:
                 new_capstone_id = message
@@ -297,7 +328,7 @@ def update_capstone(capstone_id):
         return render_template(
             "admin/repository.html", hide_nav=False, form=form,
             capstones=capstones,
-            programs=get_programs(), specializations=get_specializations(),
+            **_repository_context(),
             used_keywords=used_keywords, capstone=capstone,
         )
 
@@ -334,7 +365,9 @@ def update_capstone(capstone_id):
             acting_user_id=session.get("user_id"),
             is_utilized=form.is_utilized.data,
             is_presented=form.is_presented.data,
-            is_copyright_registered=form.is_copyright_registered.data)
+            is_copyright_registered=form.is_copyright_registered.data,
+            is_published=form.is_published.data,
+            abstract_text=_abstract_for_manuscript(file_path) if file and getattr(file, "filename", "") else None)
 
         if not success:
             flash(f"Error updating capstone: {message}", "danger")
@@ -411,6 +444,10 @@ def view_capstone_pdf(capstone_id):
         event_variant="abstract" if abstract_only else "full",
     )
     authors = get_capstone_authors(capstone_id) if abstract_only else []
+    if has_full_access and str(capstone.get('capstone_file') or '').lower().endswith('.pdf'):
+        return render_template("global/manuscript_reader.html", capstone=capstone,
+                               authors=get_capstone_authors(capstone_id),
+                               hide_nav=True, hide_header=False)
     max_pages = 1 if abstract_only else None
     pdf_url = None
     abstract_text = None

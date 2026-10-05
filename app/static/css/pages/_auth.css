@@ -208,7 +208,11 @@ main:has(.auth-shell) {
 .auth-form-card::after  { bottom: 40px; }
 
 .auth-form-card--scroll {
-    max-width: 520px;
+    max-width: 600px;
+}
+
+.auth-form-card--scroll > .btn-auth-primary {
+    margin-top: var(--space-lg);
 }
 
 .auth-form-card__header {

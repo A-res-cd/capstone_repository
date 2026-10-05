@@ -9,15 +9,20 @@
 {% block content %}
 <section class="explore-archive-section">
     <div class="explore-archive-container">
-        <h2 class="section-title">Capstone Projects</h2>
-
         {# ── Filter Bar ── #}
         <div class="archive-filters">
             <form method="GET" action="{{ url_for('pages.browse') }}" class="filter-form">
-                <div class="filter-group">
-                    <span>Search:</span>
-                    <input type="text" name="search" class="filter-input"
-                           placeholder="Title, keyword, or author…" value="{{ search }}">
+                <div class="archive-search">
+                    <label for="archive-search">Search capstones</label>
+                    <div class="archive-search-controls">
+                        <select name="search_scope" class="archive-search-scope" aria-label="Search field">
+                            <option value="all" {% if search_scope == 'all' %}selected{% endif %}>All fields</option>
+                            <option value="title" {% if search_scope == 'title' %}selected{% endif %}>Title</option>
+                            <option value="keyword" {% if search_scope == 'keyword' %}selected{% endif %}>Keyword</option>
+                        </select>
+                        <input id="archive-search" type="text" name="search" class="filter-input"
+                               placeholder="{{ 'Search by title…' if search_scope == 'title' else 'Search by keyword…' if search_scope == 'keyword' else 'Title, keyword, or author…' }}" value="{{ search }}">
+                    </div>
                 </div>
                 <div class="filter-group">
                     <span>Year:</span>
@@ -86,6 +91,7 @@
                         {% for project in projects %}
                         <div class="archive-card"
                              data-id="{{ project.capstone_id }}"
+                             {% if session.get('role_name') == 'Student' %}data-history-url="{{ url_for('pages.remember_capstone', capstone_id=project.capstone_id) }}"{% endif %}
                              data-title="{{ project.capstone_title }}"
                              data-program="{{ project.program_name }}"
                              data-spec="{{ project.specialization_name }}"
@@ -125,12 +131,12 @@
                         <span>Page {{ page }} of {{ total_pages }}</span>
                         <div class="pagination-controls">
                             {% if page > 1 %}
-                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page-1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort, saved='1' if saved_only else None) }}">
+                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page-1, search=search or None, search_scope=search_scope, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort, saved='1' if saved_only else None) }}">
                                 <i class="bx bx-chevron-left"></i> Previous
                             </a>
                             {% endif %}
                             {% if page < total_pages %}
-                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page+1, search=search or None, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort, saved='1' if saved_only else None) }}">
+                            <a class="pagination-link" href="{{ url_for('pages.browse', page=page+1, search=search or None, search_scope=search_scope, year=selected_year or None, program=selected_program, specialization=selected_specialization, adviser=adviser or None, sort=selected_sort, saved='1' if saved_only else None) }}">
                                 Next <i class="bx bx-chevron-right"></i>
                             </a>
                             {% endif %}
@@ -142,7 +148,7 @@
                     <div class="archive-empty">
                         <i class="bx bx-folder-open"></i>
                         <p>
-                            {% if search or selected_year or selected_program or selected_specialization or adviser or saved_only %}
+                {% if search or search_scope != 'all' or selected_year or selected_program or selected_specialization or adviser or saved_only %}
                                 No capstones match your filters.
                                 <a href="{{ url_for('pages.browse') }}">Clear filters</a>
                             {% else %}

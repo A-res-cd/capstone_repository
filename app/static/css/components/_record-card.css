@@ -144,7 +144,7 @@
     flex-shrink: 0;
     background: transparent;
     border: 1.5px solid currentColor;
-    transform: rotate(-2deg);
+    transform: none;
 }
 
 .role-badge--admin   { color: var(--role-admin); }

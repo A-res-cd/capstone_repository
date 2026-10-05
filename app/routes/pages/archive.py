@@ -15,6 +15,9 @@ PAGE_SIZE = 12
 @login_required
 def browse():
     search = request.args.get("search", "").strip()
+    search_scope = request.args.get("search_scope", "all")
+    if search_scope not in ("all", "title", "keyword"):
+        search_scope = "all"
     year = request.args.get("year", "").strip()
     adviser = request.args.get("adviser", "").strip()
     selected_specialization = request.args.get("specialization", type=int)
@@ -31,6 +34,7 @@ def browse():
 
     projects, total = get_archive_capstones(
         search=search or None,
+        search_scope=search_scope,
         year=year   or None,
         page=page,
         page_size=PAGE_SIZE,
@@ -67,6 +71,7 @@ def browse():
         projects=projects,
         years=years,
         search=search,
+        search_scope=search_scope,
         selected_year=year,
         adviser=adviser,
         programs=programs,

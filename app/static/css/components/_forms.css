@@ -110,7 +110,7 @@
     box-sizing: border-box;
 }
 
-.file-upload-wrapper input[type="file"]::file-selector-button {
+input[type="file"]::file-selector-button {
     background: var(--surface-brand-soft);
     color: var(--text-brand);
     padding: 5px var(--space-md);

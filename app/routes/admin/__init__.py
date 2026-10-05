@@ -13,3 +13,4 @@ from . import capstoners
 from . import repository
 from . import archive
 from . import overview
+from . import history

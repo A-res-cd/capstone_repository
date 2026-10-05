@@ -169,6 +169,15 @@ def get_nav_links(role):
         # },
     ]
 
+    links.extend([
+        {"name": "Review History", "title": "Review History",
+         "url": "admin.review_history", "icon": "bx bx-history",
+         "roles": ["RET Chair", "Capstone Professor"], "section": "Management"},
+        {"name": "Recently Viewed", "title": "Recently Viewed",
+         "url": "pages.view_history", "icon": "bx bx-history",
+         "roles": ["Student"], "section": "Capstone"},
+    ])
+
     # Filter links by role
     filtered = [link for link in links if role in link["roles"]]
 
