@@ -145,6 +145,7 @@ def purge_expired_archived_capstones(raise_errors=False):
         mithrix.close()
         conn.close()
 
+
 def delete_capstone(capstone_id, acting_user_id=None):
     """
     Permanently delete an archived capstone project by ID, with cascading
@@ -383,16 +384,6 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12,
             """)
             params.append(f"%{adviser}%")
 
-        if saved_by:
-            conditions.append("""
-                EXISTS (
-                    SELECT 1 FROM saved_capstone saved
-                    WHERE saved.user_id = %s
-                      AND saved.capstone_id = c.capstone_id
-                )
-            """)
-            params.append(saved_by)
-
         where_clauses = ["c.is_archived IS NOT TRUE"]
         where_clauses.extend(conditions)
 
@@ -439,8 +430,8 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12,
                 c.semester,
                 c.term,
                 k.capstone_keywords,
-                s.specialization_name,
-                p.program_name
+                s.specialization_name, s.specialization_code,
+                p.program_name, p.program_code
             FROM capstone c
             JOIN keyword k        ON k.keyword_id        = c.keyword_id
             JOIN specialization s ON s.specialization_id = c.specialization_id

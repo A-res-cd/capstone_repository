@@ -76,6 +76,7 @@ def inject_global_template_vars():
                 or session.get("username", "")
             ),
             # Initials for the avatar circle — up to 2 letters
+            "avatar_filename": g.user.get("avatar_filename"),
             "initials": (
                 first_name[:1].upper() + last_name[:1].upper()
             ) or (session.get("username", "?")[:1].upper()),

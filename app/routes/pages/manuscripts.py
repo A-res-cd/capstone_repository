@@ -21,7 +21,7 @@ from app.db.requests import (
     get_requestable_capstones,
 )
 from app.db.capstones import get_capstone_details, get_capstone_authors
-from app.routes.decorators import role_required, can_view_full_manuscript
+from app.routes.decorators import role_required, can_view_full_manuscript, can_download_manuscript
 from app.constants.roles import ROLE_STUDENT
 from app.db.activity import record_capstone_activity
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
@@ -66,13 +66,14 @@ def request_manuscript(capstone_id):
         return redirect(url_for("pages.all_requests"))
 
     reason = request.form.get("request_reason", "").strip()
-    if not reason:
-        flash("Please give a reason for your request", "danger")
+    purpose = request.form.get("request_purpose", "")
+    if purpose not in ("Research reference", "Literature review", "Methodology reference", "Other") or len(reason) > 2000:
+        flash("Choose a request purpose; explanation must be 2000 characters or fewer.", "danger")
         # Validation failed — send them back to the form itself, not the
         # all-requests list, so they don't lose their place.
         return redirect(url_for("pages.request_capstone", capstone_id=capstone_id))
     
-    ok, err = request_fullview(user_id, capstone_id, reason)
+    ok, err = request_fullview(user_id, capstone_id, purpose + (": " + reason if reason else ""))
     flash("request submitted successfully" 
           if ok else f"Error: {err}","success" if ok else "danger")
     # Submission is done (success or failure past validation) — the
@@ -186,7 +187,7 @@ def manuscript_file(capstone_id):
     if not user_id:
         abort(401)
 
-    if not can_view_full_manuscript(capstone_id, user_id):
+    if not can_download_manuscript():
         abort(403)
 
     capstone = get_capstone_details(capstone_id)

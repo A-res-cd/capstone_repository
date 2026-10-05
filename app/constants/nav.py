@@ -59,8 +59,8 @@ def get_nav_links(role):
         },
 
         {
-            "name": "Recycle Bin",
-            "title": "Recycle Bin",
+            "name": "Archived",
+            "title": "Archived",
             "url": "admin.view_archived_capstones",
             "icon": "bx bx-trash",
             "roles": ["RET Chair"],
@@ -89,7 +89,7 @@ def get_nav_links(role):
             "url": "pages.all_requests",
             "icon": "bx bx-file-blank",
             "roles": ["Student"],
-            "section": "Capstone"
+            "section": "Repository"
         },
         {
             "name": "My Progress",
@@ -140,7 +140,7 @@ def get_nav_links(role):
             "url": "pages.propose_topic",
             "icon": "bx bx-bulb",
             "roles": ["Student"],
-            "section": "Capstone"
+            "section": "Repository"
         },
 
         # --- Process 5.0: Manage User Information — All roles ---

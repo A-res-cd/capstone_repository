@@ -14,3 +14,5 @@ from . import repository
 from . import archive
 from . import overview
 from . import history
+from . import manuscripts
+from . import reports

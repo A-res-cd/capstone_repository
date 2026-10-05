@@ -10,7 +10,7 @@
 {% block title %}Sign Up | CAPRE{% endblock %}
 
 {% block content %}
-<div class="auth-shell">
+<div class="auth-shell auth-shell--signup">
     <div class="auth-shell__bg"></div>
     {% include 'partials/flash_messages.html' %}
 
@@ -21,11 +21,11 @@
         </a>
     </header>
 
-    <div class="auth-shell__body">
+    <div class="auth-shell__body auth-shell__body--signup">
 
         {# ── Annotation column ── #}
         <div class="auth-annotation">
-            <span class="auth-annotation__eyebrow">BSIT &middot; CICT &middot; NEUST Sumacab</span>
+            <span class="auth-annotation__eyebrow">BSIT &amp; BSDS &middot; CICT &middot; NEUST Sumacab</span>
             <h1 class="auth-annotation__title">
                 Join the<br><em>CAPRE</em> archive
             </h1>
@@ -49,7 +49,7 @@
                     <p>Fill in your details to register</p>
                 </div>
 
-                <form action="{{ url_for('auth.signup') }}" method="POST" enctype="multipart/form-data" class="auth-form" novalidate>
+                <form id="signup-form" action="{{ url_for('auth.signup') }}" method="POST" enctype="multipart/form-data" class="auth-form" novalidate>
                     {{ form.hidden_tag() }}
 
                     <div class="form-group cor-upload-group">
@@ -110,7 +110,7 @@
                     <div class="form-group">
                         {{ form.password.label }}
                         <div class="input-with-toggle">
-                            {{ form.password(id="password", placeholder="Min. 6 characters", autocomplete="new-password") }}
+                            {{ form.password(id="password", placeholder="15-128 characters", autocomplete="new-password", minlength=15, maxlength=128) }}
                             <button type="button" class="input-toggle-btn" onclick="togglePassword('password', this)" aria-label="Show password" aria-controls="password" aria-pressed="false">
                                 <i class="bx bx-hide" aria-hidden="true"></i>
                             </button>
@@ -120,11 +120,39 @@
                         {% endfor %}
                     </div>
 
-                    <button type="submit" class="btn-auth-primary">
-                        <i class="bx bx-user-plus"></i>
-                        Create Account
-                    </button>
+                    <div class="form-group">
+                        {{ form.confirm_password.label }}
+                        {{ form.confirm_password(autocomplete="new-password", minlength=15, maxlength=128) }}
+                        <p class="helper-text">Use 15-128 characters. Spaces and passphrases are allowed.</p>
+                        {% for error in form.confirm_password.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.preferred_contact.label }}{{ form.preferred_contact() }}
+                        {% for error in form.preferred_contact.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                        {{ form.phone.label }}{{ form.phone(type="tel", autocomplete="tel", placeholder="+639171234567") }}
+                        {% for error in form.phone.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                        <p class="helper-text">Email remains required for recovery and account notices.</p>
+                    </div>
+                    <div class="form-group signup-terms">
+                        <div class="signup-terms__choice">
+                            <label class="signup-terms__label">
+                                {{ form.accept_terms(id="accept_terms") }}
+                                <span>I accept the</span>
+                            </label>
+                            <button type="button" class="signup-terms__link" id="termsLink" aria-controls="terms-modal">
+                                Terms and Agreements
+                            </button>
+                        </div>
+                        {% for error in form.accept_terms.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
                 </form>
+
+                <button type="submit" form="signup-form" class="btn-auth-primary">
+                    <i class="bx bx-user-plus"></i>
+                    Create Account
+                </button>
 
                 <div class="auth-form-card__footer">
                     <p>Already have an account?
@@ -134,6 +162,29 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<div class="terms-modal" id="terms-modal" hidden role="dialog" aria-modal="true" aria-labelledby="terms-modal-title">
+    <div class="terms-modal__backdrop" data-terms-close></div>
+    <div class="terms-modal__content">
+        <button type="button" class="terms-modal__close" data-terms-close aria-label="Close Terms and Agreements">
+            <i class="bx bx-x"></i>
+        </button>
+        <h2 id="terms-modal-title">Terms and Agreements</h2>
+        <h3>Data Privacy Act of 2012 (Republic Act No. 10173)</h3>
+        <p>CAPRE processes your name, university details, Certificate of Registration, contact information, optional profile photo, and account activity to verify eligibility, manage access, provide account notices, and protect the repository. Authorized university personnel review registration documents and access requests. Contact information and registration documents are not displayed in the public archive.</p>
+        <p>You may request access to or correction of your personal information, raise an objection, or request deletion subject to applicable legal and university obligations. Contact the university's designated privacy office through its official channels. Data must be retained only as needed for these purposes and applicable retention obligations; restricted backups may remain until their scheduled expiry.</p>
+        <p>Read the <a href="https://privacy.gov.ph/data-privacy-act/" target="_blank" rel="noopener noreferrer">Data Privacy Act</a>. Acceptance records the notice version and time; it does not waive your rights. Notice version: 2026-10-03.</p>
+        <p>By creating a CAPRE account, you agree to the following:</p>
+        <ul>
+            <li>Provide accurate and complete personal information.</li>
+            <li>Upload only your valid Certificate of Registration.</li>
+            <li>Use CAPRE for legitimate academic and repository purposes.</li>
+            <li>Keep your account credentials private and secure.</li>
+            <li>Respect the intellectual property and privacy of other users.</li>
+        </ul>
+        <p>CAPRE may review account information and uploaded documents before approving access.</p>
     </div>
 </div>
 
@@ -155,6 +206,26 @@ function togglePassword(fieldId, btn) {
         btn.setAttribute('aria-pressed', 'false');
     }
 }
+
+const termsModal = document.getElementById('terms-modal');
+const termsLink = document.getElementById('termsLink');
+const termsCloseButtons = termsModal.querySelectorAll('[data-terms-close]');
+
+function openTermsModal() {
+    termsModal.hidden = false;
+    termsModal.querySelector('.terms-modal__close').focus();
+}
+
+function closeTermsModal() {
+    termsModal.hidden = true;
+    termsLink.focus();
+}
+
+termsLink.addEventListener('click', openTermsModal);
+termsCloseButtons.forEach((button) => button.addEventListener('click', closeTermsModal));
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !termsModal.hidden) closeTermsModal();
+});
 </script>
 {% endblock %}
 {% endblock %}

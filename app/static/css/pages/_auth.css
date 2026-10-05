@@ -434,6 +434,53 @@ main:has(.auth-shell) {
 /* ══════════════════════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
+@media (min-width: 901px) {
+    .auth-shell__body--signup {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    }
+}
+
+@media (min-width: 901px) and (min-height: 600px) {
+    main:has(.auth-shell--signup) {
+        overflow: hidden;
+    }
+
+    .auth-shell--signup {
+        height: 100dvh;
+        min-height: 0;
+    }
+
+    .auth-shell--signup .auth-shell__nav {
+        flex-shrink: 0;
+    }
+
+    .auth-shell__body--signup {
+        grid-template-rows: minmax(0, 1fr);
+    }
+
+    .auth-shell__body--signup .auth-card-wrap {
+        height: 100%;
+        min-height: 0;
+        align-items: center;
+    }
+
+    .auth-shell--signup .auth-form-card--scroll {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
+        max-height: 100%;
+        transform: none;
+    }
+
+    #signup-form {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        scrollbar-gutter: stable;
+        padding: 4px;
+        margin: -4px;
+    }
+}
+
 @media (max-width: 900px) {
     .auth-shell__nav { padding: 24px 28px; }
 

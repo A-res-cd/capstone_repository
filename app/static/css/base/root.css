@@ -23,11 +23,10 @@
     --text-primary: #FFFFFF;
     --text-secondary: #E0E0E0;
     --text-dark: #333333;
-    /* Foreground ink is separate from solid brand/button fills. */
     --text-brand: var(--color-primary);
     --text-brand-strong: var(--color-primary-dark);
     --text-brand-muted: var(--color-primary-light);
-    --text-placeholder: #707070;
+    --text-placeholder: var(--color-gray-dark);
     --text-on-accent: #FFFFFF;
 
     /* ========== BACKGROUNDS ========== */
@@ -158,9 +157,9 @@
     --text-secondary: #BFC3CF;
     --text-dark: #E8E9ED;
     --text-brand: #ABB8FF;
-    --text-brand-strong: #C7CFFF;
-    --text-brand-muted: #A6B1F5;
-    --text-placeholder: #ADB2C0;
+    --text-brand-strong: #C7D0FF;
+    --text-brand-muted: #A8B5FF;
+    --text-placeholder: #BFC3CF;
     --text-on-accent: #241805;
 
     /* ========== BACKGROUNDS ========== */

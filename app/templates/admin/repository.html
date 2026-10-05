@@ -124,7 +124,7 @@
                         data-delete-mode="recycle"
                         data-delete-item="{{ c.capstone_title }}"
                         data-delete-endpoint="{{ url_for('admin.archive_capstone', capstone_id=c.capstone_id) }}">
-                        <i class="bx bx-trash"></i> Recycle Bin
+                        <i class="bx bx-archive"></i> Archive
                     </button>
                     {% endif %}
                 </div>
@@ -195,7 +195,6 @@
                 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="capstone_id" id="field-capstone-id">
-                <input type="hidden" name="extracted_filename" id="extracted-filename">
 
                 {# ══════════════════════════════════════════════
                    STEP 1 — Capstone Details

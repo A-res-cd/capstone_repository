@@ -14,7 +14,8 @@
     <div class="mu-page-header">
         <div>
             <h2>Manage Users</h2>
-            <p>View all registered users, verify new sign-ups, and review role promotion requests.</p>
+            <p>View all registered users, verify new sign-ups, and change user roles.</p>
+            <p><a href="{{ url_for('admin.review_history', view='recent') }}">Recently reviewed</a> &middot; <a href="{{ url_for('admin.review_history') }}">Review history</a></p>
         </div>
     </div>
 
@@ -30,25 +31,23 @@
     {% endwith %}
 
     {# ══════════════════════════════════════════════════════
-       TAB SWITCHER — Manage Users / Verify Accounts / Approve
-       Promotions. Only one panel is visible at a time; the two
-       request tabs carry a red notification badge with the
-       pending count.
+       TAB SWITCHER — Manage Users / Verify Accounts.
+       Only one panel is visible at a time; the verification tab
+       carries a red notification badge with the pending count.
+       Faculty (Capstone Professor) has no Manage Users tab at all
+       and lands on Verify Accounts by default.
     ══════════════════════════════════════════════════════ #}
+    {% set is_admin = session.get('role_name') == "RET Chair" %}
     <div class="mu-tabs" role="tablist">
-        <button type="button" class="mu-tab mu-tab--active" id="tab-users" data-target="panel-list-wrap" role="tab" aria-selected="true">
-            <i class="bx bx-group"></i> Manage Users
-        </button>
-        <button type="button" class="mu-tab" id="tab-verify" data-target="panel-pending" role="tab" aria-selected="false">
-            <i class="bx bx-user-check"></i> Verify Accounts
+        {% if is_admin %}
+            <button type="button" class="mu-tab mu-tab--active" id="tab-users" data-target="panel-list-wrap" role="tab" aria-selected="true">
+                <i class="bx bx-group" aria-hidden="true"></i> Manage Users
+            </button>
+        {% endif %}
+        <button type="button" class="mu-tab {% if not is_admin %}mu-tab--active{% endif %}" id="tab-verify" data-target="panel-pending" role="tab" aria-selected="{{ 'false' if is_admin else 'true' }}">
+            <i class="bx bx-user-check" aria-hidden="true"></i> Verify Accounts
             {% if pending_verifications %}
             <span class="mu-tab__badge">{{ pending_verifications|length }}</span>
-            {% endif %}
-        </button>
-        <button type="button" class="mu-tab" id="tab-promotions" data-target="panel-pending-promotions" role="tab" aria-selected="false">
-            <i class="bx bx-up-arrow-circle"></i> Approve Role Promotions
-            {% if pending_promotions %}
-            <span class="mu-tab__badge">{{ pending_promotions|length }}</span>
             {% endif %}
         </button>
     </div>
@@ -56,9 +55,9 @@
     {# ══════════════════════════════════════════════════════
        PANEL — PENDING ACCOUNT VERIFICATIONS
     ══════════════════════════════════════════════════════ #}
-    <div class="mu-panel mu-panel--hidden" id="panel-pending" data-tab-panel>
+    <div class="mu-panel {% if is_admin %}mu-panel--hidden{% endif %}" id="panel-pending" data-tab-panel>
         <div class="mu-panel-header">
-            <h3><i class="bx bx-user-check"></i> Pending Account Verifications</h3>
+            <h3><i class="bx bx-user-check" aria-hidden="true"></i> Pending Account Verifications</h3>
             <p>New sign-ups waiting for approval before they can sign in.</p>
         </div>
 
@@ -70,11 +69,12 @@
                 <div class="record-card__body">
                     <p class="record-card__title">{{ pv.full_name }}</p>
                     <div class="record-card__meta">
-                        <span class="record-card__meta-item"><i class="bx bx-id-card"></i>{{ pv.university_no }}</span>
-                        <span class="record-card__meta-item"><i class="bx bx-envelope"></i>{{ pv.email or '—' }}</span>
+                        <span class="record-card__meta-item"><i class="bx bx-id-card" aria-hidden="true"></i>{{ pv.university_no }}</span>
+                        <span class="record-card__meta-item"><i class="bx bx-envelope" aria-hidden="true"></i>{{ pv.email or '—' }}</span>
                         <span class="role-badge
                             {% if pv.role == 'RET Chair' %}role-badge--admin
                             {% elif pv.role == 'Faculty' %}role-badge--faculty
+                {% elif pv.role == 'Capstone Professor' %}role-badge--professor
                             {% else %}role-badge--student{% endif %}">
                             {{ pv.role }}
                         </span>
@@ -277,37 +277,52 @@
             </div>
             {% endfor %}
         </div>
-
-        {# ── Pagination ── #}
-        {% if total_pages > 1 %}
-        <div class="mu-pagination">
-            {% set qs = {'search': search, 'role': selected_role, 'status': selected_status} %}
-            <a href="{{ url_for('admin.manage_users', page=page-1, **qs) }}"
-               class="btn-pill btn-pill--ghost {% if page <= 1 %}mu-pagination__link--disabled{% endif %}">
-                <i class="bx bx-left-arrow-alt"></i> Prev
-            </a>
-            <span class="mu-pagination__status">Page {{ page }} of {{ total_pages }}</span>
-            <a href="{{ url_for('admin.manage_users', page=page+1, **qs) }}"
-               class="btn-pill btn-pill--ghost {% if page >= total_pages %}mu-pagination__link--disabled{% endif %}">
-                Next <i class="bx bx-right-arrow-alt"></i>
-            </a>
-        </div>
-        {% endif %}
-
         {% else %}
         <div class="empty-state">
-            <i class="bx bx-group"></i>
-            <p>
-                {% if search or selected_role or selected_status %}
-                No users match your filters. <a href="{{ url_for('admin.manage_users') }}">Clear filters</a>
-                {% else %}
-                No users found in the system.
-                {% endif %}
-            </p>
+            <i class="bx bx-check-shield" aria-hidden="true"></i>
+            <p>No accounts are waiting for verification right now.</p>
         </div>
         {% endif %}
+    </div>{# end panel-pending #}
 
-    </div>{# end panel-list #}
+    <dialog id="verification-dialog" class="review-paper verification-dialog" aria-labelledby="verification-title">
+            <div class="verification-dialog__content">
+                <h2 id="verification-title">Account verification details</h2>
+                <p data-verification-status role="status" aria-live="polite"></p>
+                <div class="verification-dialog__grid">
+                    <section class="verification-dialog__details" aria-labelledby="verification-account-heading">
+                        <h3 id="verification-account-heading">Account details</h3>
+                        <dl data-verification-fields hidden></dl>
+                    </section>
+                    <section class="verification-dialog__document" aria-labelledby="verification-document-heading">
+                        <h3 id="verification-document-heading">COR preview</h3>
+                        <p class="verification-dialog__document-note">Review the uploaded Certificate of Registration before deciding.</p>
+                        <div class="verification-dialog__viewer-wrap" data-verification-viewer-wrap hidden>
+                            <iframe class="verification-dialog__viewer" data-verification-viewer title="Certificate of Registration preview" loading="lazy" referrerpolicy="no-referrer"></iframe>
+                        </div>
+                    </section>
+                </div>
+                <p class="verification-dialog__privacy-note">COR files are private and available only to authorized reviewers.</p>
+                <div class="verification-dialog__actions">
+                    <a class="btn-pill btn-pill--primary" data-verification-file hidden>Download COR (PDF)</a>
+                    <div class="verification-dialog__decision-actions">
+                        <form method="POST" data-verification-decision-form>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="decision" value="approved">
+                            <button type="submit" class="btn-pill btn-pill--primary" data-verification-approve disabled>Verify account</button>
+                        </form>
+                        <form method="POST" data-verification-decision-form onsubmit="return confirm('Reject this account? The user will not be able to sign in.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="decision" value="rejected">
+                            <label for="verification-rejection-reason">Rejection reason (included in email)</label>
+                            <textarea id="verification-rejection-reason" name="status_reason" required maxlength="2000" rows="3"></textarea>
+                            <button type="submit" class="btn-pill btn-pill--danger" data-verification-reject disabled>Reject request</button>
+                        </form>
+                        <button type="button" class="btn-pill btn-pill--ghost" data-verification-close>Close</button>
+                    </div>
+                </div>
+            </div>
+    </dialog>
 
     {# ══════════════════════════════════════════════════════
        EDIT USER MODAL
@@ -355,7 +370,7 @@
                their own account, instead of silently failing after
                submit. ── #}
             <div class="mu-self-notice hidden" id="self-notice">
-                <i class="bx bx-info-circle"></i>
+                <i class="bx bx-info-circle" aria-hidden="true"></i>
                 This is your own account. Role changes, deactivation, and deletion
                 aren't available here — ask another admin if you need any of these changed.
             </div>
@@ -373,6 +388,10 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <h4 class="mu-edit-grid__heading">Assign Role</h4>
+                    <div class="form-group">
+                        <label for="admin-password">Your administrator password</label>
+                        <input id="admin-password" name="admin_password" type="password" autocomplete="current-password" required>
+                    </div>
 
                     <div class="form-group">
                         <label for="role_id">
@@ -388,10 +407,10 @@
 
                     <div class="form-actions">
                         <button type="submit" class="btn-pill btn-pill--primary">
-                            <i class="bx bx-save"></i> Save Role
+                            <i class="bx bx-save" aria-hidden="true"></i> Save Role
                         </button>
                         <button type="button" class="btn-pill btn-pill--ghost" id="btn-back-role">
-                            <i class="bx bx-arrow-back"></i> Cancel
+                            <i class="bx bx-arrow-back" aria-hidden="true"></i> Cancel
                         </button>
                     </div>
                 </form>
@@ -407,13 +426,13 @@
                             Deactivating blocks sign-in without deleting any data — reversible any time, unlike Delete below.
                         </p>
                         <button type="submit" class="btn-pill btn-pill--secondary" id="btn-toggle-status">
-                            <i class="bx bx-block"></i> <span id="btn-toggle-status-label">Deactivate Account</span>
+                            <i class="bx bx-block" aria-hidden="true"></i> <span id="btn-toggle-status-label">Deactivate Account</span>
                         </button>
                     </form>
 
                     <div class="danger-zone">
                         <div class="danger-zone__header">
-                            <i class="bx bx-error-circle"></i>
+                            <i class="bx bx-error-circle" aria-hidden="true"></i>
                             <span>Danger Zone</span>
                         </div>
                         <p>Permanently deletes the user account and all associated data. This action <strong>cannot be undone</strong>.</p>
@@ -424,7 +443,7 @@
                               onsubmit="return confirmDelete(event)">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn-pill btn-pill--danger">
-                                <i class="bx bx-trash"></i> Delete Account
+                                <i class="bx bx-trash" aria-hidden="true"></i> Delete Account
                             </button>
                         </form>
                     </div>
@@ -436,13 +455,14 @@
     </dialog>{# end panel-edit #}
 
     </div>{# end panel-list-wrap #}
+    {% endif %}
 
 </section>
 
 <script src="{{ url_for('static', filename='js/verification_details.js') }}"></script>
 <script>
-// ── Tab switcher — Manage Users / Verify Accounts / Approve
-// Promotions. Exactly one [data-tab-panel] is visible at a time;
+// ── Tab switcher — Manage Users / Verify Accounts.
+// Exactly one [data-tab-panel] is visible at a time;
 // the tab buttons themselves carry the notification badges.
 const tabButtons = document.querySelectorAll('.mu-tab');
 const tabPanels = document.querySelectorAll('[data-tab-panel]');
@@ -493,6 +513,7 @@ document.querySelectorAll('.btn-row--edit').forEach(btn => {
         document.getElementById('info-email').textContent = email || '—';
         const roleEl = document.getElementById('info-role');
         roleEl.textContent = role;
+        document.getElementById('admin-password').value = '';
         roleEl.className = 'role-badge ' + (
             role === 'RET Chair' ? 'role-badge--admin' :
             role === 'Faculty' ? 'role-badge--faculty' : 'role-badge--student'

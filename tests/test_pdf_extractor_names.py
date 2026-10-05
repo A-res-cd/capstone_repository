@@ -9,10 +9,10 @@ def test_author_supports_multiple_first_names_initials_and_particle_surname():
     }
 
 
-def test_author_keeps_second_given_name_without_middle_initial():
+def test_author_extracts_full_middle_name_without_initial_period():
     assert _parse_name_string("OLMO, ELMARK JOSH") == {
-        "first": "Elmark Josh",
-        "middle": "",
+        "first": "Elmark",
+        "middle": "Josh",
         "last": "Olmo",
     }
 

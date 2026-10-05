@@ -687,24 +687,12 @@ body.repo-modal-open {
 }
 
 @media (max-width: 768px) {
-    .repo-section { padding: var(--space-md); }
-
     .form-row { grid-template-columns: 1fr; }
 
     .detail-card__header,
     .capstone-form { padding: var(--space-lg); }
 
     #panel-form { padding: var(--space-md); }
-
-    .repo-archive-card {
-        flex-wrap: wrap;
-        align-items: flex-start;
-        padding-right: var(--space-md);
-    }
-
-    .repo-archive-card .col-title {
-        flex-basis: 100%;
-    }
 
     .repo-archive-card__actions {
         width: 100%;

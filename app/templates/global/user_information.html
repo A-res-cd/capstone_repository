@@ -30,6 +30,7 @@
             <span class="role-badge
                 {% if profile.role_name in ['RET Chair', 'System Administrator'] %}role-badge--admin
                 {% elif profile.role_name == 'Faculty' %}role-badge--faculty
+                {% elif profile.role_name == 'Capstone Professor' %}role-badge--professor
                 {% else %}role-badge--student{% endif %}">
                 {{ profile.role_name }}
             </span>
@@ -66,6 +67,14 @@
 
         {# ── Personal Info + Contact Info, side by side — no more
            tab-switching, both are always visible. ── #}
+        <form method="post" action="{{ url_for('pages.update_picture') }}" enctype="multipart/form-data" class="user-information-update-group">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="profile-picture">Profile picture</label>
+            <input type="file" id="profile-picture" name="picture" accept="image/jpeg,image/png,image/webp">
+            <p class="helper-text">Still JPEG, PNG, or WebP. Maximum 2 MB and 4096 x 4096 pixels. Cropped to a square; metadata removed.</p>
+            <button class="btn-pill btn-pill--primary" type="submit">Save picture</button>
+            {% if profile.avatar_filename %}<button class="btn-pill btn-pill--ghost" type="submit" name="action" value="remove">Remove picture</button>{% endif %}
+        </form>
         <div class="ui-grid">
 
             <div class="user-information-update-group">
@@ -109,6 +118,11 @@
                     <p>Kept on file for faculty/admin outreach — not shown publicly in the archive.</p>
                 </div>
                 <form method="post" action="{{ url_for('pages.update_user_contact_info') }}" id="contact-info-form">
+                    <label for="contact-preference">Preferred contact</label>
+                    <select id="contact-preference" name="preferred_contact" disabled>
+                        <option value="email" {% if profile.preferred_contact == 'email' %}selected{% endif %}>Email</option>
+                        <option value="phone" {% if profile.preferred_contact == 'phone' %}selected{% endif %}>Phone</option>
+                    </select>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-row">
                         <div class="form-group">
@@ -118,22 +132,6 @@
                         <div class="form-group">
                             <label>Contact number</label>
                             <input type="tel" name="phone" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Facebook</label>
-                            <input type="text" name="facebook" value="{{ contact_by_type.get('facebook').contact_value if contact_by_type.get('facebook') else '' }}" placeholder="Not provided" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Instagram</label>
-                            <input type="text" name="instagram" value="{{ contact_by_type.get('instagram').contact_value if contact_by_type.get('instagram') else '' }}" placeholder="Not provided" readonly>
-                        </div>
-                    </div>
-                    <div class="form-row form-row--single">
-                        <div class="form-group">
-                            <label>Twitter/X</label>
-                            <input type="text" name="twitter" value="{{ contact_by_type.get('twitter').contact_value if contact_by_type.get('twitter') else '' }}" placeholder="Not provided" readonly>
                         </div>
                     </div>
                     <div class="form-actions">
@@ -236,11 +234,11 @@
                     </div>
                     <div class="form-group">
                         <label for="new_password">New password</label>
-                        <input type="password" id="new_password" name="new_password" placeholder="At least 6 characters" minlength="6" required>
+                        <input type="password" id="new_password" name="new_password" placeholder="15-128 characters" minlength="15" maxlength="128" required>
                     </div>
                     <div class="form-group">
                         <label for="confirm_password">Confirm new password</label>
-                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="6" required>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="15" maxlength="128" required>
                     </div>
                 </div>
                 <div class="form-actions">
@@ -286,11 +284,12 @@
 
     if (editContactBtn && saveContactBtn && contactForm) {
         const cancelContactBtn = document.getElementById('cancel-contact-btn');
-        const initialValues = Array.from(contactForm.querySelectorAll('input')).map(input => input.value);
+        const initialValues = Array.from(contactForm.querySelectorAll('input, select')).map(input => input.value);
 
         editContactBtn.addEventListener('click', () => {
-            contactForm.querySelectorAll('input').forEach(input => {
+            contactForm.querySelectorAll('input, select').forEach(input => {
                 input.removeAttribute('readonly');
+                if (input.tagName === 'SELECT') input.disabled = false;
             });
             editContactBtn.classList.add('hidden');
             saveContactBtn.classList.remove('hidden');
@@ -298,9 +297,10 @@
         });
 
         cancelContactBtn.addEventListener('click', () => {
-            contactForm.querySelectorAll('input').forEach((input, index) => {
+            contactForm.querySelectorAll('input, select').forEach((input, index) => {
                 input.value = initialValues[index] || '';
                 input.setAttribute('readonly', 'readonly');
+                if (input.tagName === 'SELECT') input.disabled = true;
             });
             editContactBtn.classList.remove('hidden');
             saveContactBtn.classList.add('hidden');

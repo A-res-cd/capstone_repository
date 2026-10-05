@@ -26,6 +26,22 @@ from app.utils.avatar_uploads import remove_avatar_file, resolve_avatar_file, sa
 
 
 logger = logging.getLogger(__name__)
+"""Pages profile routes and local helpers."""
+from . import pages
+from flask import render_template, request, flash, session, redirect, url_for, send_file, abort, current_app
+from app.utils.contact_policy import normalize_phone
+from app.utils.avatars import save_avatar, remove_avatar, avatar_path
+from app.db.profile_settings import save_contact_settings, swap_avatar
+import re
+from io import BytesIO
+from app.db.users import (
+    get_user_contacts,
+    get_own_profile,
+    delete_own_account,
+)
+from app.db.auth import change_own_password
+from app.routes.decorators import login_required
+from app.routes.forms import ChangePasswordForm
 
 
 EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -266,28 +282,70 @@ def update_user_contact_info():
         "twitter": request.form.get("twitter", "").strip(),
     }
 
-    if values["email"] and not EMAIL_PATTERN.match(values["email"]):
-        flash("That doesn't look like a valid email address.", "danger")
-        return redirect(url_for("pages.user_info"))
-
-    if values["phone"] and not PHONE_PATTERN.match(values["phone"]):
-        flash("That doesn't look like a valid contact number.", "danger")
-        return redirect(url_for("pages.user_info"))
-
-    any_saved = False
-    for contact_type, contact_value in values.items():
-        if contact_value:
-            ok, err = upsert_user_contact(user_id, contact_type, contact_value, is_primary=True)
-            if not ok:
-                flash(err, "danger")
-                return redirect(url_for("pages.user_info"))
-            any_saved = True
-
-    if any_saved:
+    preference = request.form.get("preferred_contact", "email")
+    try:
+        values["phone"] = normalize_phone(values["phone"])
+        if not EMAIL_PATTERN.fullmatch(values["email"]):
+            raise ValueError("Enter a valid email for account recovery.")
+        if preference not in ('email', 'phone') or (preference == 'phone' and not values['phone']):
+            raise ValueError("Provide your preferred contact details.")
+        save_contact_settings(user_id, values['email'].lower(), values['phone'], preference)
+        for contact_type in ('facebook', 'instagram', 'twitter'):
+            if values[contact_type]:
+                ok, error = upsert_user_contact(user_id, contact_type, values[contact_type], is_primary=True)
+                if not ok:
+                    raise ValueError(error)
         flash("Contact information updated successfully.", "success")
-    else:
-        flash("No contact information was entered.", "warning")
+    except ValueError as exc:
+        flash(str(exc), "danger")
+    except Exception:
+        current_app.logger.exception("Contact update failed")
+        flash("Could not update contacts. Check that the email is not already in use.", "danger")
     return redirect(url_for("pages.user_info"))
+
+
+@pages.route("/user-info/picture", methods=["POST"])
+@login_required
+def update_picture():
+    filename = None
+    try:
+        if request.form.get('action') != 'remove':
+            upload = request.files.get('picture')
+            if not upload:
+                raise ValueError('Choose a picture first.')
+            filename = save_avatar(upload)
+        previous = swap_avatar(session['user_id'], filename)
+    except ValueError as exc:
+        remove_avatar(filename)
+        flash(str(exc), 'danger')
+    except Exception:
+        remove_avatar(filename)
+        current_app.logger.exception('Picture update failed')
+        flash('Could not update picture. Try again.', 'danger')
+    else:
+        try:
+            remove_avatar(previous)
+        except OSError:
+            current_app.logger.exception('Could not remove old picture')
+        flash('Profile picture updated.', 'success')
+    return redirect(url_for('pages.user_info'))
+
+
+@pages.route("/user-info/picture")
+@login_required
+def own_picture():
+    profile = get_own_profile(session['user_id'])
+    if not profile or not profile.get('avatar_filename'):
+        abort(404)
+    path = avatar_path(profile['avatar_filename'])
+    if not path.is_file():
+        abort(404)
+    # Close the disk handle before streaming so replacement works on Windows.
+    response = send_file(BytesIO(path.read_bytes()), mimetype='image/png', max_age=0)
+    response.headers['Cache-Control'] = 'private, no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
+
 
 
 @pages.route("/user-info/password", methods=["POST"])

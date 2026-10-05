@@ -1,6 +1,6 @@
-Project layout and code ownership: [structure guide](docs/STRUCTURE.md).
-Tests: [test instructions](tests/README.md).
 Desktop test runner: double-click `run_tests.bat`, or run `python scripts/test_gui.py`.
+See [test instructions](tests/README.md) for dependencies and controls.
+Folder layout: [project structure](docs/STRUCTURE.md).
 
 # 1. Clone the repo
 git clone https://github.com/AresFrappe/capstone_repository.git
@@ -41,14 +41,6 @@ MAIL_PASSWORD = your-email-password
 
 UPLOAD_MANUSCRIPT_FOLDER = instance/uploads/manuscripts
 UPLOAD_REGISTRATION_FOLDER = instance/uploads/registration
-UPLOAD_AVATAR_FOLDER = instance/uploads/avatars
-UPLOAD_MANUSCRIPT_MAX_BYTES = 20971520
-UPLOAD_AVATAR_MAX_BYTES = 5242880
-UPLOAD_ORPHAN_RETENTION_DAYS = 30
-UPLOAD_RETENTION_CLEANUP_ENABLED = false
-UPLOAD_ANTIVIRUS_COMMAND = C:/Program Files/ClamAV/clamscan.exe
-UPLOAD_ANTIVIRUS_REQUIRED = false
-UPLOAD_ANTIVIRUS_TIMEOUT_SECONDS = 30
 
 # Required for automatic OCR of scanned COR files.
 # Install the Windows engine separately from:
@@ -77,93 +69,3 @@ account creation. The sample COR test is stored at
 The sample COR is image-based, so Tesseract OCR must be installed for automatic
 extraction. `pytesseract` in `requirements.txt` is only the Python wrapper. If
 Tesseract is unavailable, the form shows a warning and allows manual entry.
-
-Run `migrations/20260911_cor_registration.sql` on an existing database. It
-creates the normalized `cor_registration` table used by capstoner eligibility.
-
-Run `migrations/20260911_user_avatars.sql` on an existing database to create the
-normalized private `user_avatar` table. Avatar files are stored outside the
-static directory and served only to the signed-in owner. The profile overview
-and the header fall back to initials when no image is uploaded.
-
-## Database migrations
-
-Use the explicit migration runner after creating the database and before
-starting the web process:
-
-```text
-python scripts/migrate.py status
-python scripts/migrate.py upgrade
-```
-
-Migrations run in filename order, are recorded in `schema_migration`, and are
-protected by a PostgreSQL advisory lock. Applied migration checksums cannot be
-changed silently. LF/CRLF line-ending differences are accepted without changing
-stored migration records; edits to SQL still fail validation. The web app does
-not modify the database during startup.
-
-## Production database operations
-
-The liveness probe is `GET /health/live`. The readiness probe is
-`GET /health/ready`; it returns `503` until PostgreSQL is reachable and every
-tracked migration is applied with its original checksum.
-
-Create a password-safe custom-format backup with the PostgreSQL client tools:
-
-```text
-python scripts/backup_database.py --output backups/capre_predeploy.dump
-```
-
-Verify the archive without connecting to or changing a database:
-
-```text
-python scripts/verify_backup.py --input backups/capre_predeploy.dump
-```
-
-Restore only into the intended database after checking the backup and target:
-
-```text
-python scripts/restore_database.py --input backups/capre_predeploy.dump --confirm
-```
-
-Backup files are ignored by Git. Store them in protected backup storage and
-test a restore before treating a deployment as production-ready.
-
-Uploaded manuscripts are checked by extension, size, and file signature before
-they are stored. Review old unreferenced private files before deleting them:
-
-```text
-python scripts/report_orphaned_uploads.py
-```
-
-The report is read-only. Do not delete a reported file until its database
-references and retention policy have been reviewed.
-
-After review, run the explicit cleanup command:
-
-```text
-python scripts/cleanup_orphaned_uploads.py --confirm
-```
-
-System Administrator cleanup uses an expiring preview, password confirmation,
-and maintenance mode. The old `UPLOAD_RETENTION_CLEANUP_ENABLED` setting no longer
-starts a web-process scheduler. Run `python scripts/system_worker.py` separately
-for scheduled backups, diagnostics, and archive retention. See
-[System Administration](docs/SYSTEM_ADMINISTRATION.md) for role migration,
-operator provisioning, maintenance pages, and recovery instructions.
-
-For production, configure `UPLOAD_ANTIVIRUS_COMMAND` to a ClamAV-compatible
-scanner and set `UPLOAD_ANTIVIRUS_REQUIRED = true`. When required, COR,
-manuscript, and avatar uploads are rejected if scanning is unavailable or
-reports an infection.
-
-Before starting a production process, run the deployment preflight:
-
-```text
-python scripts/migrate.py upgrade
-python scripts/preflight.py
-```
-
-The preflight checks debug mode, secure cookies, required upload controls, and
-database migration readiness. HTTP responses include an `X-Request-ID`; the
-server logs method, path, status, and duration without query-string values.

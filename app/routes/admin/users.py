@@ -185,7 +185,7 @@ def update_role(user_id):
         flash("No role selected.", "error")
         return redirect(url_for("admin.manage_users"))
 
-    ok, err = update_user_role(user_id, new_role_id, acting_admin_id)
+    ok, err = update_user_role(user_id, new_role_id, acting_admin_id, request.form.get("admin_password", ""))
     flash(
         "Role updated successfully." if ok else f"Error: {err}",
         "success" if ok else "error",

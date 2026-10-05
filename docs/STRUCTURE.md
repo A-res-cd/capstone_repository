@@ -1,56 +1,77 @@
 # Project structure
 
-The application uses Flask blueprints with feature modules inside the larger
-blueprints. Blueprint names, endpoints, URL paths, and template locations remain
-stable when a feature moves between Python files.
-
 ```text
 app/
   routes/
-    admin/          # Analytics, audit, users, requests, capstoners, repository, archive
-    pages/          # Archive browsing, profile, manuscripts, topic proposals
-    authentication.py
-    faculty.py
-    main.py
-    forms.py
-    decorators.py
-  services/         # Application workflows and domain calculations
-  db/               # PostgreSQL queries, grouped by domain
-  utils/            # Uploads, extraction, email rendering, request helpers
-  constants/
-  templates/        # Jinja templates grouped by role or shared use
-  static/           # CSS, JavaScript, images
-tests/              # Regression, database, browser, and load tests
-scripts/            # Migration, backup, restore, and development commands
-database/           # Fresh-install SQL schema
-migrations/         # Ordered incremental SQL migrations
-docs/               # Test matrix, production readiness, project documents
-instance/           # Local runtime data; ignored by Git
+    admin/          Repository, users, reports, and other admin features
+    authentication/ Sessions, registration, and password recovery
+    pages/          Archive browsing, profile, manuscripts, and topics
+    main.py         Home, navigation, and shared template context
+    forms.py        WTForms validation
+    decorators.py   Login and role checks
+  db/           PostgreSQL queries
+  services/     Application services
+  utils/        Uploads, extraction, email, and request helpers
+  constants/    Shared constants
+  templates/    Jinja templates
+  static/       CSS, JavaScript, and images
+tests/          Pytest suites, test dependencies, and load/monitoring scripts
+scripts/        Desktop test runner and development utilities
+database/       Fresh-install SQL schema and local SQL editor sessions
+migrations/     Incremental SQL migrations
+docs/           Project documentation and timeline
+instance/       Local runtime data (ignored by Git)
+backups/        Local database backups
 ```
-
-Routes handle HTTP input, authorization, responses, and template rendering.
-Put multi-step application workflows in `services/`, and SQL in `db/`.
-Simple reads can call their domain DB helper directly without a pass-through
-service. Import the owning DB module rather than the legacy `db/database.py`
-compatibility exports when adding or moving code.
-
-Each route package creates its blueprint in `__init__.py`, then imports its feature
-modules to register routes. Use the shared blueprint in those modules so existing
-`url_for("admin.…")` and `url_for("pages.…")` calls keep working. Tests should patch
-dependencies in the feature module that actually uses them.
 
 Run commands from the repository root:
 
 ```powershell
-python -m pytest -q
-python scripts/migrate.py status
-python scripts/migrate.py upgrade
+python -m pytest
+python scripts/test_gui.py
+python scripts/extract.py
 ```
 
-Install test dependencies with `pip install -r tests/requirements.txt`.
-Database integration tests require PostgreSQL's `initdb` and `pg_ctl` on PATH.
-Browser tests require Playwright browsers; see [test instructions](../tests/README.md).
-The sample COR tests require the existing local PDF under `app/static/uploads/registration/`.
+Windows users can double-click `run_tests.bat`. The GUI discovers `tests/test_*.py`.
+See [test instructions](../tests/README.md) for dependencies and browser setup.
+The extraction example expects its existing manuscript under
+`instance/uploads/manuscripts/`.
 
-`database/capreDB.sql` is for a fresh database. Use incremental migrations for
-existing data. Local seeder and SQL editor session files remain ignored by Git.
+`database/capreDB.sql` is the fresh-install schema; use the existing migration
+instructions for an existing database. `run.py`, `config.py`, `.env`, and the
+application's runtime paths remain at their existing locations.
+
+## Finding a route while debugging
+
+| URL or feature | Route module under `app/routes/` |
+| --- | --- |
+| `/repository`, creation, updates, PDF extraction | `admin/repository.py` |
+| Repository manuscript preview/download | `admin/manuscripts.py` |
+| `/manage_users`, verification, role changes | `admin/users.py` |
+| `/analytics` dashboard | `admin/analytics.py` |
+| Analytics reports and workbook exports | `admin/reports.py` |
+| `/requests` and review decisions | `admin/requests.py` |
+| `/recyclebin`, archive/delete/restore | `admin/archive.py` |
+| `/audit-logs`, `/dev-debug` | `admin/audit.py`, `admin/diagnostics.py` |
+| `/archive` browsing and filters | `pages/archive.py` |
+| `/user-info` and account settings | `pages/profile.py` |
+| Manuscript requests, files, citations | `pages/manuscripts.py` |
+| `/propose-topic`, `/api/topic-similarity` | `pages/topics.py` |
+| `/signin`, `/logout` | `authentication/sessions.py` |
+| `/signup`, COR extraction | `authentication/registration.py` |
+| Password reset and OTP | `authentication/passwords.py` |
+
+Each package creates one blueprint in `__init__.py`, then imports its feature
+modules to register routes. Keep that shared blueprint when adding handlers:
+existing `url_for("admin.…")`, `url_for("pages.…")`, and `url_for("auth.…")`
+endpoint names stay stable. Loggers use the feature module name, so tracebacks
+and logs point to the relevant file.
+
+Import DB helpers from their owning `app.db` module. Keep feature-specific
+helpers beside their routes; shared authorization remains in `decorators.py`.
+Tests should patch the feature module where a dependency is used, for example
+`app.routes.admin.users.get_verification_details`.
+
+`tests/test_route_contract.py` protects the existing URL/endpoint/method map and
+anonymous access restrictions. When intentionally adding or changing a public
+route, update `tests/fixtures/route_contract.json` to match.

@@ -13,7 +13,7 @@ saving. Nothing is written to the database by this module.
 Usage:
     from app.utils.pdf_extractor import extract_capstone_data
 
-    data = extract_capstone_data("app/static/uploads/thesis.pdf")
+    data = extract_capstone_data("instance/uploads/manuscripts/thesis.pdf")
     # data is a dict — see return value of extract_capstone_data() below.
 
 Dependencies:
@@ -37,6 +37,19 @@ except ImportError:
 # Internal helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _extract_page_text(page) -> str:
+    """Retry tightly spaced PDF text with lower tolerance when words merge."""
+    text = page.extract_text() or ""
+    word_count = len(text.split())
+    if word_count < 8 or len(text) / word_count < 8:
+        return text
+
+    recovered = page.extract_text(x_tolerance=0.5) or ""
+    if len(recovered.split()) > word_count * 1.05:
+        return recovered
+    return text
+
+
 def _parse_abstract_page(pages):
     """
     Returns (page_number, abstract_text) for the actual Abstract page.
@@ -45,10 +58,10 @@ def _parse_abstract_page(pages):
     toc_found = False
 
     for page_num, page in enumerate(pages, start=1):
-        text = page.extract_text() or ""
+        text = _extract_page_text(page)
 
         # Detect the Table of Contents page
-        if not toc_found and re.search(r"TABLE\s+OF\s+CONTENTS", text, re.IGNORECASE):
+        if not toc_found and re.search(r"TABLE\s*OF\s*CONTENTS", text, re.IGNORECASE):
             toc_found = True
             continue
 
@@ -78,7 +91,7 @@ def extract_abstract_text(pdf_path: str) -> str:
 
 
 
-_MIDDLE_INITIAL_PATTERN = re.compile(r"(?:[A-Za-z]\.){1,3}|[A-Za-z]{1,3}\.")
+_MIDDLE_INITIAL_PATTERN = re.compile(r"(?:[A-Za-z]\.){1,3}|[A-Za-z]{1,3}\.|[A-Za-z]", re.IGNORECASE)
 _SURNAME_PARTICLES = {
     "da", "das", "de", "del", "dela", "della", "di", "do", "dos",
     "du", "la", "las", "los", "san", "santa", "van", "von",
@@ -106,19 +119,33 @@ def _parse_name_string(raw: str) -> dict | None:
     into a name dict.
 
     Examples handled:
-      INDIANA, CHRISTONI G.     -> first=Christoni, middle=G.,         last=Indiana
-      MADULID, ADRIAN MILES R.  -> first=Adrian Miles, middle=R.,  last=Madulid
+      INDIANA, CHRISTONI G.      -> first=Christoni, middle=G.,         last=Indiana
+      MADULID, ADRIAN MILES R.   -> first=Adrian Miles, middle=R.,  last=Madulid
       DELA CRUZ, ALVIN JAMES DC. -> first=Alvin James, middle=DC., last=Dela Cruz
-      OLMO, ELMARK JOSH         -> first=Elmark Josh, middle='',   last=Olmo
+      OLMO, ELMARK JOSH          -> first=Elmark, middle=Josh,     last=Olmo
     """
     raw = raw.strip()
     if ',' not in raw:
         return None
     last_part, rest = raw.split(',', 1)
     given_parts = rest.strip().split()
-    if not last_part.strip() or not given_parts:
+    if not last_part.strip() or not rest.strip():
         return None
-    first, middle = _split_given_names(given_parts)
+
+    # Some cover pages separate first and middle names with a second comma.
+    if ',' in rest:
+        first_parts, middle_part = rest.split(',', 1)
+        first = ' '.join(_format_name_token(part) for part in first_parts.split())
+        middle = ' '.join(_format_name_token(part) for part in middle_part.split())
+    else:
+        first, middle = _split_given_names(given_parts)
+        # In LAST, FIRST MIDDLE format, a full middle name has no initial
+        # punctuation. Treat remaining words as middle when no initial exists.
+        if not middle and len(given_parts) > 1:
+            first = _format_name_token(given_parts[0])
+            middle = ' '.join(_format_name_token(part) for part in given_parts[1:])
+    if not first:
+        return None
     logger.debug("Parsing name string: %s -> last='%s', given_parts=%s", raw, last_part, given_parts)
     return {
         'first': first,
@@ -179,21 +206,69 @@ def _parse_adviser_from_approval(lines: list[str]) -> dict | None:
     logger.debug("No adviser found in approval sheet lines.")
     return None
 
-def _suggest_keywords_yake(text: str, top_n: int = 8) -> list[str]:
+def _suggest_keywords_yake(text: str, top_n: int = 6) -> list[str]:
     """
-    Fallback keyword extraction using YAKE when the PDF doesn't have an
-    explicit 'Keywords:' line (or when you want to supplement it).
+    Suggest up to six topic keywords, favoring phrases tied to the manuscript title.
     Returns an empty list if yake isn't installed.
     """
-    if not _YAKE_AVAILABLE or not text:
+    if not _YAKE_AVAILABLE or not text.strip() or top_n <= 0:
         return []
+    top_n = min(top_n, 6)
     import yake
-    extractor = yake.KeywordExtractor(
-        lan='en', n=3, dedupLim=0.7, top=top_n, features=None
-    )
-    results = extractor.extract_keywords(text)
-    logger.debug("YAKE extracted keywords: %s", results)
-    return [phrase for phrase, _score in results]
+
+    title, separator, _ = text.partition('\n')
+    candidate_limit = max(24, top_n * 4)
+
+    def extract(source: str, limit: int) -> list[tuple[str, float]]:
+        if not source.strip():
+            return []
+        extractor = yake.KeywordExtractor(
+            lan='en', n=3, dedupLim=0.7, top=limit, features=None
+        )
+        return extractor.extract_keywords(source)
+
+    results = extract(text, candidate_limit)
+    title_results = extract(title, candidate_limit) if separator else []
+    title_tokens = set(re.findall(r"[a-z0-9]+", title.lower()))
+
+    # Keep the best YAKE score for each phrase, and mark title-derived phrases
+    # so they win ties against broad abstract terms.
+    candidates = {}
+    for phrase, score in results:
+        key = phrase.casefold().strip()
+        if key:
+            candidates[key] = [phrase, score, False]
+    for phrase, score in title_results:
+        key = phrase.casefold().strip()
+        if key:
+            current = candidates.get(key)
+            if current is None or score < current[1]:
+                candidates[key] = [phrase, score, True]
+            else:
+                current[2] = True
+
+    ranked = []
+    for phrase, score, from_title in candidates.values():
+        tokens = set(re.findall(r"[a-z0-9]+", phrase.lower()))
+        overlap = len(tokens & title_tokens)
+        relevance = overlap / len(tokens) if tokens else 0
+        ranked.append((-relevance, -overlap, not from_title, score, phrase))
+
+    ranked.sort()
+    selected = []
+    selected_token_sets = []
+    for _relevance, _overlap, _not_title, _score, phrase in ranked:
+        tokens = set(re.findall(r"[a-z0-9]+", phrase.lower()))
+        # Avoid filling the six slots with minor variations of one phrase.
+        if any(tokens and (tokens <= prior or prior <= tokens) for prior in selected_token_sets):
+            continue
+        selected.append(phrase)
+        selected_token_sets.append(tokens)
+        if len(selected) >= top_n:
+            break
+
+    logger.debug("YAKE extracted title-aware keywords: %s", selected)
+    return selected
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -217,7 +292,7 @@ def extract_capstone_data(pdf_path: str) -> dict:
         with pdfplumber.open(pdf_path) as pdf:
 
             # ── Page 1: Cover ─────────────────────────────────────
-            p1_text  = pdf.pages[0].extract_text() or ''
+            p1_text  = _extract_page_text(pdf.pages[0])
             p1_lines = [l.strip() for l in p1_text.splitlines() if l.strip()]
 
             # Title: all lines before "A CAPSTONE AND RESEARCH PROJECT"
@@ -229,30 +304,40 @@ def extract_capstone_data(pdf_path: str) -> dict:
             if title_lines:
                 result['title'] = ' '.join(title_lines)
 
-            # Year: first 4-digit year that starts with 20
-            year_match = re.search(r'\b(20\d{2})\b', p1_text)
-            if year_match:
-                result['year'] = int(year_match.group(1))
+            # Prefer the cover's month/year date; otherwise use its last year.
+            month_names = (
+                r'JAN(?:UARY)?|FEB(?:RUARY)?|MAR(?:CH)?|APR(?:IL)?|MAY|'
+                r'JUN(?:E)?|JUL(?:Y)?|AUG(?:UST)?|SEP(?:TEMBER)?|'
+                r'OCT(?:OBER)?|NOV(?:EMBER)?|DEC(?:EMBER)?'
+            )
+            dated_years = re.findall(
+                rf'\b(?:{month_names})\.?\s+(20\d{{2}})\b', p1_text, re.IGNORECASE
+            )
+            year_matches = re.findall(r'\b(20\d{2})\b', p1_text)
+            if dated_years or year_matches:
+                result['year'] = int((dated_years or year_matches)[-1])
 
             # Authors: lines between "by:" and the date line (e.g. "DECEMBER 2025")
             in_authors = False
             for line in p1_lines:
-                if line.lower() == 'by:':
+                if re.fullmatch(r'by\s*:?', line, re.IGNORECASE):
                     in_authors = True
                     continue
                 if in_authors:
                     if re.match(r'^[A-Z]+\s+\d{4}$', line):
                         break
-                    parsed = _parse_name_string(line)
-                    if parsed:
-                        result['authors'].append(parsed)
+                    # Cover authors may be printed in side-by-side columns.
+                    for author_line in re.split(r'\s{2,}', line):
+                        parsed = _parse_name_string(author_line)
+                        if parsed:
+                            result['authors'].append(parsed)
 
             # ── Page 3: Approval Sheet ────────────────────────────
             p3_lines = [
                 l.strip()
-                for l in (pdf.pages[2].extract_text() or '').splitlines()
+                for l in _extract_page_text(pdf.pages[2]).splitlines()
                 if l.strip()
-            ]
+            ] if len(pdf.pages) > 2 else []
             result['adviser'] = _parse_adviser_from_approval(p3_lines)
 
             # ── Abstract page: scan all pages ─────────────────────
@@ -261,9 +346,9 @@ def extract_capstone_data(pdf_path: str) -> dict:
             result['abstract_text'] = abstract_full_text
 
 
-            # YAKE fallback: if no explicit keywords line was found
-            if not result['keywords'] and abstract_full_text:
-                result['keywords'] = _suggest_keywords_yake(abstract_full_text, top_n=8)
+            # Use topic-bearing text rather than front matter or references.
+            topic_text = '\n'.join(filter(None, [result['title'], abstract_full_text]))
+            result['keywords'] = _suggest_keywords_yake(topic_text)
 
     except Exception as exc:
         # Return whatever was collected before the error; never crash the route

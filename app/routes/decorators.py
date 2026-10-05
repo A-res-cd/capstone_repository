@@ -12,6 +12,13 @@ from app.constants.roles import (
 FULL_MANUSCRIPT_ROLES = {ROLE_RET_CHAIR, ROLE_FACULTY, ROLE_CAPSTONE_PROFESSOR}
 
 
+def can_download_manuscript():
+    """Original files use the incoming policy with the retained academic role."""
+    user = getattr(g, "user", None) or {}
+    role = user.get("role_name") or LEGACY_ROLE_NAMES_BY_ID.get(user.get("role_id"))
+    return bool(session.get("user_id") and role == ROLE_RET_CHAIR)
+
+
 def login_required(f):
     """Redirect to signin if user is not logged in."""
     @wraps(f)

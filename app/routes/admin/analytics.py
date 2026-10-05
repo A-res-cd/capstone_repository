@@ -1,30 +1,27 @@
-"""Admin analytics routes."""
+"""Admin analytics routes and local helpers."""
 from . import admin
-from flask import render_template, flash, jsonify, send_file
-from werkzeug.utils import secure_filename
+from flask import render_template, flash, request
 from app.db.analytics import (
     get_capstones_by_specialization,
     get_capstones_by_program,
     get_capstone_trend_by_specialization,
     get_capstone_status_flags,
-    get_all_specialization_reports,
-    get_specialization_report,
 )
 from app.routes.decorators import role_required
 from app.constants.roles import ROLE_RET_CHAIR
-from app.utils.xlsx_export import build_specialization_workbook, build_table_workbook
 
 
 @admin.route("/analytics")
 @role_required(ROLE_RET_CHAIR)
 def analytics():
     db_errors = []
+    selected_year = request.args.get("year", type=int)
 
-    by_specialization, err = get_capstones_by_specialization()
+    by_specialization, err = get_capstones_by_specialization(year=selected_year)
     if err:
         db_errors.append(f"Capstones by specialization: {err}")
 
-    by_program, err = get_capstones_by_program()
+    by_program, err = get_capstones_by_program(year=selected_year)
     if err:
         db_errors.append(f"Capstones by program: {err}")
 
@@ -32,7 +29,15 @@ def analytics():
     if err:
         db_errors.append(f"Capstone trend by specialization: {err}")
 
-    status_flags, err = get_capstone_status_flags()
+    available_years = sorted(trend_years, reverse=True)
+    if selected_year is not None:
+        indices = [i for i, year in enumerate(trend_years) if year == selected_year]
+        trend_series = {name: [values[i] for i in indices] for name, values in trend_series.items()}
+        trend_years = [trend_years[i] for i in indices]
+        if selected_year not in available_years:
+            available_years = sorted([*available_years, selected_year], reverse=True)
+
+    status_flags, err = get_capstone_status_flags(year=selected_year)
     if err:
         db_errors.append(f"Capstone status flags: {err}")
 
@@ -40,10 +45,21 @@ def analytics():
         for msg in db_errors:
             flash(f"Analytics query failed — {msg}", "danger")
 
-    specialization_labels = [row["specialization_name"] for row in by_specialization]
+    abbreviations = [
+        {"code": row.get(code_key), "name": row[name_key]}
+        for rows, code_key, name_key in (
+            (by_program, "program_code", "program_name"),
+            (by_specialization, "specialization_code", "specialization_name"),
+        )
+        for row in rows if row.get(code_key)
+    ]
+    specialization_codes = {row["specialization_name"]: row.get("specialization_code") or row["specialization_name"]
+                            for row in by_specialization}
+    trend_series = {specialization_codes.get(name, name): values for name, values in trend_series.items()}
+    specialization_labels = [row.get("specialization_code") or row["specialization_name"] for row in by_specialization]
     specialization_totals = [row["total"] for row in by_specialization]
 
-    program_labels = [row["program_name"] for row in by_program]
+    program_labels = [row.get("program_code") or row["program_name"] for row in by_program]
     program_totals = [row["total"] for row in by_program]
 
     # ── Summary card figures ──
@@ -53,8 +69,8 @@ def analytics():
     # Every archived-in record is inherently "published" (no draft
     # workflow state exists), so Published is always total/total. ──
     status_flags = status_flags or {}
-    published_labels = ["Published", "Not Published"]
-    published_totals = [total_capstones, 0]
+    published_labels = ["Published", "Not Published", "Not Reviewed"]
+    published_totals = [status_flags.get("published", 0), status_flags.get("not_published", 0), status_flags.get("publication_unknown", 0)]
 
     utilized_labels = ["Utilized", "Not Utilized"]
     utilized_totals = [status_flags.get("utilized", 0), status_flags.get("not_utilized", 0)]
@@ -70,7 +86,7 @@ def analytics():
     for row in by_program:
         pct = round((row["total"] / total_capstones) * 100, 1) if total_capstones else 0
         program_cards.append({
-            "name": row["program_name"],
+            "name": row.get("program_code") or row["program_name"],
             "total": row["total"],
             "pct": pct,
         })
@@ -84,11 +100,11 @@ def analytics():
         total = row["total"]
         summary_rows.append({
             "id": row["specialization_id"],
-            "name": row["specialization_name"],
+            "name": row.get("specialization_code") or row["specialization_name"],
             "total": total,
             "total_pct": _pct(total, total_capstones),
-            "published": total,
-            "published_pct": _pct(total, total),
+            "published": row.get("published", 0),
+            "published_pct": _pct(row.get("published", 0), total),
             "utilized": row["utilized"],
             "utilized_pct": _pct(row["utilized"], total),
             "presented": row["presented"],
@@ -99,7 +115,7 @@ def analytics():
 
     summary_totals = {
         "total": total_capstones,
-        "published": total_capstones,
+        "published": sum(r["published"] for r in summary_rows),
         "utilized": sum(r["utilized"] for r in summary_rows),
         "presented": sum(r["presented"] for r in summary_rows),
         "copyright_registered": sum(r["copyright_registered"] for r in summary_rows),
@@ -107,6 +123,9 @@ def analytics():
 
     return render_template(
         "admin/analytics.html",
+        selected_year=selected_year,
+        abbreviations=abbreviations,
+        available_years=available_years,
         specialization_labels=specialization_labels,
         specialization_totals=specialization_totals,
         program_labels=program_labels,
@@ -129,169 +148,5 @@ def analytics():
     )
 
 
-@admin.route("/analytics/specialization/<int:specialization_id>/report")
-@role_required(ROLE_RET_CHAIR)
-def analytics_specialization_report(specialization_id):
-    rows, specialization, err = get_specialization_report(specialization_id)
-    if err:
-        return jsonify({"success": False, "error": err}), 500
-    if specialization is None:
-        return jsonify({"success": False, "error": "Specialization not found."}), 404
-
-    return jsonify({
-        "success": True,
-        "specialization": specialization,
-        "records": rows,
-    })
-
-
-@admin.route("/analytics/specialization/<int:specialization_id>/report.xlsx")
-@role_required(ROLE_RET_CHAIR)
-def analytics_specialization_workbook(specialization_id):
-    rows, specialization, err = get_specialization_report(specialization_id)
-    if err:
-        return jsonify({"success": False, "error": err}), 500
-    if specialization is None:
-        return jsonify({"success": False, "error": "Specialization not found."}), 404
-
-    workbook = build_specialization_workbook([{
-        "specialization_id": specialization_id,
-        "specialization_name": specialization,
-        "records": rows,
-    }])
-    filename = secure_filename(specialization).lower() or "specialization"
-    return send_file(
-        workbook,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True,
-        download_name=f"capre-{filename}-capstones.xlsx",
-    )
-
-
-@admin.route("/analytics/report.xlsx")
-@role_required(ROLE_RET_CHAIR)
-def analytics_workbook():
-    by_specialization, specialization_err = get_capstones_by_specialization()
-    by_program, program_err = get_capstones_by_program()
-    trend_years, trend_series, trend_err = get_capstone_trend_by_specialization()
-    status_flags, status_err = get_capstone_status_flags()
-    if any((specialization_err, program_err, trend_err, status_err)):
-        return jsonify({
-            "success": False,
-            "error": "Analytics data is temporarily unavailable.",
-        }), 500
-
-    total = sum(row["total"] for row in by_program)
-    status_flags = status_flags or {}
-
-    def share(value, whole=total):
-        return f"{((value / whole) * 100) if whole else 0:.1f}%"
-
-    status_groups = (
-        ("Publication", (("Published", total), ("Not Published", 0))),
-        ("Utilization", (("Utilized", status_flags.get("utilized", 0)),
-                         ("Not Utilized", status_flags.get("not_utilized", 0)))),
-        ("Presentation", (("Presented", status_flags.get("presented", 0)),
-                          ("Not Presented", status_flags.get("not_presented", 0)))),
-        ("Copyright", (("Registered", status_flags.get("copyright_registered", 0)),
-                       ("Not Registered", status_flags.get("not_copyright_registered", 0)))),
-    )
-    status_rows = [
-        (metric, label, value, share(value))
-        for metric, values in status_groups
-        for label, value in values
-    ]
-    trend_names = list(trend_series)
-    tables = [
-        {
-            "title": "Overview",
-            "headers": ("Metric", "Value"),
-            "rows": (("Total Capstones", total),),
-            "widths": (32, 18),
-        },
-        {
-            "title": "Programs",
-            "headers": ("Program", "Capstones", "Share of Total"),
-            "rows": tuple(
-                (row["program_name"], row["total"], share(row["total"]))
-                for row in by_program
-            ),
-            "widths": (30, 15, 18),
-        },
-        {
-            "title": "Status",
-            "headers": ("Metric", "Status", "Count", "Share"),
-            "rows": tuple(status_rows),
-            "widths": (20, 24, 14, 14),
-        },
-        {
-            "title": "Yearly Trend",
-            "headers": ("Year", *trend_names),
-            "rows": tuple(
-                (year, *(trend_series[name][index] for name in trend_names))
-                for index, year in enumerate(trend_years)
-            ),
-            "widths": (12, *(16 for _ in trend_names)),
-        },
-        {
-            "title": "Specializations",
-            "headers": ("Specialization", "Capstones", "Share of Total"),
-            "rows": tuple(
-                (row["specialization_name"], row["total"], share(row["total"]))
-                for row in by_specialization
-            ),
-            "widths": (28, 15, 18),
-        },
-        {
-            "title": "Summary",
-            "headers": ("Specialization", "Total Capstone", "Published", "Utilized",
-                        "Presented", "Copyright Registered"),
-            "rows": tuple(
-                (
-                    row["specialization_name"],
-                    f'{row["total"]} ({share(row["total"])})',
-                    f'{row["total"]} ({share(row["total"], row["total"])})',
-                    f'{row["utilized"]} ({share(row["utilized"], row["total"])})',
-                    f'{row["presented"]} ({share(row["presented"], row["total"])})',
-                    f'{row["copyright_registered"]} '
-                    f'({share(row["copyright_registered"], row["total"])})',
-                )
-                for row in by_specialization
-            ),
-            "widths": (28, 18, 18, 18, 18, 25),
-        },
-    ]
-    return send_file(
-        build_table_workbook(tables),
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True,
-        download_name="capre-analytics-report.xlsx",
-    )
-
-
-@admin.route("/analytics/specializations/report")
-@role_required(ROLE_RET_CHAIR)
-def analytics_all_specializations_report():
-    specializations, err = get_all_specialization_reports()
-    if err:
-        return jsonify({"success": False, "error": err}), 500
-
-    return jsonify({
-        "success": True,
-        "specializations": specializations,
-    })
-
-
-@admin.route("/analytics/specializations/report.xlsx")
-@role_required(ROLE_RET_CHAIR)
-def analytics_all_specializations_workbook():
-    specializations, err = get_all_specialization_reports()
-    if err:
-        return jsonify({"success": False, "error": err}), 500
-
-    return send_file(
-        build_specialization_workbook(specializations),
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        as_attachment=True,
-        download_name="capre-all-specializations.xlsx",
-    )
+## Audit Codebase: Analyze the codebase thoroughly based on these software engineering principles. Code must be flexible, maintainable, reusable, DRY, KISS, YAGNI, proper separation of concerns, modular, robust, secure, non-overengineered, and loose coupling and high cohesion.Also determine if the file structure is appropriate or if we need to switch to a modular monolith.
+## Audit Security: Analyze the codebase's security thoroughly against OWASP Top 10 696d374

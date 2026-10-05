@@ -37,14 +37,24 @@
         <!-- USER — moved here from the sidebar to reclaim vertical space -->
         <div class="header-page-actions">
             {% if request.endpoint == 'admin.analytics' %}
-            <button type="button" class="analytics-header-export" data-export-report data-report-scope="dashboard" data-workbook-url="{{ url_for('admin.analytics_workbook') }}" aria-label="Export full analytics report">
-                <i class="bx bx-download" aria-hidden="true"></i>
-                <span>Export Analytics Report</span>
+            <form method="GET" action="{{ url_for('admin.analytics') }}" class="analytics-year-filter">
+                <label for="analytics-year">Year</label>
+                <select id="analytics-year" name="year" class="filter-select" aria-label="Filter analytics by year">
+                    <option value="">All years</option>
+                    {% for year in available_years %}
+                    <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <button type="button" class="analytics-header-export" data-print-report data-report-scope="dashboard" aria-label="Print full analytics report">
+                <i class="bx bx-printer" aria-hidden="true"></i>
+                <span>Print Analytics Report</span>
             </button>
             {% endif %}
         </div>
 
         <div class="header-user">
+            {% if session.get('role_name') == 'RET Chair' %}<a class="header-audit-link" href="{{ url_for('admin.audit_logs') }}" title="Audit Logs"><i class="bx bx-history" aria-hidden="true"></i> Audit Logs</a>{% endif %}
             <div class="notification-menu" id="notification-menu">
                 <button type="button" id="notification-toggle" class="notification-toggle"
                         aria-label="Notifications{% if notification_unread_count %}, {{ notification_unread_count }} unread{% endif %}"

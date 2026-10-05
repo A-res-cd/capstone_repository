@@ -26,49 +26,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const setSaveButton = (button, saved) => {
-        if (!button) return;
-        button.classList.toggle('is-saved', saved);
-        button.setAttribute('aria-pressed', String(saved));
-        button.setAttribute('aria-label', saved ? 'Remove from saved capstones' : 'Save capstone');
-        const icon = button.querySelector('i');
-        if (icon) icon.className = `bx ${saved ? 'bxs-bookmark' : 'bx-bookmark'}`;
-        const label = button.querySelector('span');
-        if (label) label.textContent = saved ? 'Saved' : 'Save';
-    };
-
-    const toggleSaved = async (capstoneId, button) => {
-        if (!saveBaseUrl || !capstoneId) return;
-        button.disabled = true;
-        try {
-            const response = await fetch(saveBaseUrl.slice(0, -1) + capstoneId, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content,
-                },
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Could not update saved capstone.');
-
-            const card = document.querySelector(`.archive-card[data-id="${capstoneId}"]`);
-            if (card) {
-                card.dataset.saved = String(data.saved);
-                setSaveButton(card.querySelector('.save-capstone-btn'), data.saved);
-            }
-            if (String(selectedCapstoneId) === String(capstoneId)) {
-                setSaveButton(sidebarSaveBtn, data.saved);
-            }
-
-            if (!data.saved && document.querySelector('input[name="saved"]:checked')) {
-                window.location.reload();
-            }
-        } catch (error) {
-            window.alert(error.message);
-        } finally {
-            button.disabled = false;
-        }
-    };
+    if (requestLink && requestDialog && requestForm) {
+        requestLink.addEventListener('click', (event) => {
+            event.preventDefault();
+            requestForm.reset();
+            requestForm.action = requestLink.dataset.submitUrl;
+            document.getElementById('manuscript-request-project').textContent =
+                document.getElementById('sb-title').textContent;
+            requestDialog.showModal();
+        });
+        requestDialog.querySelectorAll('[data-request-close]').forEach((button) => {
+            button.addEventListener('click', () => requestDialog.close());
+        });
+    }
 
     document.querySelectorAll('.archive-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -109,6 +79,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             selectedCapstoneId = id;
+            if (card.dataset.historyUrl) {
+                const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                fetch(card.dataset.historyUrl, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': token || ''},
+                    keepalive: true,
+                }).catch(() => {});
+            }
             const isApproved = card.dataset.approved === 'true';
             setSaveButton(sidebarSaveBtn, card.dataset.saved === 'true');
             if (card.dataset.historyUrl) {
@@ -148,19 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
-    document.querySelectorAll('.save-capstone-btn').forEach((button) => {
-        button.addEventListener('click', (event) => {
-            event.stopPropagation();
-            toggleSaved(button.dataset.capstoneId, button);
-        });
-    });
-
-    if (sidebarSaveBtn) {
-        sidebarSaveBtn.addEventListener('click', () => {
-            toggleSaved(selectedCapstoneId, sidebarSaveBtn);
-        });
-    }
 
     const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
     if (sidebarCloseBtn && sidebarEl) {

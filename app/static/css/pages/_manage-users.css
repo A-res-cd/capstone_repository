@@ -49,8 +49,8 @@ main:has(.mu-section) {
 .mu-panel { flex: 1; min-height: 0; }
 .mu-panel--hidden { display: none; }
 
-/* ── Tab switcher — flips between Manage Users, Verify Accounts,
-   and Approve Role Promotions. Only one [data-tab-panel] is shown
+/* ── Tab switcher — flips between Manage Users and Verify Accounts.
+   Only one [data-tab-panel] is shown
    at a time (see inline script). ── */
 .mu-tabs {
     flex-shrink: 0;
@@ -108,8 +108,8 @@ main:has(.mu-section) {
     box-shadow: 0 0 0 2px var(--color-white);
 }
 
-/* ── Tab switcher — flips between Manage Users, Verify Accounts,
-   and Approve Role Promotions. Only one [data-tab-panel] is shown
+/* ── Tab switcher — flips between Manage Users and Verify Accounts.
+   Only one [data-tab-panel] is shown
    at a time (see inline script). ── */
 .mu-tabs {
     flex-shrink: 0;
@@ -234,6 +234,19 @@ main:has(.mu-section) {
 }
 
 .filter-input { width: 220px; }
+
+.mu-filter-form .filter-group:has(.filter-input) {
+    flex: 1 1 320px;
+}
+
+.mu-filter-form .filter-group:has(.filter-input) .filter-input {
+    flex: 1;
+    min-width: 180px;
+    height: 44px;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+}
 
 .mu-results-count {
     flex-shrink: 0;
