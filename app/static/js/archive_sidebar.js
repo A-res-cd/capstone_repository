@@ -63,6 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             selectedCapstoneId = id;
+            if (card.dataset.historyUrl) {
+                const token = document.querySelector('meta[name="csrf-token"]')?.content;
+                fetch(card.dataset.historyUrl, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': token || ''},
+                    keepalive: true,
+                }).catch(() => {});
+            }
             const isApproved = card.dataset.approved === 'true';
 
             const abstractLink = document.getElementById('sb-abstract-link');

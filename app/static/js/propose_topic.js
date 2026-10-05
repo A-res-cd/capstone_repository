@@ -130,6 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const body = document.createElement('div');
             body.className = 'pt-match__body';
+            if (m.matched_keywords?.length) {
+                const keywords = document.createElement('small');
+                keywords.textContent = 'Matched keywords: ' + m.matched_keywords.join(', ');
+                body.appendChild(keywords);
+            }
             const title = document.createElement('span');
             title.className = 'pt-match__title';
             title.textContent = String(m.capstone_title || 'Untitled capstone');
@@ -186,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
                 },
-                body: JSON.stringify({ title }),
+                body: JSON.stringify({ title, abstract: document.getElementById("pt-abstract").value, keywords: document.getElementById("pt-keywords").value }),
                 signal: controller.signal,
             });
             const data = await res.json();
@@ -227,5 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     titleInput.addEventListener('input', onInput);
+    document.getElementById('pt-abstract').addEventListener('input', onInput);
+    document.getElementById('pt-keywords').addEventListener('input', onInput);
     updateReadiness([], false);
 });

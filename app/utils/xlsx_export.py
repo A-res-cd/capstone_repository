@@ -35,6 +35,8 @@ def _sheet_title(value, used_titles):
 
 
 def _cell_value(value, key):
+    if key == "published" and value is None:
+        return "Not reviewed"
     if key in {"published", "utilized", "presented", "copyright_registered"}:
         return "Yes" if value else "No"
     if key in {"authors", "adviser"} and not value:

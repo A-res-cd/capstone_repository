@@ -55,12 +55,12 @@ def test_cor_validation():
             read_cor_upload(FileStorage(stream=BytesIO(content), filename=name))
 
 
-def test_title_only_similarity():
+def test_title_and_keyword_similarity():
     corpus = [dict(capstone_id=1, capstone_title='Attendance Tracking System', capstone_keywords='gardening'),
               dict(capstone_id=2, capstone_title='Garden Irrigation', capstone_keywords='Attendance Tracking System')]
     matches = TopicRecommender(corpus).find_similar('Attendance Tracking System')
-    assert matches[0]['capstone_id'] == 1 and matches[0]['similarity'] == 1
-    assert all(match['capstone_id'] != 2 for match in matches)
+    assert matches[0]['capstone_id'] == 1 and matches[0]['similarity'] > matches[1]['similarity']
+    assert any(match['capstone_id'] == 2 for match in matches)
     assert TopicRecommender([]).find_similar('Anything') == []
 
 
@@ -98,6 +98,7 @@ def feature_db(isolated_database, monkeypatch):
         cursor.execute(f'SET search_path TO "{schema}"')
         cursor.execute((ROOT / 'database/capreDB.sql').read_text(encoding='utf-8'))
         cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'Admin'), (4, 'Capstone Professor')")
+        cursor.execute((ROOT / "migrations/20261003_account_repository_workflows.sql").read_text(encoding="utf-8"))
         conn.commit()
 
     class ClosingPool:
@@ -133,13 +134,14 @@ def feature_app(monkeypatch, tmp_path):
     def context():
         return dict(hide_header=True, hide_nav=True)
 
+    monkeypatch.setattr(pages.history, 'record_capstone_view', lambda *args: True)
     monkeypatch.setattr(pages.topics, 'get_capstones_corpus', lambda: [dict(capstone_id=1, capstone_title='Attendance Tracking System')])
     return app
 
 
 def login(client, role=3):
     with client.session_transaction() as state:
-        state.update(user_id=1, role_id=role)
+        state.update(user_id=1, role_id=role, role_name={1: 'Student', 2: 'Faculty', 3: 'Admin', 4: 'Capstone Professor'}[role])
 
 
 @pytest.mark.parametrize('path', [
@@ -157,14 +159,15 @@ def test_promotion_endpoints_removed(feature_app, path):
 def test_direct_role_change_remains_admin_only(feature_app, monkeypatch, role):
     calls = []
 
-    def update_role(user_id, new_role_id, acting_admin_id):
+    def update_role(user_id, new_role_id, acting_admin_id, password):
+        assert password == "secure-password"
         calls.append((user_id, new_role_id, acting_admin_id))
         return True, None
 
     monkeypatch.setattr(admin.users, 'update_user_role', update_role)
     client = feature_app.test_client()
     login(client, role=role)
-    response = client.post('/manage_users/update_role/2', data={'role_id': '4'})
+    response = client.post('/manage_users/update_role/2', data={'role_id': '4', 'admin_password': 'secure-password'})
     assert response.status_code == 302
     assert calls == ([(2, '4', 1)] if role == 3 else [])
     if role == 3:
@@ -172,7 +175,7 @@ def test_direct_role_change_remains_admin_only(feature_app, monkeypatch, role):
 
 
 def signup_data(file=True):
-    data = dict(first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='secure-password', accept_terms='y')
+    data = dict(first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='secure-password', confirm_password='secure-password', preferred_contact='email', accept_terms='y')
     if file:
         data['cor'] = (BytesIO(pdf_bytes()), 'my COR.pdf')
     return data
@@ -209,11 +212,14 @@ def test_signup_atomic_document_and_admin_access(feature_app, feature_db):
     assert (folder / filename).read_bytes() == pdf_bytes()
     base = f'/manage_users/verify/{request_id}'
     assert client.get(base + '/document').status_code == 302
-    for role in (1, 2, 4):
+    for role in (1, 2):
         login(client, role)
         assert client.get(base + '/document').status_code == 302
         assert client.get(base + '/details').status_code == 302
         assert client.get('/audit-logs').status_code == 302
+    login(client, 4)
+    assert client.get(base + '/document').status_code == 200
+    assert client.get('/audit-logs').status_code == 302
     login(client)
     details = client.get(base + '/details').get_json()
     assert details['username'] == 'maria' and details['filename'] == filename
@@ -234,7 +240,7 @@ def test_signup_atomic_document_and_admin_access(feature_app, feature_db):
 
 
 def test_legacy_request_and_migration(feature_db):
-    assert auth_db.create_user('Old', '', 'Student', None, 'old@example.com', 'old_user', 'password')[0]
+    assert auth_db.create_user('Old', '', 'Student', None, 'old@example.com', 'old_user', 'secure-password')[0]
     with feature_db() as conn, conn.cursor() as cursor:
         cursor.execute((ROOT / 'migrations/20260910_verification_documents.sql').read_text())
         cursor.execute('SELECT request_id FROM request')
@@ -267,8 +273,9 @@ def test_title_api_validation(feature_app):
     login(client, 1)
     for data in ([], {'title': 5}, {'title': 'a' * 256}):
         assert client.post('/api/topic-similarity', json=data).status_code == 400
-    response = client.post('/api/topic-similarity', json={'title': 'Attendance Tracking System', 'keywords': 'ignored'})
-    assert response.json['matches'][0]['similarity'] == 1
+    response = client.post('/api/topic-similarity', json={'title': 'Attendance Tracking System', 'keywords': 'attendance'})
+    assert response.json['matches'][0]['capstone_id'] == 1
+    assert 0 < response.json['matches'][0]['similarity'] <= 1
 
 
 def test_signup_csrf(feature_app):
@@ -282,7 +289,7 @@ def test_verification_email_after_saved_decision(feature_app, feature_db, monkey
     from flask_mail import Mail
     feature_app.config['MAIL_DEFAULT_SENDER'] = 'noreply@example.com'
     Mail(feature_app)
-    assert auth_db.create_user('Maria', '', 'Cruz', None, 'maria@example.com', 'maria', 'password')[0]
+    assert auth_db.create_user('Maria', '', 'Cruz', None, 'maria@example.com', 'maria', 'secure-password')[0]
     with feature_db() as conn, conn.cursor() as cursor:
         cursor.execute('SELECT request_id FROM request')
         request_id = cursor.fetchone()[0]
@@ -529,8 +536,9 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     page.get_by_role('button', name='Close', exact=True).click()
     login(client, 1)
     page.goto('http://features.test/propose-topic')
-    expect(page.locator('#pt-description')).to_contain_text('term frequency')
-    expect(page.locator('#pt-keywords')).to_have_count(0)
+    expect(page.locator('#pt-description')).to_contain_text('abstract')
+    expect(page.locator('#pt-keywords')).to_be_visible()
+    expect(page.locator('#pt-abstract')).to_be_visible()
     page.locator('#pt-title').fill('Attendance Tracking System')
     expect(page.locator('#pt-list')).to_contain_text('Attendance Tracking System')
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
@@ -553,11 +561,13 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     expect(request_dialog).to_be_visible()
     expect(request_dialog.locator('#manuscript-request-project')).to_have_text('Project 2')
     expect(request_dialog.locator('form')).to_have_attribute('action', '/request_manuscript/2')
-    reason = request_dialog.get_by_role('textbox', name='Reason for requesting')
+    reason = request_dialog.get_by_role('textbox', name='Additional explanation (optional)')
     expect(reason).to_be_focused()
     request_dialog.get_by_role('button', name='Submit Request').click()
     expect(request_dialog).to_be_visible()
     reason.fill('Reference for our capstone research.')
+    request_dialog.get_by_role('combobox', name='Request purpose', exact=False).click()
+    page.get_by_role('option', name='Research reference', exact=True).click()
     assert request_dialog.evaluate('(el) => el.scrollWidth <= el.clientWidth')
     page.screenshot(path=str(ROOT / '.pytest_cache' / f'request-{theme}-{width}.png'))
     submitted = []

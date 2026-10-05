@@ -112,6 +112,7 @@
                         data-year="{{ c.capstone_year }}"
                         data-semester="{{ c.semester }}"
                         data-file="{{ c.capstone_file }}"
+                        data-published="{{ 'unknown' if c.is_published is none else ('true' if c.is_published else 'false') }}"
                         data-utilized="{{ 'true' if c.is_utilized else 'false' }}"
                         data-presented="{{ 'true' if c.is_presented else 'false' }}"
                         data-copyright="{{ 'true' if c.is_copyright_registered else 'false' }}">
@@ -236,10 +237,10 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="program_id">Program <span class="req">*</span></label>
-                        <select id="program_id" name="program_id" required>
+                        <select id="program_id" name="program_id" data-specialization-rules='{{ specialization_rules | tojson }}' required>
                             <option value="" disabled selected>Select program</option>
                             {% for prog in programs %}
-                            <option value="{{ prog[0] }}">{{ prog[1] }}</option>
+                            <option value="{{ prog[0] }}" data-program-code="{{ prog[2] }}">{{ prog[1] }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -248,7 +249,7 @@
                         <select id="specialization_id" name="specialization_id" required>
                             <option value="" disabled selected>Select specialization</option>
                             {% for spec in specializations %}
-                            <option value="{{ spec[0] }}">{{ spec[1] }}</option>
+                            <option value="{{ spec[0] }}" data-specialization-code="{{ spec[2] }}">{{ spec[1] }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -282,6 +283,8 @@
                 <fieldset class="form-group form-group--full">
                     <legend>Status</legend>
                     <div class="status-checkbox-row">
+                        <label class="checkbox-label"><input type="checkbox" id="is_published" name="is_published" {% if form.is_published.data %}checked{% endif %}> Published</label>
+                        <span class="helper-text" id="publication-review-note"></span>
                         <label class="status-checkbox">
                             <input type="checkbox" id="is_utilized" name="is_utilized">
                             <span>Utilized</span>

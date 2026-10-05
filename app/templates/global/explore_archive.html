@@ -82,6 +82,7 @@
                         {% for project in projects %}
                         <div class="archive-card"
                              data-id="{{ project.capstone_id }}"
+                             {% if session.get('role_name') == 'Student' %}data-history-url="{{ url_for('pages.remember_capstone', capstone_id=project.capstone_id) }}"{% endif %}
                              data-title="{{ project.capstone_title }}"
                              data-program="{{ project.program_name }}"
                              data-spec="{{ project.specialization_name }}"
@@ -95,8 +96,8 @@
                             <div class="col-title">
                                 <strong>{{ project.capstone_title }}</strong>
                             </div>
-                            <span class="col-program"><i class="bx bx-book"></i> {{ project.program_name }}</span>
-                            <span class="col-spec"><i class="bx bx-shapes"></i> {{ project.specialization_name }}</span>
+                            <span class="col-program"><i class="bx bx-book"></i> {{ project.program_code or project.program_name }}</span>
+                            <span class="col-spec"><i class="bx bx-shapes"></i> {{ project.specialization_code or project.specialization_name }}</span>
                             <span class="col-year"><i class="bx bx-calendar"></i> {{ project.capstone_year }}</span>
                             <span class="col-term">{{ project.semester }}</span>
                         </div>
@@ -261,8 +262,9 @@
                     <form id="manuscript-request-form" method="POST" action="{{ url_for('pages.request_manuscript', capstone_id=sidebar_project.capstone_id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="form-group">
-                            <label for="manuscript-request-reason">Reason for requesting</label>
-                            <textarea id="manuscript-request-reason" name="request_reason" rows="5" placeholder="Explain why you need access to the full manuscript." required autofocus></textarea>
+                            {% with purpose_id="request-purpose-0" %}{% include "partials/request_purpose.html" %}{% endwith %}
+                            <label for="manuscript-request-reason">Additional explanation (optional)</label>
+                            <textarea id="manuscript-request-reason" name="request_reason" rows="5" placeholder="Explain why you need access to the full manuscript." maxlength="2000" autofocus></textarea>
                         </div>
                         <div class="verification-dialog__actions">
                             <button type="button" class="btn-pill btn-pill--ghost" data-request-close>Cancel</button>

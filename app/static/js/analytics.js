@@ -400,7 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     data: values,
                     backgroundColor: [
                         yesColor,
-                        noColor
+                        noColor,
+                        "#b0893c"
                     ],
                     borderWidth: 0,
                     hoverOffset: 4

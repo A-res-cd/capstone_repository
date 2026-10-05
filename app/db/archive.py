@@ -427,8 +427,8 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12,
                 c.semester,
                 c.term,
                 k.capstone_keywords,
-                s.specialization_name,
-                p.program_name
+                s.specialization_name, s.specialization_code,
+                p.program_name, p.program_code
             FROM capstone c
             JOIN keyword k        ON k.keyword_id        = c.keyword_id
             JOIN specialization s ON s.specialization_id = c.specialization_id

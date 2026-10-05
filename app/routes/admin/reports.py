@@ -74,7 +74,7 @@ def analytics_workbook():
         return f"{((value / whole) * 100) if whole else 0:.1f}%"
 
     status_groups = (
-        ("Publication", (("Published", total), ("Not Published", 0))),
+        ("Publication", (("Published", status_flags.get("published", 0)), ("Not Published", status_flags.get("not_published", 0)), ("Not Reviewed", status_flags.get("publication_unknown", 0)))),
         ("Utilization", (("Utilized", status_flags.get("utilized", 0)),
                          ("Not Utilized", status_flags.get("not_utilized", 0)))),
         ("Presentation", (("Presented", status_flags.get("presented", 0)),
@@ -136,7 +136,7 @@ def analytics_workbook():
                 (
                     row["specialization_name"],
                     f'{row["total"]} ({share(row["total"])})',
-                    f'{row["total"]} ({share(row["total"], row["total"])})',
+                    f'{row.get("published", 0)} ({share(row.get("published", 0), row["total"])})',
                     f'{row["utilized"]} ({share(row["utilized"], row["total"])})',
                     f'{row["presented"]} ({share(row["presented"], row["total"])})',
                     f'{row["copyright_registered"]} '

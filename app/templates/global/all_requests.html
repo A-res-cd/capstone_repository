@@ -75,9 +75,10 @@
             <form method="POST" action="{{ url_for('pages.request_manuscript', capstone_id=capstone.capstone_id) }}" class="detail-card__body">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
-                    <label for="request_reason">Request Reason</label>
+                    {% with purpose_id="request-purpose-0" %}{% include "partials/request_purpose.html" %}{% endwith %}
+                            <label for="request_reason">Additional explanation (optional)</label>
                     <textarea id="request_reason" name="request_reason"
-                              rows="6" placeholder="Type here" required></textarea>
+                              rows="6" placeholder="Type here" maxlength="2000"></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-pill btn-pill--primary">Submit Request</button>
@@ -292,9 +293,10 @@
                     </button>
 
                     <div class="form-group">
-                        <label for="mr-reason">Request Reason</label>
-                        <textarea id="mr-reason" name="request_reason" rows="5"
-                                  placeholder="Why do you need full access to this manuscript?" required></textarea>
+                        {% with purpose_id="mr-purpose" %}{% include "partials/request_purpose.html" %}{% endwith %}
+                            <label for="mr-reason">Additional explanation (optional)</label>
+                    <textarea id="mr-reason" name="request_reason" rows="5"
+                                  placeholder="Why do you need full access to this manuscript?" maxlength="2000"></textarea>
                     </div>
 
                     <div class="form-actions">

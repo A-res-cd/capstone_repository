@@ -44,6 +44,8 @@ def signup():
                 form.username.data,
                 form.password.data,
                 cor_filename=cor_filename,
+                preferred_contact=form.preferred_contact.data, phone=form.phone.data,
+                terms_version="2026-10-03",
             )
         finally:
             if not success:

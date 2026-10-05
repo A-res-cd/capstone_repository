@@ -18,13 +18,15 @@ from app.db.capstones import (
     get_capstone_people,
 )
 from app.routes.decorators import role_required
+from app.constants.programs import PROGRAM_SPECIALIZATION_CODES
 from app.constants.roles import ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR, ROLE_FACULTY
 from app.routes.forms import CreateCapstoneForm, UpdateCapstoneForm
-from app.utils.pdf_extractor import extract_capstone_data
+from app.utils.pdf_extractor import extract_capstone_data, extract_abstract_text
 from app.utils.uploads import (
     allowed_manuscript,
     save_manuscript_upload,
     stored_manuscript_path,
+    resolve_manuscript_file,
 )
 
 
@@ -38,8 +40,12 @@ def _allowed(filename):
 def _populate_capstone_choices(form):
     """SelectField choices must be set before validate()/rendering —
     pulled fresh from the DB each request rather than hardcoded."""
-    form.program_id.choices = [(p[0], p[1]) for p in get_programs()]
-    form.specialization_id.choices = [(s[0], s[1]) for s in get_specializations()]
+    programs = get_programs(include_codes=True)
+    form.program_id.choices = [(p[0], p[1]) for p in programs]
+    program_code = next((p[2] for p in programs if p[0] == form.program_id.data), None)
+    allowed = PROGRAM_SPECIALIZATION_CODES.get(program_code, [])
+    form.specialization_id.choices = [(s[0], s[1]) for s in get_specializations(include_codes=True)
+                                      if s[2] in allowed]
 
 
 def _first_form_error(form):
@@ -104,6 +110,11 @@ def extract_capstone_pdf():
     })
 
 
+def _abstract_for_manuscript(file_path):
+    path = resolve_manuscript_file(file_path)
+    return extract_abstract_text(path) if path and str(path).lower().endswith('.pdf') else ''
+
+
 def _save_file(file_obj):
     """Validate and save an uploaded file. Returns (filename, error_msg) —
     exactly one of the two will be set."""
@@ -136,8 +147,8 @@ def view_capstone_repository():
     )
     total_pages = max(1, (total + page_size - 1) // page_size)
 
-    programs = get_programs()
-    specializations = get_specializations()
+    programs = get_programs(include_codes=True)
+    specializations = get_specializations(include_codes=True)
     years = get_capstone_years()
     form = CreateCapstoneForm()
     _populate_capstone_choices(form)
@@ -148,6 +159,7 @@ def view_capstone_repository():
         specializations=specializations,
         years=years,
         form=form,
+        specialization_rules=PROGRAM_SPECIALIZATION_CODES,
         search=search,
         search_scope=search_scope,
         selected_year=year,
@@ -194,8 +206,9 @@ def admin_create_capstone():
         capstones, _ = get_all_capstones()
         return render_template(
             "admin/repository.html", hide_nav=False, form=form,
+            specialization_rules=PROGRAM_SPECIALIZATION_CODES,
             capstones=capstones,
-            programs=get_programs(), specializations=get_specializations(),
+            programs=get_programs(include_codes=True), specializations=get_specializations(include_codes=True),
             years=get_capstone_years(),
             # filter bar reads search_scope; an omitted value renders as
             # Jinja Undefined, which compares != 'all' and would leave the
@@ -233,6 +246,8 @@ def admin_create_capstone():
                 acting_user_id=session.get("user_id"),
                 is_utilized=form.is_utilized.data,
                 is_presented=form.is_presented.data,
+                is_published=form.is_published.data,
+                abstract_text=_abstract_for_manuscript(file_path),
                 is_copyright_registered=form.is_copyright_registered.data
             )
             if success:
@@ -276,8 +291,9 @@ def update_capstone(capstone_id):
         capstones, _ = get_all_capstones()
         return render_template(
             "admin/repository.html", hide_nav=False, form=form,
+            specialization_rules=PROGRAM_SPECIALIZATION_CODES,
             capstones=capstones,
-            programs=get_programs(), specializations=get_specializations(),
+            programs=get_programs(include_codes=True), specializations=get_specializations(include_codes=True),
             years=get_capstone_years(),
             used_keywords=used_keywords, capstone=capstone,
             search_scope="all",
@@ -316,6 +332,8 @@ def update_capstone(capstone_id):
             acting_user_id=session.get("user_id"),
             is_utilized=form.is_utilized.data,
             is_presented=form.is_presented.data,
+            is_published=form.is_published.data,
+            abstract_text=_abstract_for_manuscript(file_path) if file and getattr(file, "filename", "") else None,
             is_copyright_registered=form.is_copyright_registered.data)
 
         if not success:

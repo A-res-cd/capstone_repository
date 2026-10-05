@@ -13,7 +13,7 @@ def get_current_user(user_id):
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("""
         SELECT u.user_id, u.user_first_name, u.user_middle_name, u.user_last_name,
-               u.role_id, r.role_name, u.locked_until
+               u.role_id, r.role_name, u.locked_until, u.avatar_filename
         FROM "user" u
         JOIN role r ON u.role_id = r.role_id
         WHERE u.user_id = %s

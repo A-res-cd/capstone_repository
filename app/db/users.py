@@ -8,6 +8,7 @@ from werkzeug.security import check_password_hash
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+from app.utils.avatars import remove_avatar
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def get_own_profile(user_id):
     try:
         mithrix.execute("""
             SELECT u.user_first_name, u.user_middle_name, u.user_last_name,
-                   u.university_no, k.username, r.role_name
+                   u.university_no, u.avatar_filename, u.preferred_contact, k.username, r.role_name
             FROM "user" u
             JOIN role r ON r.role_id = u.role_id
             LEFT JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
@@ -188,7 +189,7 @@ def get_all_roles():
         mithrix.close()
         conn.close()
 
-def update_user_role(user_id, new_role_id, acting_admin_id):
+def update_user_role(user_id, new_role_id, acting_admin_id, password=""):
     """Change a user's role and write an audit entry."""
     if str(user_id) == str(acting_admin_id):
         return False, "You can't change your own role from here."
@@ -196,12 +197,41 @@ def update_user_role(user_id, new_role_id, acting_admin_id):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
+        mithrix.execute('''SELECT u.promotion_failures, u.promotion_locked_until,
+            r.password, role.role_name, u.account_status,
+            (u.promotion_locked_until > CURRENT_TIMESTAMP) AS blocked
+            FROM "user" u JOIN role ON role.role_id = u.role_id
+            JOIN slug sl ON sl.user_id = u.user_id AND sl.is_current = TRUE
+            JOIN ror r ON r.password_id = sl.password_id
+            WHERE u.user_id = %s FOR UPDATE OF u''', (acting_admin_id,))
+        actor = mithrix.fetchone()
+        if not actor or actor['role_name'] != 'Admin' or actor['account_status'] != 'active':
+            return False, "Administrator access required."
+        if actor['blocked']:
+            return False, "Too many attempts. Try again in 15 minutes."
+        if not password or len(password) > 1024 or not check_password_hash(actor['password'], password):
+            mithrix.execute('''UPDATE "user" SET
+                promotion_failures = CASE WHEN promotion_locked_until <= CURRENT_TIMESTAMP THEN 1 ELSE promotion_failures + 1 END,
+                promotion_locked_until = CASE
+                    WHEN promotion_locked_until <= CURRENT_TIMESTAMP THEN NULL
+                    WHEN promotion_failures + 1 >= 5 THEN CURRENT_TIMESTAMP + INTERVAL '15 minutes'
+                    ELSE NULL END WHERE user_id = %s''', (acting_admin_id,))
+            conn.commit()
+            return False, "Enter your correct administrator password."
+        mithrix.execute('UPDATE "user" SET promotion_failures = 0, promotion_locked_until = NULL WHERE user_id = %s', (acting_admin_id,))
+        if not str(new_role_id).isdigit():
+            return False, "Choose a valid role."
+        mithrix.execute('SELECT role_id FROM role WHERE role_id = %s', (new_role_id,))
+        if not mithrix.fetchone():
+            return False, "Choose a valid role."
         # capture old role for audit
         mithrix.execute(
             'SELECT role_id FROM "user" WHERE user_id = %s', (user_id,)
         )
         row = mithrix.fetchone()
-        old_role_id = row["role_id"] if row else None
+        if not row:
+            return False, "User not found."
+        old_role_id = row["role_id"]
 
         mithrix.execute(
             'UPDATE "user" SET role_id = %s WHERE user_id = %s',
@@ -295,8 +325,15 @@ def delete_user_account(user_id, acting_admin_id):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
+        mithrix.execute('SELECT avatar_filename FROM "user" WHERE user_id = %s FOR UPDATE', (user_id,))
+        picture = mithrix.fetchone()
         _run_delete_cascade(mithrix, user_id, acting_admin_id)
         conn.commit()
+        if picture and picture[0]:
+            try:
+                remove_avatar(picture[0])
+            except (OSError, ValueError):
+                logger.exception("Could not remove deleted account picture")
         return True, None
     except Exception as exc:
         conn.rollback()
@@ -348,8 +385,15 @@ def delete_own_account(user_id, password):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
+        mithrix.execute('SELECT avatar_filename FROM "user" WHERE user_id = %s FOR UPDATE', (user_id,))
+        picture = mithrix.fetchone()
         _run_delete_cascade(mithrix, user_id, user_id)
         conn.commit()
+        if picture and picture[0]:
+            try:
+                remove_avatar(picture[0])
+            except (OSError, ValueError):
+                logger.exception("Could not remove deleted account picture")
         return True, None
     except Exception as exc:
         conn.rollback()

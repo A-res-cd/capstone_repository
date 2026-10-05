@@ -45,10 +45,21 @@ def analytics():
         for msg in db_errors:
             flash(f"Analytics query failed — {msg}", "danger")
 
-    specialization_labels = [row["specialization_name"] for row in by_specialization]
+    abbreviations = [
+        {"code": row.get(code_key), "name": row[name_key]}
+        for rows, code_key, name_key in (
+            (by_program, "program_code", "program_name"),
+            (by_specialization, "specialization_code", "specialization_name"),
+        )
+        for row in rows if row.get(code_key)
+    ]
+    specialization_codes = {row["specialization_name"]: row.get("specialization_code") or row["specialization_name"]
+                            for row in by_specialization}
+    trend_series = {specialization_codes.get(name, name): values for name, values in trend_series.items()}
+    specialization_labels = [row.get("specialization_code") or row["specialization_name"] for row in by_specialization]
     specialization_totals = [row["total"] for row in by_specialization]
 
-    program_labels = [row["program_name"] for row in by_program]
+    program_labels = [row.get("program_code") or row["program_name"] for row in by_program]
     program_totals = [row["total"] for row in by_program]
 
     # ── Summary card figures ──
@@ -58,8 +69,8 @@ def analytics():
     # Every archived-in record is inherently "published" (no draft
     # workflow state exists), so Published is always total/total. ──
     status_flags = status_flags or {}
-    published_labels = ["Published", "Not Published"]
-    published_totals = [total_capstones, 0]
+    published_labels = ["Published", "Not Published", "Not Reviewed"]
+    published_totals = [status_flags.get("published", 0), status_flags.get("not_published", 0), status_flags.get("publication_unknown", 0)]
 
     utilized_labels = ["Utilized", "Not Utilized"]
     utilized_totals = [status_flags.get("utilized", 0), status_flags.get("not_utilized", 0)]
@@ -75,7 +86,7 @@ def analytics():
     for row in by_program:
         pct = round((row["total"] / total_capstones) * 100, 1) if total_capstones else 0
         program_cards.append({
-            "name": row["program_name"],
+            "name": row.get("program_code") or row["program_name"],
             "total": row["total"],
             "pct": pct,
         })
@@ -89,11 +100,11 @@ def analytics():
         total = row["total"]
         summary_rows.append({
             "id": row["specialization_id"],
-            "name": row["specialization_name"],
+            "name": row.get("specialization_code") or row["specialization_name"],
             "total": total,
             "total_pct": _pct(total, total_capstones),
-            "published": total,
-            "published_pct": _pct(total, total),
+            "published": row.get("published", 0),
+            "published_pct": _pct(row.get("published", 0), total),
             "utilized": row["utilized"],
             "utilized_pct": _pct(row["utilized"], total),
             "presented": row["presented"],
@@ -104,7 +115,7 @@ def analytics():
 
     summary_totals = {
         "total": total_capstones,
-        "published": total_capstones,
+        "published": sum(r["published"] for r in summary_rows),
         "utilized": sum(r["utilized"] for r in summary_rows),
         "presented": sum(r["presented"] for r in summary_rows),
         "copyright_registered": sum(r["copyright_registered"] for r in summary_rows),
@@ -113,6 +124,7 @@ def analytics():
     return render_template(
         "admin/analytics.html",
         selected_year=selected_year,
+        abbreviations=abbreviations,
         available_years=available_years,
         specialization_labels=specialization_labels,
         specialization_totals=specialization_totals,
@@ -134,3 +146,7 @@ def analytics():
         summary_rows=summary_rows,
         summary_totals=summary_totals,
     )
+
+
+## Audit Codebase: Analyze the codebase thoroughly based on these software engineering principles. Code must be flexible, maintainable, reusable, DRY, KISS, YAGNI, proper separation of concerns, modular, robust, secure, non-overengineered, and loose coupling and high cohesion.Also determine if the file structure is appropriate or if we need to switch to a modular monolith.
+## Audit Security: Analyze the codebase's security thoroughly against OWASP Top 10 696d374

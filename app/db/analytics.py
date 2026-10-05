@@ -19,11 +19,11 @@ def get_capstones_by_program(year=None):
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         mithrix.execute("""
-            SELECT p.program_id, p.program_name, COUNT(c.capstone_id) AS total
+            SELECT p.program_id, p.program_name, p.program_code, COUNT(c.capstone_id) AS total
             FROM program p
             LEFT JOIN capstone c ON c.program_id = p.program_id AND c.is_archived IS NOT TRUE
               AND (%s IS NULL OR c.capstone_year = %s)
-            GROUP BY p.program_id, p.program_name
+            GROUP BY p.program_id, p.program_name, p.program_code
             ORDER BY total DESC
         """, (year, year))
         return mithrix.fetchall(), None
@@ -37,22 +37,22 @@ def get_capstones_by_program(year=None):
 def get_capstone_program_summary():
     """
     Per-program breakdown for the Analytics 'Summary by Program' table:
-    total, published (= total, every archived record is a published
-    entry), utilized, presented, copyright-registered counts. Mirrors
+    total, published, utilized, presented, copyright-registered counts. Mirrors
     the reference dashboard's summary table.
     """
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         mithrix.execute("""
-            SELECT p.program_id, p.program_name,
+            SELECT p.program_id, p.program_name, p.program_code,
                    COUNT(c.capstone_id) AS total,
+                   COUNT(c.capstone_id) FILTER (WHERE c.is_published IS TRUE) AS published,
                    COUNT(c.capstone_id) FILTER (WHERE c.is_utilized) AS utilized,
                    COUNT(c.capstone_id) FILTER (WHERE c.is_presented) AS presented,
                    COUNT(c.capstone_id) FILTER (WHERE c.is_copyright_registered) AS copyright_registered
             FROM program p
             LEFT JOIN capstone c ON c.program_id = p.program_id AND c.is_archived IS NOT TRUE
-            GROUP BY p.program_id, p.program_name
+            GROUP BY p.program_id, p.program_name, p.program_code
             ORDER BY total DESC
         """)
         return mithrix.fetchall(), None
@@ -107,15 +107,16 @@ def get_capstones_by_specialization(year=None):
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         mithrix.execute("""
-            SELECT s.specialization_id, s.specialization_name,
+            SELECT s.specialization_id, s.specialization_name, s.specialization_code,
                    COUNT(c.capstone_id) AS total,
+                   COUNT(c.capstone_id) FILTER (WHERE c.is_published IS TRUE) AS published,
                    COUNT(c.capstone_id) FILTER (WHERE c.is_utilized) AS utilized,
                    COUNT(c.capstone_id) FILTER (WHERE c.is_presented) AS presented,
                    COUNT(c.capstone_id) FILTER (WHERE c.is_copyright_registered) AS copyright_registered
             FROM specialization s
             LEFT JOIN capstone c ON c.specialization_id = s.specialization_id AND c.is_archived IS NOT TRUE
               AND (%s IS NULL OR c.capstone_year = %s)
-            GROUP BY s.specialization_id, s.specialization_name
+            GROUP BY s.specialization_id, s.specialization_name, s.specialization_code
             ORDER BY total DESC
         """, (year, year))
         return mithrix.fetchall(), None
@@ -163,7 +164,7 @@ def get_specialization_report(specialization_id, year=None):
                 ) AS adviser,
                 c.capstone_year AS year,
                 s.specialization_name AS specialization,
-                TRUE AS published,
+                c.is_published AS published,
                 COALESCE(c.is_utilized, FALSE) AS utilized,
                 COALESCE(c.is_presented, FALSE) AS presented,
                 COALESCE(c.is_copyright_registered, FALSE) AS copyright_registered
@@ -221,7 +222,7 @@ def get_all_specialization_reports(year=None):
                 c.capstone_year AS year,
                 s.specialization_id,
                 s.specialization_name AS specialization,
-                TRUE AS published,
+                c.is_published AS published,
                 COALESCE(c.is_utilized, FALSE) AS utilized,
                 COALESCE(c.is_presented, FALSE) AS presented,
                 COALESCE(c.is_copyright_registered, FALSE) AS copyright_registered
@@ -268,6 +269,9 @@ def get_capstone_status_flags(year=None):
     try:
         mithrix.execute("""
             SELECT
+                COUNT(*) FILTER (WHERE is_published IS TRUE) AS published,
+                COUNT(*) FILTER (WHERE is_published IS FALSE) AS not_published,
+                COUNT(*) FILTER (WHERE is_published IS NULL) AS publication_unknown,
                 COUNT(*) FILTER (WHERE is_utilized) AS utilized,
                 COUNT(*) FILTER (WHERE NOT is_utilized) AS not_utilized,
                 COUNT(*) FILTER (WHERE is_presented) AS presented,

@@ -56,8 +56,8 @@ def test_extraction_cleans_temporary_upload(upload_client, monkeypatch, fails):
 def test_extract_then_submit_saves_one_copy(upload_client, monkeypatch, extension):
     client, permanent = upload_client
     monkeypatch.setattr(repository, 'extract_capstone_data', lambda path: {})
-    monkeypatch.setattr(repository, 'get_programs', lambda: [(1, 'Program')])
-    monkeypatch.setattr(repository, 'get_specializations', lambda: [(1, 'Specialization')])
+    monkeypatch.setattr(repository, 'get_programs', lambda include_codes=False: [(1, 'Program', 'BSIT')])
+    monkeypatch.setattr(repository, 'get_specializations', lambda include_codes=False: [(1, 'Specialization', 'DST')])
     monkeypatch.setattr(repository, 'insert_keywords', lambda value: (True, 1))
     stored = []
 

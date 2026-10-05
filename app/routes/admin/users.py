@@ -29,7 +29,7 @@ from app.db.users import (
     set_account_status,
 )
 from app.routes.decorators import role_required
-from app.constants.roles import ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR
+from app.constants.roles import ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR, LEGACY_ROLE_NAMES_BY_ID
 
 
 logger = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ def manage_users():
 @role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def decide_verification(request_id):
     decision = request.form.get("decision")  # 'approved' or 'rejected'
-    status_reason = request.form.get("status_reason", "")
+    status_reason = request.form.get("status_reason", "").strip()
     reviewed_by = session.get("user_id")
 
     if decision not in ("approved", "rejected"):
@@ -152,7 +152,7 @@ def update_role(user_id):
         flash("No role selected.", "error")
         return redirect(url_for("admin.manage_users"))
 
-    ok, err = update_user_role(user_id, new_role_id, acting_admin_id)
+    ok, err = update_user_role(user_id, new_role_id, acting_admin_id, request.form.get("admin_password", ""))
     flash(
         "Role updated successfully." if ok else f"Error: {err}",
         "success" if ok else "error",
@@ -185,3 +185,16 @@ def change_account_status(user_id):
         "success" if ok else "error",
     )
     return redirect(url_for("admin.manage_users"))
+
+
+@admin.route("/review-history")
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
+def review_history():
+    from flask import g
+    from app.db.review_history import get_review_history
+    recent = request.args.get('view') == 'recent'
+    page = 1 if recent else max(1, request.args.get('page', 1, type=int))
+    role = g.user.get('role_name') or LEGACY_ROLE_NAMES_BY_ID.get(g.user.get('role_id'))
+    rows, total, size = get_review_history(page, recent, role != ROLE_ADMIN)
+    return render_template('admin/review_history.html', reviews=rows, total=total,
+                           page=page, page_size=size, recent=recent)

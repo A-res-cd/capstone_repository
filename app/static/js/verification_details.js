@@ -23,6 +23,7 @@
         if (event.target.closest('[data-verification-close]')) dialog.close();
         const button = event.target.closest('[data-verification-details]');
         if (!button) return;
+        decisionForms.forEach(form => form.reset());
         controller?.abort();
         const active = new AbortController();
         controller = active;
@@ -74,6 +75,7 @@
         }
     });
     dialog.addEventListener('close', () => {
+        decisionForms.forEach(form => form.reset());
         controller?.abort();
         controller = null;
         setDecisionState('', false);

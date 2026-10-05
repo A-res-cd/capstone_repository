@@ -46,6 +46,11 @@
     </div>
     {% endif %}
 
+    <div class="meta-item">
+      <span class="meta-label">Published</span>
+      <span class="meta-value">{{ 'Not reviewed' if capstone.is_published is none else ('Yes' if capstone.is_published else 'No') }}</span>
+    </div>
+
     <div class="keywords-section">
       <span class="meta-label">Keywords</span>
       {% if capstone.capstone_keywords %}

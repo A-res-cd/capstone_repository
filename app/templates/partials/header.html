@@ -46,14 +46,15 @@
                     {% endfor %}
                 </select>
             </form>
-            <button type="button" class="analytics-header-export" data-export-report data-report-scope="dashboard" data-workbook-url="{{ url_for('admin.analytics_workbook', year=selected_year) }}" aria-label="Export full analytics report">
-                <i class="bx bx-download" aria-hidden="true"></i>
-                <span>Export Analytics Report</span>
+            <button type="button" class="analytics-header-export" data-print-report data-report-scope="dashboard" aria-label="Print full analytics report">
+                <i class="bx bx-printer" aria-hidden="true"></i>
+                <span>Print Analytics Report</span>
             </button>
             {% endif %}
         </div>
 
         <div class="header-user">
+            {% if session.get('role_name') == 'Admin' %}<a class="header-audit-link" href="{{ url_for('admin.audit_logs') }}" title="Audit Logs"><i class="bx bx-history" aria-hidden="true"></i> Audit Logs</a>{% endif %}
             <div class="notification-menu" id="notification-menu">
                 <button type="button" id="notification-toggle" class="notification-toggle"
                         aria-label="Notifications{% if notification_unread_count %}, {{ notification_unread_count }} unread{% endif %}"
@@ -97,7 +98,7 @@
             </button>
             <a href="{{ url_for('pages.user_info') }}" class="header-user__profile" aria-label="Open user profile">
                 <span class="header-user__avatar" aria-hidden="true">
-                    <span>{{ current_user.initials }}</span>
+                    {% if current_user.avatar_filename %}<img src="{{ url_for('pages.own_picture') }}" alt="" width="36" height="36">{% else %}<span>{{ current_user.initials }}</span>{% endif %}
                 </span>
                 <span class="header-user__info">
                     <span class="header-user__name">{{ current_user.display_name }}</span>

@@ -65,13 +65,14 @@ def request_manuscript(capstone_id):
         return redirect(url_for("pages.all_requests"))
 
     reason = request.form.get("request_reason", "").strip()
-    if not reason:
-        flash("Please give a reason for your request", "danger")
+    purpose = request.form.get("request_purpose", "")
+    if purpose not in ("Research reference", "Literature review", "Methodology reference", "Other") or len(reason) > 2000:
+        flash("Choose a request purpose; explanation must be 2000 characters or fewer.", "danger")
         # Validation failed — send them back to the form itself, not the
         # all-requests list, so they don't lose their place.
         return redirect(url_for("pages.request_capstone", capstone_id=capstone_id))
     
-    ok, err = request_fullview(user_id, capstone_id, reason)
+    ok, err = request_fullview(user_id, capstone_id, purpose + (": " + reason if reason else ""))
     flash("request submitted successfully" 
           if ok else f"Error: {err}","success" if ok else "danger")
     # Submission is done (success or failure past validation) — the

@@ -10,17 +10,9 @@ def get_nav_links(role):
             "url": "admin.analytics",
             "icon": "bx bx-bar-chart-alt-2",
             "roles": ["Admin"],
-            "section": "Reports & Audit"
+            "section": "Administration"
         },
 
-        {
-            "name": "Audit Logs", 
-            "title": "Audit Logs",
-            "url": "admin.audit_logs", 
-            "icon": "bx bx-history",
-            "roles": ["Admin"],
-            "section": "Reports & Audit"
-        },
 
         # --- Process 2.0: Manage User and Role — Admin only ---
         {
@@ -29,7 +21,7 @@ def get_nav_links(role):
             "url": "admin.manage_users",
             "icon": "bx bx-group",
             "roles": ["Admin", "Capstone Professor"],
-            "section": "Management"
+            "section": "Administration"
         },
 
         # --- Process 3.0: Manage Capstone Repository — Admin + Capstone Professor ---
@@ -39,7 +31,7 @@ def get_nav_links(role):
             "url": "admin.view_capstone_repository",
             "icon": "bx bx-folder-open",
             "roles": ["Admin", "Capstone Professor", "Faculty"],
-            "section": "Capstone"
+            "section": "Repository"
         },
 
         {
@@ -48,7 +40,7 @@ def get_nav_links(role):
             "url": "admin.view_archived_capstones",
             "icon": "bx bx-archive",
             "roles": ["Admin"],
-            "section": "Management"
+            "section": "Administration"
         },
 
         # --- Process 4.0: Explore Capstone Archive — All roles ---
@@ -58,7 +50,7 @@ def get_nav_links(role):
             "url": "pages.browse",
             "icon": "bx bx-search-alt",
             "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
-            "section": "Capstone"
+            "section": "Repository"
         },
 
         # --- Sub-process 4.5 (Level3ViewCapstoneData): Manuscript access requests — Student only ---
@@ -73,7 +65,7 @@ def get_nav_links(role):
             "url": "pages.all_requests",
             "icon": "bx bx-file-blank",
             "roles": ["Student"],
-            "section": "Capstone"
+            "section": "Repository"
         },
 
         # --- Sub-process 4.5 (Level3ViewCapstoneData): Request approval — Admin only ---
@@ -85,7 +77,7 @@ def get_nav_links(role):
             "url": "admin.view_requests",
             "icon": "bx bx-file-blank",
             "roles": ["Admin"],
-            "section": "Management"
+            "section": "Administration"
         },
 
         # --- Data mining: content-based topic-similarity check — Student only ---
@@ -98,7 +90,7 @@ def get_nav_links(role):
             "url": "pages.propose_topic",
             "icon": "bx bx-bulb",
             "roles": ["Student"],
-            "section": "Capstone"
+            "section": "Repository"
         },
 
         # --- Process 5.0: Manage User Information — All roles ---
@@ -127,6 +119,19 @@ def get_nav_links(role):
         # },
     ]
 
+    links.append({"name": "Review History", "title": "Review History",
+                  "url": "admin.review_history", "icon": "bx bx-history",
+                  "roles": ["Admin", "Capstone Professor"], "section": "Requests"})
+    links.append({"name": "Recently Viewed", "title": "Recently Viewed",
+                  "url": "pages.view_history", "icon": "bx bx-history",
+                  "roles": ["Student"], "section": "Repository"})
+    for link in links:
+        if link['url'] in ('admin.view_requests', 'pages.all_requests'):
+            link['section'] = 'Requests'
+        elif link['url'] == 'admin.view_archived_capstones':
+            link['section'] = 'Repository'
+    order = {'Repository': 0, 'Requests': 1, 'Administration': 2, 'Account': 3}
+    links.sort(key=lambda link: order[link['section']])
     # Filter links by role
     filtered = [link for link in links if role in link["roles"]]
 

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def create_capstone_project(keyword_id, specialization_id, program_id,
                             capstone_title, capstone_year, capstone_file,
                             semester, term=None, acting_user_id=None,
-                            is_utilized=False, is_presented=False, is_copyright_registered=False):
+                            is_utilized=False, is_presented=False, is_copyright_registered=False, is_published=False, abstract_text=None):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -23,12 +23,12 @@ def create_capstone_project(keyword_id, specialization_id, program_id,
             INSERT INTO capstone(keyword_id, specialization_id, program_id,
                         capstone_title, capstone_year, capstone_file,
                         semester, term,
-                        is_utilized, is_presented, is_copyright_registered)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        is_utilized, is_presented, is_copyright_registered, is_published, abstract_text)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING capstone_id
         """, (keyword_id, specialization_id, program_id, capstone_title,
               capstone_year, capstone_file, semester, term,
-              is_utilized, is_presented, is_copyright_registered))
+              is_utilized, is_presented, is_copyright_registered, is_published, abstract_text))
         capstone_id = mithrix.fetchone()[0]
 
         log_audit(mithrix, acting_user_id, "create_capstone", "capstone", capstone_id,
@@ -64,11 +64,12 @@ def insert_keywords(capstone_keywords):
         mithrix.close()
         conn.close()
 
-def get_programs():
+def get_programs(include_codes=False):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
-        mithrix.execute("""SELECT program_id, program_name FROM program """)
+        mithrix.execute("SELECT program_id, program_name, program_code FROM program" if include_codes
+                        else "SELECT program_id, program_name FROM program")
         return mithrix.fetchall()
     except Exception as exc:
         logger.error("Database error: %s", exc)
@@ -77,12 +78,13 @@ def get_programs():
         mithrix.close()
         conn.close()
 
-def get_specializations():
+def get_specializations(include_codes=False):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
         mithrix.execute(
-            """ SELECT specialization_id, specialization_name FROM specialization """)
+            "SELECT specialization_id, specialization_name, specialization_code FROM specialization" if include_codes
+            else "SELECT specialization_id, specialization_name FROM specialization")
         return mithrix.fetchall()
     except Exception as exc:
         logger.error("Database error: %s", exc)
@@ -152,7 +154,7 @@ def get_capstone_details(capstone_id):
         mithrix.execute("""
             SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
                    c.semester, c.term,
-                   c.is_utilized, c.is_presented, c.is_copyright_registered,
+                   c.is_published, c.abstract_text, c.is_utilized, c.is_presented, c.is_copyright_registered,
                    k.keyword_id, k.capstone_keywords,
                    s.specialization_id, s.specialization_name,
                    p.program_id, p.program_name
@@ -173,7 +175,7 @@ def get_capstone_details(capstone_id):
 def update_capstone_record(capstone_id, keyword_id, specialization_id, program_id,
                            capstone_title, capstone_year, capstone_file,
                            semester, term=None, acting_user_id=None,
-                           is_utilized=False, is_presented=False, is_copyright_registered=False):
+                           is_utilized=False, is_presented=False, is_copyright_registered=False, is_published=False, abstract_text=None):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -189,11 +191,13 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
                 term = %s,
                 is_utilized = %s,
                 is_presented = %s,
-                is_copyright_registered = %s
+                is_copyright_registered = %s,
+                is_published = %s,
+                abstract_text = COALESCE(%s, abstract_text)
             WHERE capstone_id = %s
         """, (keyword_id, specialization_id, program_id, capstone_title,
               capstone_year, capstone_file, semester, term,
-              is_utilized, is_presented, is_copyright_registered, capstone_id))
+              is_utilized, is_presented, is_copyright_registered, is_published, abstract_text, capstone_id))
 
         log_audit(mithrix, acting_user_id, "update_capstone", "capstone", capstone_id,
                    new_values=capstone_title)
@@ -273,7 +277,7 @@ def get_all_capstones(search=None, program_id=None, page=1, page_size=20,
         mithrix.execute(f"""
             SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.capstone_file,
                    c.semester, c.term,
-                   c.is_utilized, c.is_presented, c.is_copyright_registered,
+                   c.is_published, c.abstract_text, c.is_utilized, c.is_presented, c.is_copyright_registered,
                    k.keyword_id, k.capstone_keywords,
                    s.specialization_id, s.specialization_name,
                    p.program_id, p.program_name
@@ -413,7 +417,7 @@ def get_capstones_corpus():
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         mithrix.execute("""
-            SELECT c.capstone_id, c.capstone_title, k.capstone_keywords,
+            SELECT c.capstone_id, c.capstone_title, c.abstract_text, k.capstone_keywords,
                    s.specialization_name
             FROM capstone c
             LEFT JOIN keyword k ON k.keyword_id = c.keyword_id

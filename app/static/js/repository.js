@@ -120,6 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function openCreate() {
         if (!preserveCreateDraft) {
             resetForm();
+            loadProgramSpecializations();
+            document.getElementById('publication-review-note').textContent = '';
             document.getElementById('form-heading').textContent = 'New Capstone';
             document.getElementById('form-subheading').textContent = 'Fill in the details to add a capstone to the archive.';
             document.getElementById('btn-submit-label').textContent = 'Submit Capstone';
@@ -157,12 +159,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('capstone_keywords').value = keywords;
         document.getElementById('capstone_year').value = year;
         document.getElementById('is_utilized').checked = utilized;
+        document.getElementById('is_published').checked = btn.dataset.published === 'true';
+        document.getElementById('publication-review-note').textContent = btn.dataset.published === 'unknown' ? 'Publication status not reviewed. Confirm before saving.' : '';
         document.getElementById('is_presented').checked = presented;
         document.getElementById('is_copyright_registered').checked = copyrightRegistered;
 
         // select dropdowns
         setSelect('program_id', program);
         setSelect('specialization_id', spec);
+        loadProgramSpecializations(spec);
         setSelect('semester', semester);
 
         document.getElementById('form-heading').textContent = 'Edit Capstone';
@@ -369,8 +374,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (d.year)
             setField('capstone_year', d.year);
 
-        if (d.program)
+        if (d.program) {
             fuzzySelectMatch('program_id', d.program);
+            loadProgramSpecializations();
+        }
 
         if (d.specialization)
             fuzzySelectMatch('specialization_id', d.specialization);
@@ -415,6 +422,12 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const opt of select.options) {
             if (!opt.value) continue;
             const haystack = opt.text.toLowerCase();
+            const acronym = haystack.split(/\s+/).filter(word => !['of', 'in', 'and'].includes(word)).map(word => word[0]).join('');
+            if (needle === acronym || needle === haystack) {
+                opt.selected = true;
+                window.CAPRE?.syncSelect?.(select);
+                return;
+            }
             const score = needle.split(/\s+/).filter(w => w.length > 3 && haystack.includes(w)).length;
 
             if (score > bestScore) {
@@ -462,4 +475,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return str;
     }
+    const specializationOptions = Array.from(document.getElementById('specialization_id')?.options || [])
+        .filter(option => option.value).map(option => option.cloneNode(true));
+    function loadProgramSpecializations(selected = '') {
+        const program = document.getElementById('program_id');
+        const select = document.getElementById('specialization_id');
+        if (!program || !select) return;
+        const rules = JSON.parse(program.dataset.specializationRules || '{}');
+        const code = program.selectedOptions[0]?.dataset.programCode;
+        const allowed = rules[code] || [];
+        const options = specializationOptions.filter(option => allowed.includes(option.dataset.specializationCode));
+        select.replaceChildren(new Option('Select specialization', ''));
+        options.forEach(option => select.add(option.cloneNode(true)));
+        select.value = String(selected);
+        if (!select.value && options.length === 1) select.value = options[0].value;
+        select.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+    document.getElementById('program_id')?.addEventListener('change', () => loadProgramSpecializations());
 });

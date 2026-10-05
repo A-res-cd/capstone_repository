@@ -101,7 +101,12 @@ def upgrade_database(migrations_dir=MIGRATIONS_DIR):
             existing = cursor.fetchone()
 
             if existing:
-                if existing[0] != checksum:
+                # Git may check the same SQL out with Windows line endings.
+                # Accept only byte-equivalent LF/CRLF variants, never SQL edits.
+                normalized = path.read_bytes().replace(b'\r\n', b'\n')
+                equivalent = {checksum, hashlib.sha256(normalized).hexdigest(),
+                              hashlib.sha256(normalized.replace(b'\n', b'\r\n')).hexdigest()}
+                if existing[0] not in equivalent:
                     raise MigrationError(
                         f"Migration checksum changed after application: {path.name}"
                     )

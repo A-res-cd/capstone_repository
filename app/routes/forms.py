@@ -1,3 +1,6 @@
+from app.utils.password_policy import validate_password
+from app.utils.contact_policy import normalize_phone
+from wtforms.validators import ValidationError
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import (
@@ -25,7 +28,19 @@ class SignupForm(FlaskForm):
                                                           message="Username must be 3-30 characters, letters, numbers, and underscores only.")])
     
     password = PasswordField("Password", validators=[DataRequired(message = "Password is required"), 
-                                                     Length(min = 6, message = "Password must be at least 6 characters.")])
+                                                     validate_password])
+    confirm_password = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", message="Passwords do not match.")])
+    preferred_contact = SelectField("Preferred contact", choices=[("email", "Email"), ("phone", "Phone")], default="email")
+    phone = StringField("Phone number", validators=[Optional(), Length(max=30)])
+
+    def validate_preferred_contact(self, field):
+        try:
+            self.phone.data = normalize_phone(self.phone.data)
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        if field.data == "phone" and not self.phone.data:
+            raise ValidationError("Enter a phone number when phone is your preferred contact.")
+
     accept_terms = BooleanField(
         "I accept the Terms and Agreements",
         validators=[DataRequired(message="You must accept the Terms and Agreements to create an account.")]
@@ -36,7 +51,7 @@ class ForgotPasswordForm(FlaskForm):
     email = StringField("Email", validators = [DataRequired("Email is required."), Email(message="Invalid email format.")])
 
 class ResetPasswordForm(FlaskForm):
-    new_password = PasswordField("New Password", validators = [DataRequired(), Length(min=6, message="Password must be at least 6 characters.")])
+    new_password = PasswordField("New Password", validators = [DataRequired(), validate_password])
     confirm_password = PasswordField("Confirm Password", validators = [DataRequired(), EqualTo("new_password", message="Passwords do not mathc.")])
 
 
@@ -45,7 +60,7 @@ class ChangePasswordForm(FlaskForm):
     distinct from ResetPasswordForm, which is reached via the
     forgot-password/OTP flow and doesn't need the current password."""
     current_password = PasswordField("Current Password", validators=[DataRequired(message="Current password is required.")])
-    new_password = PasswordField("New Password", validators=[DataRequired(), Length(min=6, message="Password must be at least 6 characters.")])
+    new_password = PasswordField("New Password", validators=[DataRequired(), validate_password])
     confirm_password = PasswordField("Confirm New Password", validators=[DataRequired(), EqualTo("new_password", message="Passwords do not match.")])
 
 class VerifyOTPForm(FlaskForm):
@@ -139,6 +154,7 @@ class CreateCapstoneForm(FlaskForm):
         ]
     )
 
+    is_published = BooleanField("Published")
     is_utilized = BooleanField("Utilized")
     is_presented = BooleanField("Presented")
     is_copyright_registered = BooleanField(

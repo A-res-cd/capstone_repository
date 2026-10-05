@@ -8,6 +8,8 @@ import re
 import logging
 import psycopg2.extras
 from datetime import datetime, timedelta, timezone
+from app.utils.password_policy import password_error
+from app.utils.contact_policy import normalize_phone
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.db.connection import db_connect
@@ -149,7 +151,7 @@ def get_role_id(mithrix, role_name):
     row = mithrix.fetchone()
     return row["role_id"] if row else None
 
-def create_user(first_name, middle_name, last_name, university_no, email, username, password, cor_filename=None):
+def create_user(first_name, middle_name, last_name, university_no, email, username, password, cor_filename=None, preferred_contact="email", phone="", terms_version=None):
 
     #strip and basic validation
     first_name    = first_name.strip()    if first_name    else ""
@@ -163,8 +165,14 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     # validation
     if not all([first_name, last_name, email, username, password]):
         return False, "All required fields must be filled in."
-    if len(password) < 6:
-        return False, "Password must be at least 6 characters."
+    if password_error(password):
+        return False, password_error(password)
+    try:
+        phone = normalize_phone(phone)
+    except ValueError as exc:
+        return False, str(exc)
+    if preferred_contact not in ('email', 'phone') or (preferred_contact == 'phone' and not phone):
+        return False, "Choose a valid contact preference and supply its contact details."
     if not EMAIL_PATTERN.match(email):
         return False, "Invalid email format."
     if not USERNAME_PATTERN.match(username):
@@ -193,6 +201,12 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
             RETURNING user_id
             """, (role_id, first_name, middle_name, last_name, insert_university_no, cor_filename))
         user_id = mithrix.fetchone()["user_id"]
+
+        mithrix.execute('UPDATE "user" SET preferred_contact = %s, terms_version = %s, terms_accepted_at = %s WHERE user_id = %s',
+                        (preferred_contact, terms_version, now if terms_version else None, user_id))
+        if phone:
+            mithrix.execute("INSERT INTO contact (user_id, contact_type, contact_value, is_primary, created_at) VALUES (%s, 'phone', %s, TRUE, %s)",
+                            (user_id, phone, now))
 
         # insert into username table
         mithrix.execute("""INSERT INTO kappa (username)
@@ -521,6 +535,8 @@ def verify_otp(reset_id, otp_entered):
         conn.close()
 
 def change_password(reset_id, user_id, new_password):
+    if password_error(new_password):
+        return False, password_error(new_password)
 
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -711,6 +727,11 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
 
     decision: 'approved' or 'rejected'
     """
+    status_reason = (status_reason or '').strip()
+    if decision not in ('approved', 'rejected'):
+        return False, "Invalid decision."
+    if len(status_reason) > 2000 or (decision == 'rejected' and not status_reason):
+        return False, "Provide a rejection reason of 1-2000 characters."
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     now = datetime.now(timezone.utc)

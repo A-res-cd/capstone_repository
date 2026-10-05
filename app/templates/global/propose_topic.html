@@ -17,9 +17,13 @@
             <label for="pt-title">Proposed Title</label>
             <input type="text" id="pt-title" name="title" placeholder="e.g. AI-Powered Attendance Tracking System" maxlength="255" aria-describedby="pt-description">
 
+            <label for="pt-abstract">Proposed abstract (optional)</label>
+            <textarea id="pt-abstract" name="abstract" rows="5" maxlength="10000"></textarea>
+            <label for="pt-keywords">Keywords (optional, comma separated)</label>
+            <input id="pt-keywords" name="keywords" maxlength="1000" placeholder="e.g. attendance, image recognition">
             <p class="propose-topic-hint" id="pt-status" role="status" aria-live="polite">Start typing to check for similar existing capstones.</p>
 
-            <p class="propose-topic-description" id="pt-description">Enter your proposed capstone title to find existing titles with similar wording. The comparison counts how often words appear in each title (term frequency) and gives more weight to words that are less common across the archive (TF-IDF). Higher scores mean closer wording; use the matches to review related work.</p>
+            <p class="propose-topic-description" id="pt-description">Compare your title, optional abstract, and keywords with archived capstones. Titles receive the most weight; available abstracts and keywords contribute too. Matches suggest related work, not plagiarism or proof of originality.</p>
         </form>
 
         <div class="propose-topic-results" id="pt-results">
@@ -28,7 +32,7 @@
                 <span class="pt-legend" tabindex="0">
                     <i class="bx bx-info-circle"></i>
                     <span class="pt-legend__tooltip">
-                        <strong>Title similarity</strong> compares title words only. These overlap bands are guidance; they do not establish duplication or originality.<br><br>
+                        <strong>Title similarity</strong> compares titles, abstracts, and keywords. These overlap bands are guidance; they do not establish duplication or originality.<br><br>
                         <span class="pt-badge pt-badge--low">Slight</span> 12–24% ·
                         <span class="pt-badge pt-badge--medium">Some</span> 25–44% ·
                         <span class="pt-badge pt-badge--high">High</span> 45%+
