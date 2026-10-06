@@ -39,6 +39,13 @@ CREATE TABLE IF NOT EXISTS "user" (
     account_status VARCHAR(50) DEFAULT 'pending',
     locked_until TIMESTAMP,
     cor_filename VARCHAR(200),
+    preferred_contact VARCHAR(10) NOT NULL DEFAULT 'email'
+        CHECK (preferred_contact IN ('email', 'phone')),
+    avatar_filename TEXT,
+    terms_version VARCHAR(30),
+    terms_accepted_at TIMESTAMPTZ,
+    promotion_failures INTEGER NOT NULL DEFAULT 0,
+    promotion_locked_until TIMESTAMPTZ,
 
     CONSTRAINT fk_user_role
         FOREIGN KEY (role_id)

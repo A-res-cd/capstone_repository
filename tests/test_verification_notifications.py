@@ -25,7 +25,15 @@ class RecordingCursor:
         if self._first_fetch:
             self._first_fetch = False
             return {"user_id": 12, "request_type": "verification_student"}
+        if self.calls[-1][0].startswith('SELECT u.role_id, u.account_status'):
+            return {"role_id": 1, "role_name": "Student", "account_status": "pending"}
         return None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
 
     def close(self):
         pass

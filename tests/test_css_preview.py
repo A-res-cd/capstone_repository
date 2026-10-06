@@ -56,7 +56,7 @@ def preview_app(monkeypatch, tmp_path):
         document.save(str(tmp_path / 'sample.pdf'))
     record = dict(capstone_id=7, capstone_title='Watermarked manuscript',
                   capstone_file='sample.pdf', capstone_year=2026)
-    for module in (pages.manuscripts, admin.repository):
+    for module in (pages.manuscripts, admin.repository, admin.manuscripts):
         monkeypatch.setattr(module, 'get_capstone_details', lambda cid: record if cid == 7 else None)
         monkeypatch.setattr(module, 'get_capstone_authors', lambda cid: [])
         monkeypatch.setattr(module, 'record_capstone_activity', lambda *args, **kwargs: True)
@@ -114,16 +114,18 @@ def test_page_rendering_is_bounded_watermarked_and_not_cached(preview_app):
     assert client.get('/manuscript/pages/7/3').status_code == 404
 
 
-def test_reader_ui_preserves_existing_download_permissions_and_history(preview_app):
+def test_reader_ui_uses_merged_download_permissions_and_history(preview_app):
     client = preview_app.test_client()
     login(client, 1)
     assert b'data-manuscript-reader' in client.get('/manuscript/view/7').data
-    assert client.get('/manuscript/file/7').status_code == 200
+    assert client.get('/manuscript/file/7').status_code == 403
     assert preview_app.preview_records == [(1, 7)]
     login(client, 2)
     assert b'data-manuscript-reader' in client.get('/repository/pdf/7').data
-    assert client.get('/repository/file/7').status_code == 200
+    assert client.get('/repository/file/7').status_code == 403
     assert preview_app.preview_records == [(1, 7)]
+    login(client, 3)
+    assert client.get('/repository/file/7').status_code == 200
 
 
 def test_histories_use_authenticated_identity_and_current_roles(preview_app, monkeypatch):

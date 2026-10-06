@@ -81,15 +81,21 @@ def screen_account(mithrix, user_id, role_name):
 
 def create_verification_request(mithrix, user_id, track, fallback_email=None):
     now = datetime.now(timezone.utc)
-
+    # Serialize repeated submissions for the same account, including retries.
+    mithrix.execute('SELECT user_id FROM "user" WHERE user_id = %s FOR UPDATE', (user_id,))
     mithrix.execute("""
-        INSERT INTO request(user_id, request_type, request_status, request_date)
-        VALUES (%s, %s, 'pending', %s)
-        RETURNING request_id
-    """, (user_id, f"verification_{track}", now))
-    request_id = mithrix.fetchone()["request_id"]
-
-    log_audit(mithrix, user_id, "verification_request", "request", request_id)
+        SELECT request_id FROM request
+        WHERE user_id = %s AND request_type = %s AND request_status = 'pending'
+        ORDER BY request_id LIMIT 1
+    """, (user_id, f"verification_{track}"))
+    if not mithrix.fetchone():
+        mithrix.execute("""
+            INSERT INTO request(user_id, request_type, request_status, request_date)
+            VALUES (%s, %s, 'pending', %s)
+            RETURNING request_id
+        """, (user_id, f"verification_{track}", now))
+        request_id = mithrix.fetchone()["request_id"]
+        log_audit(mithrix, user_id, "verification_request", "request", request_id)
 
     mithrix.execute("""
         SELECT contact_value FROM "contact"
@@ -160,11 +166,15 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     last_name     = last_name.strip()     if last_name     else ""
     university_no = (university_no or "").strip()
     email         = email.strip()         if email         else ""
+    if preferred_contact == 'phone':
+        email = ""
+    elif preferred_contact == 'email':
+        phone = ""
     username      = username.strip()      if username      else ""
     role_name = detect_role(university_no) if university_no else "Student"
 
     # validation
-    if not all([first_name, last_name, email, username, password]):
+    if not all([first_name, last_name, username, password]):
         return False, "All required fields must be filled in."
     if password_error(password):
         return False, password_error(password)
@@ -172,9 +182,9 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         phone = normalize_phone(phone)
     except ValueError as exc:
         return False, str(exc)
-    if preferred_contact not in ('email', 'phone') or (preferred_contact == 'phone' and not phone):
+    if preferred_contact not in ('email', 'phone') or (preferred_contact == 'phone' and not phone) or (preferred_contact == 'email' and not email):
         return False, "Choose a valid contact preference and supply its contact details."
-    if not EMAIL_PATTERN.match(email):
+    if email and not EMAIL_PATTERN.match(email):
         return False, "Invalid email format."
     if not USERNAME_PATTERN.match(username):
         return False, "Username must be 3-30 characters, letters, numbers, and underscores only."
@@ -233,11 +243,12 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         """, (username_id, password_id, user_id, now, now))
 
         # insert contact
-        mithrix.execute("""INSERT INTO contact
-            (user_id, contact_type, contact_value,
-            is_primary, created_at)
-            VALUES (%s, 'email', %s, TRUE, %s)
-        """, (user_id, email.lower(), now))
+        if email:
+            mithrix.execute("""INSERT INTO contact
+                (user_id, contact_type, contact_value,
+                is_primary, created_at)
+                VALUES (%s, 'email', %s, TRUE, %s)
+            """, (user_id, email.lower(), now))
 
         # add log to sign up tble
         mithrix.execute("""
@@ -545,7 +556,7 @@ def verify_otp(reset_id, otp_entered):
         mithrix.close()
         conn.close()
 
-def change_password(reset_id, user_id, new_password):
+def change_password(reset_id, user_id, new_password, current_password=None):
     if password_error(new_password):
         return False, password_error(new_password)
 
@@ -554,14 +565,24 @@ def change_password(reset_id, user_id, new_password):
     now = datetime.now(timezone.utc)
 
     try:
+        mithrix.execute('SELECT user_id FROM "user" WHERE user_id = %s FOR UPDATE', (user_id,))
         mithrix.execute("""
-            SELECT password_id FROM slug
-            WHERE user_id   = %s
-            AND is_current = TRUE
+            SELECT sl.username_id, sl.password_id, r.password AS password_hash
+            FROM slug sl JOIN ror r ON r.password_id = sl.password_id
+            WHERE sl.user_id = %s AND sl.is_current = TRUE
+            ORDER BY sl.assigned_at DESC, sl.password_id DESC
             LIMIT 1
+            FOR UPDATE OF sl
         """, (user_id,))
         row = mithrix.fetchone()
-        old_password_id = row["password_id"] if row else None
+        if not row:
+            conn.rollback()
+            return False, "Current credentials could not be found."
+        if current_password is not None and not check_password_hash(row["password_hash"], current_password):
+            conn.rollback()
+            return False, "Current password is incorrect."
+        old_password_id = row["password_id"]
+        username_id = row["username_id"]
 
         mithrix.execute("""
             INSERT INTO ror (password, updated_at, previous_password_id)
@@ -578,12 +599,8 @@ def change_password(reset_id, user_id, new_password):
         mithrix.execute("""
             INSERT INTO slug (username_id, password_id, user_id,
                               assigned_at, updated_at, is_current)
-            SELECT username_id, %s, %s, %s, %s, TRUE
-            FROM slug
-            WHERE user_id = %s
-            ORDER BY assigned_at DESC
-            LIMIT 1
-        """, (new_password_id, user_id, now, now, user_id))
+            VALUES (%s, %s, %s, %s, %s, TRUE)
+        """, (username_id, new_password_id, user_id, now, now))
 
         mithrix.execute("""
             UPDATE password_reset SET is_used = TRUE
@@ -606,36 +623,10 @@ def change_password(reset_id, user_id, new_password):
         conn.close()
 
 def change_own_password(user_id, current_password, new_password):
-    """
-    Self-service password change from the User Information page —
-    distinct from change_password(), which is reached via the
-    forgot-password/OTP flow (proves identity through email instead of
-    a known current password). Verifies current_password first, then
-    reuses change_password()'s existing swap logic with reset_id=None
-    (there's no password_reset row to mark used in this flow).
-    """
-    conn = db_connect()
-    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
-        mithrix.execute("""
-            SELECT r.password AS password_hash
-            FROM slug sl
-            JOIN ror r ON r.password_id = sl.password_id
-            WHERE sl.user_id = %s AND sl.is_current = TRUE
-            LIMIT 1
-        """, (user_id,))
-        row = mithrix.fetchone()
-
-        if not row or not check_password_hash(row["password_hash"], current_password):
-            return False, "Current password is incorrect."
-    except Exception as exc:
-        logger.error("Database error: %s", exc)
-        return False, "A database error occurred. Please try again."
-    finally:
-        mithrix.close()
-        conn.close()
-
-    return change_password(None, user_id, new_password)
+    """Verify the current password and replace credentials atomically."""
+    if not isinstance(current_password, str) or not current_password:
+        return False, "Current password is incorrect."
+    return change_password(None, user_id, new_password, current_password=current_password)
 
 
 def sign_out(user_id, device_ip=None):

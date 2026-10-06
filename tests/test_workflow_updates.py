@@ -19,11 +19,12 @@ from app.utils.contact_policy import normalize_phone
 from app.utils.password_policy import password_error
 
 ROOT = Path(__file__).resolve().parents[1]
-PASSWORD = 'a long test passphrase'
+PASSWORD = 'TestPass123'
 
 
-@pytest.mark.parametrize('value,valid', [('x' * 14, False), ('x' * 15, True),
-    ('x' * 128, True), ('x' * 129, False), ('spaces are allowed here', True)])
+@pytest.mark.parametrize('value,valid', [('Aa12345', False), ('Aa123456', True),
+    ('Aa1234567890', True), ('Aa12345678901', False), ('aaaaaaaa', False),
+    ('AAAAAAAA', False), ('12345678', False), ('Aaabcdef', False)])
 def test_password_boundaries(value, valid):
     assert (password_error(value) is None) == valid
 
@@ -94,7 +95,7 @@ def workflow_db(isolated_database, monkeypatch):
         cursor.execute(f'CREATE SCHEMA "{schema}"')
         cursor.execute(f'SET search_path TO "{schema}"')
         cursor.execute((ROOT / 'database/capreDB.sql').read_text(encoding='utf-8'))
-        cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'Admin'), (4, 'Capstone Professor')")
+        cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'RET Chair'), (4, 'Capstone Professor')")
         cursor.execute("INSERT INTO program (program_name) VALUES ('BSIT')")
         cursor.execute("INSERT INTO specialization (specialization_name) VALUES ('DST'), ('NST'), ('WST')")
         cursor.execute((ROOT / 'migrations/20261003_account_repository_workflows.sql').read_text(encoding='utf-8'))
@@ -131,6 +132,88 @@ def test_registration_persists_privacy_and_contact(workflow_db):
         assert row[0:2] == ('phone', '2026-10-03') and row[2]
         cursor.execute("SELECT contact_value FROM contact WHERE user_id = %s AND contact_type = 'phone'", (user_id,))
         assert cursor.fetchone()[0] == '+639171234567'
+        cursor.execute("SELECT COUNT(*) FROM contact WHERE user_id = %s AND contact_type = 'email'", (user_id,))
+        assert cursor.fetchone()[0] == 0
+
+
+@pytest.mark.parametrize('preference,email,phone,stored', [
+    ('email', 'signup@example.edu', '09171234567', ('email', 'signup@example.edu')),
+    ('phone', '', '09171234567', ('phone', '+639171234567')),
+])
+def test_signup_stores_only_chosen_contact(workflow_db, preference, email, phone, stored):
+    ok, error = auth.create_user('Contact', '', 'Test', None, email, 'contact_user', PASSWORD,
+                                 preferred_contact=preference, phone=phone)
+    assert ok, error
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT contact_type, contact_value FROM contact")
+        assert cursor.fetchall() == [stored]
+
+
+def test_concurrent_verification_retries_create_one_pending_request(workflow_db):
+    from concurrent.futures import ThreadPoolExecutor
+    user_id = make_user(workflow_db, 'retry_user')
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute("UPDATE request SET request_status = 'rejected', decision_date = CURRENT_TIMESTAMP WHERE user_id = %s", (user_id,))
+        conn.commit()
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results = list(executor.map(auth.reapply_for_verification, [user_id] * 5))
+    assert all(ok for ok, _ in results)
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM request WHERE user_id = %s AND request_type = 'verification_student' AND request_status = 'pending'", (user_id,))
+        assert cursor.fetchone()[0] == 1
+
+
+def test_decision_notifications_join_target_role(workflow_db, monkeypatch):
+    from app.db import qol
+    monkeypatch.setattr(qol, 'db_connect', workflow_db)
+    user_id = make_user(workflow_db, 'notified_user')
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute("UPDATE request SET request_status = 'approved', decision_date = CURRENT_TIMESTAMP WHERE user_id = %s", (user_id,))
+        conn.commit()
+    notifications, unread = qol.get_user_notification_summary(user_id)
+    assert len(notifications) == 1 and unread == 1
+    assert notifications[0]['target_role_name'] is None
+
+
+def test_password_change_keeps_current_username_and_new_login(workflow_db):
+    from werkzeug.security import generate_password_hash
+    user_id = make_user(workflow_db, 'password_user')
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute('UPDATE "user" SET account_status = %s WHERE user_id = %s', ('active', user_id))
+        cursor.execute("INSERT INTO kappa (username) VALUES ('historical_username') RETURNING username_id")
+        username_id = cursor.fetchone()[0]
+        cursor.execute('INSERT INTO ror (password) VALUES (%s) RETURNING password_id', (generate_password_hash('OldPass123'),))
+        password_id = cursor.fetchone()[0]
+        cursor.execute("INSERT INTO slug (username_id, password_id, user_id, assigned_at, is_current) VALUES (%s, %s, %s, CURRENT_TIMESTAMP + INTERVAL '1 day', FALSE)", (username_id, password_id, user_id))
+        conn.commit()
+    assert auth.change_own_password(user_id, PASSWORD, 'NextPass456') == (True, None)
+    user, error = auth.sign_in('password_user', 'NextPass456')
+    assert user and user['user_id'] == user_id, error
+    assert auth.sign_in('password_user', PASSWORD)[0] is None
+
+
+def test_concurrent_password_changes_only_accept_current_password(workflow_db):
+    from concurrent.futures import ThreadPoolExecutor
+    user_id = make_user(workflow_db, 'password_race')
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute('UPDATE "user" SET account_status = %s WHERE user_id = %s', ('active', user_id))
+        conn.commit()
+    new_passwords = ['NextPass456', 'OtherPass789']
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(lambda value: auth.change_own_password(user_id, PASSWORD, value), new_passwords))
+    assert sum(ok for ok, _ in results) == 1
+    winner = new_passwords[next(i for i, (ok, _) in enumerate(results) if ok)]
+    assert auth.sign_in('password_race', winner)[0]['user_id'] == user_id
+
+
+@pytest.mark.parametrize('current,new', [('wrong', 'NextPass456'), (None, 'NextPass456'), (PASSWORD, 'short'), (PASSWORD, 'lowercase123')])
+def test_rejected_password_change_preserves_login(workflow_db, current, new):
+    user_id = make_user(workflow_db, 'unchanged_user')
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute('UPDATE "user" SET account_status = %s WHERE user_id = %s', ('active', user_id))
+        conn.commit()
+    assert not auth.change_own_password(user_id, current, new)[0]
+    assert auth.sign_in('unchanged_user', PASSWORD)[0]['user_id'] == user_id
 
 
 def test_promotion_password_lockout_and_success(workflow_db):
@@ -223,16 +306,19 @@ def test_mismatched_program_specialization_rejected(feature_app, monkeypatch):
 
 
 def test_history_permissions(feature_app, monkeypatch):
+    from app.routes.admin import history
     calls = []
-    monkeypatch.setattr(review_history, 'get_review_history', lambda page, recent, verification_only: (calls.append(verification_only) or [], 0, 20))
+    monkeypatch.setattr(history, 'get_review_history', lambda **kwargs: (calls.append(kwargs['reviewed_by']) or [], 0, 20))
     client = feature_app.test_client()
     login(client, 1)
     assert client.get('/review-history').status_code == 302
     assert not calls
     login(client, 4)
-    assert client.get('/review-history').status_code == 200 and calls[-1] is True
+    with client.session_transaction() as state:
+        reviewer_id = state['user_id']
+    assert client.get('/review-history').status_code == 200 and calls[-1] == reviewer_id
     login(client, 3)
-    assert client.get('/review-history?view=recent').status_code == 200 and calls[-1] is False
+    assert client.get('/review-history?view=recent').status_code == 200 and calls[-1] is None
 
 
 def test_migrations_allow_line_endings_but_reject_sql_changes(workflow_db, monkeypatch, tmp_path):

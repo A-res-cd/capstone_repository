@@ -2,6 +2,7 @@
 from . import admin
 from flask import (
     abort,
+    g,
     render_template,
     request,
     redirect,
@@ -30,7 +31,7 @@ from app.db.auth import (
     review_verification_request,
 )
 from app.routes.decorators import role_required
-from app.constants.roles import ROLE_RET_CHAIR
+from app.constants.roles import ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR
 from app import mail
 
 
@@ -51,7 +52,7 @@ def _send_verification_email(recipient, decision, status_reason):
 
 
 @admin.route("/manage_users")
-@role_required(ROLE_RET_CHAIR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def manage_users():
     search = request.args.get("search", "").strip()
     role_id = request.args.get("role", "").strip()
@@ -59,7 +60,8 @@ def manage_users():
     page = request.args.get("page", 1, type=int)
     page_size = 20
 
-    users, total = get_users(
+    verification_only = g.user.get('role_name') == ROLE_CAPSTONE_PROFESSOR
+    users, total = ([], 0) if verification_only else get_users(
         search=search or None,
         role_id=int(role_id) if role_id.isdigit() else None,
         status=status or None,
@@ -68,9 +70,9 @@ def manage_users():
     )
     total_pages = max(1, (total + page_size - 1) // page_size)
 
-    roles = get_all_roles()
+    roles = [] if verification_only else get_all_roles()
     pending_verifications = get_pending_verifications()
-    pending_promotions = get_pending_promotion_requests()
+    pending_promotions = [] if verification_only else get_pending_promotion_requests()
     return render_template(
         "admin/manage_users.html",
         users=users,
@@ -83,11 +85,12 @@ def manage_users():
         page=page,
         total_pages=total_pages,
         total_users=total,
+        is_admin=not verification_only,
     )
 
 
 @admin.route('/manage_users/verify/<int:request_id>/details')
-@role_required(ROLE_RET_CHAIR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def verification_details(request_id):
     details = get_verification_details(request_id)
     if not details:
@@ -101,7 +104,7 @@ def verification_details(request_id):
 
 
 @admin.route('/manage_users/verify/<int:request_id>/document')
-@role_required(ROLE_RET_CHAIR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def verification_document(request_id):
     document = get_verification_document(request_id)
     if not document:
@@ -145,7 +148,7 @@ def decide_promotion(request_id):
 
 
 @admin.route("/manage_users/verify/<int:request_id>", methods=["POST"])
-@role_required(ROLE_RET_CHAIR)
+@role_required(ROLE_RET_CHAIR, ROLE_CAPSTONE_PROFESSOR)
 def decide_verification(request_id):
     decision = request.form.get("decision")  # 'approved' or 'rejected'
     status_reason = request.form.get("status_reason", "")

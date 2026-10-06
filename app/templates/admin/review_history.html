@@ -11,11 +11,12 @@
     <div class="profile-paper audit-paper">
         <div class="audit-paper-heading">Completed reviews <span>{{ total }} reviews · {{ page_size }} per page</span></div>
         {% for item in reviews %}
+        {% set request_type = (item.request_type or ('manuscript' if item.capstone_title else 'request')).replace('_', ' ') %}
         <article class="audit-event">
             <div class="audit-event-meta"><time>{{ item.decision_date }}</time><span>{{ item.request_status | capitalize }}</span></div>
             <div class="audit-event-copy">
-                <strong>{{ item.capstone_title or item.request_type.replace('_', ' ') | capitalize }}</strong>
-                <p>#{{ item.request_id }} · {{ item.request_type.replace('_', ' ') }} · {{ item.requester }}</p>
+                <strong>{{ item.capstone_title or request_type | capitalize }}</strong>
+                <p>#{{ item.request_id }} · {{ request_type }} · {{ item.requester }}</p>
                 <p>Reviewed by {{ item.reviewer or 'Former reviewer' }}</p>
                 {% if item.status_reason %}<p>Reason: {{ item.status_reason }}</p>{% endif %}
             </div>

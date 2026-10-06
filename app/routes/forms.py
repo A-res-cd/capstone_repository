@@ -25,7 +25,7 @@ class SignupForm(FlaskForm):
     first_name = StringField("First Name", validators=[DataRequired(message = "Firt Name is required."), Length(max=50)])
     middle_name = StringField("Middle Name", validators=[Optional(), Length(max=50)])
     last_name = StringField("Last Name", validators=[DataRequired(message = "Last Name is required")])
-    email = StringField("Email", validators=[DataRequired(message = "Email is required."), Email(message="Invalid Email format.")])
+    email = StringField("Email", validators=[Optional(), Email(message="Invalid Email format.")])
     username = StringField("Username", validators=[DataRequired(message = "Username is required."), 
                                                    Regexp(r'^[a-zA-Z0-9_]{3,30}$', 
                                                           message="Username must be 3-30 characters, letters, numbers, and underscores only.")])
@@ -33,10 +33,17 @@ class SignupForm(FlaskForm):
     password = PasswordField("Password", validators=[DataRequired(message = "Password is required"), 
                                                      validate_password])
     confirm_password = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", message="Passwords do not match.")])
-    preferred_contact = SelectField("Preferred contact", choices=[("email", "Email"), ("phone", "Phone")], default="email")
+    preferred_contact = SelectField("Preferred contact", choices=[("", "Choose email or phone"), ("email", "Email"), ("phone", "Phone")], default="", validators=[DataRequired(message="Choose email or phone.")])
     phone = StringField("Phone number", validators=[Optional(), Length(max=30)])
 
     def validate_preferred_contact(self, field):
+        if field.data == "email":
+            if not (self.email.data or '').strip():
+                raise ValidationError("Enter your email address.")
+            self.phone.data = ""
+            return
+        if field.data == "phone":
+            self.email.data = ""
         try:
             self.phone.data = normalize_phone(self.phone.data)
         except ValueError as exc:

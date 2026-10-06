@@ -74,7 +74,9 @@ def _user_information_context(user_id):
         ("instagram", "Instagram"),
         ("twitter", "Twitter/X"),
     ]
-    contact_by_type = {c["contact_type"]: c for c in contacts}
+    contact_by_type = {}
+    for contact in contacts:
+        contact_by_type.setdefault(contact["contact_type"], contact)
 
     roles = get_all_roles()
     promotion_requests = get_own_promotion_requests(user_id)
@@ -121,9 +123,9 @@ def _render_profile(capstoner_form=None):
         activity_totals=activity_totals,
         profile_metrics=[
             {"label": "Works", "value": len(my_works)},
-            {"label": "Citations", "value": "—"},
-            {"label": "Views", "value": "—"},
-            {"label": "Requests", "value": "—"},
+            {"label": "Citations", "value": activity_totals.get("citations", 0)},
+            {"label": "Views", "value": activity_totals.get("views", 0)},
+            {"label": "Requests", "value": activity_totals.get("requests", 0)},
         ],
         recent_activity=recent_activity,
     )

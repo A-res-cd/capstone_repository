@@ -268,6 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const n = Number(dot.dataset.stepDot);
             dot.classList.toggle('form-step-dot--active', n === stepNum);
             dot.classList.toggle('form-step-dot--done', n < stepNum);
+            if (n === stepNum) dot.setAttribute('aria-current', 'step');
+            else dot.removeAttribute('aria-current');
         });
         panelForm.scrollTop = 0;
     }

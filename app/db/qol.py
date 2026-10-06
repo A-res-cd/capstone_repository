@@ -30,6 +30,7 @@ def get_user_notification_summary(user_id, limit=6):
                 NULL AS notification_message
             FROM request r
             LEFT JOIN capstone c ON c.capstone_id = r.capstone_id
+            LEFT JOIN role target_role ON target_role.role_id = r.target_role_id
             WHERE r.user_id = %s
               AND r.request_type IS DISTINCT FROM 'promotion'
               AND r.decision_date IS NOT NULL

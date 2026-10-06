@@ -5,7 +5,7 @@
     dialog.dataset.bound = 'true';
     const status = dialog.querySelector('[data-verification-status]');
     const fields = dialog.querySelector('[data-verification-fields]');
-    const file = dialog.querySelector('[data-verification-file]');
+    const rejectionReason = dialog.querySelector('#verification-rejection-reason');
     const viewerWrap = dialog.querySelector('[data-verification-viewer-wrap]');
     const viewer = dialog.querySelector('[data-verification-viewer]');
     const decisionForms = Array.from(dialog.querySelectorAll('[data-verification-decision-form]'));
@@ -29,8 +29,7 @@
         setDecisionState(button.dataset.verificationAction, false);
         fields.replaceChildren();
         fields.hidden = true;
-        file.hidden = true;
-        file.removeAttribute('href');
+        rejectionReason.value = '';
         viewerWrap.hidden = true;
         viewer.removeAttribute('src');
         status.textContent = 'Loading account details…';
@@ -63,9 +62,6 @@
                 if (url.origin !== location.origin) throw new Error('Invalid file link');
                 viewer.src = `${url.href}?inline=1`;
                 viewerWrap.hidden = false;
-                file.href = url.href;
-                file.setAttribute('download', data.filename || 'cor.pdf');
-                file.hidden = false;
             }
         } catch (error) {
             viewerWrap.hidden = true;

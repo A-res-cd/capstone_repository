@@ -49,8 +49,15 @@
                     <p>Fill in your details to register</p>
                 </div>
 
-                <form id="signup-form" action="{{ url_for('auth.signup') }}" method="POST" enctype="multipart/form-data" class="auth-form" novalidate>
+                <form id="signup-form" data-password-policy data-password-field="password" action="{{ url_for('auth.signup') }}" method="POST" enctype="multipart/form-data" class="auth-form" novalidate>
                     {{ form.hidden_tag() }}
+                    <ol class="signup-progress" aria-label="Registration steps">
+                        <li><button type="button" data-step-label class="is-active" aria-current="step">1. Upload COR</button></li>
+                        <li><button type="button" data-step-label disabled>2. Account details</button></li>
+                        <li><button type="button" data-step-label disabled>3. Preferred contact</button></li>
+                        <li><button type="button" data-step-label disabled>4. Review &amp; agreement</button></li>
+                    </ol>
+                    <section data-signup-step aria-label="Upload COR">
 
                     <div class="form-group cor-upload-group">
                         {{ form.cor.label }}
@@ -60,6 +67,8 @@
                         {% for error in form.cor.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
                     </div>
 
+                    </section>
+                    <section data-signup-step aria-label="Your details" hidden>
                     <div id="cor-extraction" class="cor-extraction" hidden>
                         <div class="form-group">
                             {{ form.student_no.label }}
@@ -92,13 +101,6 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            {{ form.email.label }}
-                            {{ form.email(id="email", placeholder="your@email.com", autocomplete="email") }}
-                            {% for error in form.email.errors %}
-                                <span class="field-error">{{ error }}</span>
-                            {% endfor %}
-                        </div>
-                        <div class="form-group">
                             {{ form.username.label }}
                             {{ form.username(id="username", placeholder="Choose a username", autocomplete="username") }}
                             {% for error in form.username.errors %}
@@ -110,11 +112,12 @@
                     <div class="form-group">
                         {{ form.password.label }}
                         <div class="input-with-toggle">
-                            {{ form.password(id="password", placeholder="15-128 characters", autocomplete="new-password", minlength=15, maxlength=128) }}
+                            {{ form.password(id="password", placeholder="8-12 characters", autocomplete="new-password", minlength=8) }}
                             <button type="button" class="input-toggle-btn" onclick="togglePassword('password', this)" aria-label="Show password" aria-controls="password" aria-pressed="false">
                                 <i class="bx bx-hide" aria-hidden="true"></i>
                             </button>
                         </div>
+                        {% include "partials/password_policy.html" %}
                         {% for error in form.password.errors %}
                             <span class="field-error">{{ error }}</span>
                         {% endfor %}
@@ -122,17 +125,38 @@
 
                     <div class="form-group">
                         {{ form.confirm_password.label }}
-                        {{ form.confirm_password(autocomplete="new-password", minlength=15, maxlength=128) }}
-                        <p class="helper-text">Use 15-128 characters. Spaces and passphrases are allowed.</p>
+                        <div class="input-with-toggle">
+                            {{ form.confirm_password(id="confirm_password", autocomplete="new-password", minlength=8) }}
+                            <button type="button" class="input-toggle-btn" data-password-toggle="confirm_password" aria-label="Show password" aria-controls="confirm_password" aria-pressed="false">
+                                <i class="bx bx-hide" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <p class="password-match" data-password-match aria-live="polite">Confirm your password.</p>
+                        <p class="helper-text">Use 8-12 characters. Include uppercase, lowercase and numbers.</p>
                         {% for error in form.confirm_password.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
                     </div>
-                    <div class="form-group">
-                        {{ form.preferred_contact.label }}{{ form.preferred_contact() }}
-                        {% for error in form.preferred_contact.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
-                        {{ form.phone.label }}{{ form.phone(type="tel", autocomplete="tel", placeholder="+639171234567") }}
-                        {% for error in form.phone.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
-                        <p class="helper-text">Email remains required for recovery and account notices.</p>
-                    </div>
+                    </section>
+                    <section data-signup-step aria-label="Preferred contact" hidden>
+                        <div class="form-group">
+                            {{ form.preferred_contact.label }}
+                            {{ form.preferred_contact(id="preferred_contact", required=true) }}
+                            {% for error in form.preferred_contact.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group" data-contact-field="email">
+                            {{ form.email.label }}
+                            {{ form.email(id="email", type="email", placeholder="your@email.com", autocomplete="email") }}
+                            {% for error in form.email.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="form-group" data-contact-field="phone">
+                            {{ form.phone.label }}
+                            {{ form.phone(id="phone", type="tel", autocomplete="tel", placeholder="+639171234567") }}
+                            {% for error in form.phone.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                        </div>
+                    </section>
+                    <section data-signup-step aria-label="Review and agreement" hidden>
+                        <h3>Double-check your details</h3>
+                        <dl class="signup-review" id="signup-review"></dl>
+                        <p class="helper-text">Use Back or an earlier phase above to make corrections before submitting.</p>
                     <div class="form-group signup-terms">
                         <div class="signup-terms__choice">
                             <label class="signup-terms__label">
@@ -147,9 +171,15 @@
                             <span class="field-error">{{ error }}</span>
                         {% endfor %}
                     </div>
+                    </section>
+                    <p id="signup-step-error" class="field-error" role="alert" hidden></p>
+                    <div class="signup-actions">
+                        <button type="button" class="btn-auth-secondary" data-signup-back hidden>Back</button>
+                        <button type="button" class="btn-auth-primary" data-signup-next>Continue</button>
+                    </div>
                 </form>
 
-                <button type="submit" form="signup-form" class="btn-auth-primary">
+                <button type="submit" form="signup-form" class="btn-auth-primary" id="signup-submit" hidden>
                     <i class="bx bx-user-plus"></i>
                     Create Account
                 </button>
@@ -188,8 +218,11 @@
     </div>
 </div>
 
+{% endblock %}
+
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/signup_cor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/signup_steps.js') }}"></script>
 <script>
 function togglePassword(fieldId, btn) {
     const field = document.getElementById(fieldId);
@@ -227,5 +260,4 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !termsModal.hidden) closeTermsModal();
 });
 </script>
-{% endblock %}
 {% endblock %}

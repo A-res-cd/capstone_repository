@@ -345,11 +345,15 @@ main:has(.auth-shell) {
     font-size: 17px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
     padding: 0;
     transition: color 0.15s;
 }
 
 .input-toggle-btn:hover { color: var(--text-brand); }
+.input-toggle-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: .25rem; }
 
 .auth-form__meta {
     display: flex;
@@ -514,3 +518,29 @@ main:has(.auth-shell) {
     .auth-form-card { padding: 36px 20px 28px 30px; }
     .auth-card__tab { left: 20px; }
 }
+/* Signup steps and agreement dialog. */
+.signup-progress { display: flex; gap: .5rem; padding: 0; list-style: none; }
+.signup-progress li { flex: 1; min-width: 0; }
+.signup-progress button { width: 100%; height: 100%; padding: .6rem .4rem; border: 0; border-bottom: 3px solid var(--color-gray); color: var(--text-dark); background: transparent; font: inherit; font-size: .8rem; cursor: pointer; }
+.signup-progress button:disabled { opacity: .5; cursor: default; }
+.signup-progress button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.signup-progress .is-active { border-color: var(--color-primary); color: var(--text-brand); font-weight: 700; }
+.signup-review { display: grid; grid-template-columns: auto 1fr; gap: .5rem 1rem; margin: 1rem 0; }
+.signup-review dt { font-weight: 600; }
+.signup-review dd { margin: 0; overflow-wrap: anywhere; }
+.signup-actions { display: flex; gap: .75rem; margin-top: 1rem; }
+.signup-actions button { flex: 1; }
+.btn-auth-secondary { padding: .75rem; border: 1px solid var(--color-primary); border-radius: .5rem; color: var(--text-brand); background: transparent; cursor: pointer; }
+.signup-terms__choice { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.signup-terms__label { display: inline-flex !important; align-items: center; gap: .5rem; margin: 0 !important; }
+.auth-form .signup-terms input[type="checkbox"] { width: 1.1rem; height: 1.1rem; margin: 0; padding: 0; accent-color: var(--color-primary); }
+.signup-terms__link { padding: 0; border: 0; background: transparent; color: var(--text-brand); font: inherit; text-decoration: underline; cursor: pointer; }
+.terms-modal { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 1rem; }
+.terms-modal__backdrop { position: absolute; inset: 0; background: #0009; }
+.terms-modal__content { position: relative; width: min(100%, 42rem); max-height: 85vh; overflow: auto; padding: 2rem; border-radius: .75rem; color: var(--text-dark); background: var(--bg-card-neutral); line-height: 1.6; }
+.terms-modal__content h2 { padding-right: 2rem; }
+.terms-modal__content p, .terms-modal__content ul { margin: 1rem 0; }
+.terms-modal__content a { color: var(--text-brand); }
+.terms-modal__close { position: absolute; top: .75rem; right: .75rem; width: 2rem; height: 2rem; border: 0; border-radius: .4rem; color: inherit; background: transparent; font-size: 1.5rem; cursor: pointer; }
+.terms-modal__close:focus-visible, .signup-terms__link:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.terms-modal[hidden], [data-signup-step][hidden], [data-contact-field][hidden], .signup-actions[hidden], .signup-actions button[hidden], #signup-submit[hidden] { display: none !important; }

@@ -6,4 +6,23 @@
 .review-history th, .review-history td { text-align: left; padding: .75rem; border-bottom: 1px solid #8886; overflow-wrap: anywhere; }
 .review-history nav { display: flex; gap: 1rem; margin-top: 1rem; }
 .propose-topic-form textarea { width: 100%; box-sizing: border-box; min-height: 7rem; padding: .75rem; font: inherit; color: inherit; background: transparent; border: 1px solid #8888; border-radius: .5rem; }
-.header-audit-link { color: inherit; font-size: .8rem; white-space: nowrap; }
+.header-audit-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .5rem .75rem;
+    border: 1px solid currentColor;
+    border-radius: .5rem;
+    color: inherit;
+    font-size: .8rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.header-audit-link:hover { background: #ffffff22; }
+.header-audit-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.password-policy { display: grid; gap: .25rem; margin: .5rem 0; padding: 0; list-style: none; font-size: .8rem; color: var(--text-dark); }
+.password-policy li::before { content: '○ '; }
+.password-policy li.is-met::before { content: '✓ '; }
+.password-policy .is-met, .password-feedback.is-met, .password-match.is-met { color: var(--status-approved); }
+.password-feedback, .password-match { margin: .4rem 0; font-size: .8rem; }

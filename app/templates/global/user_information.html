@@ -225,7 +225,7 @@
                 <h3><i class="bx bx-lock-alt"></i> Change Password</h3>
                 <p>Choose a password you don't use anywhere else.</p>
             </div>
-            <form method="post" action="{{ url_for('pages.update_own_password') }}" id="password-form">
+            <form method="post" action="{{ url_for('pages.update_own_password') }}" id="password-form" data-password-policy>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-row form-row--3col">
                     <div class="form-group">
@@ -234,11 +234,13 @@
                     </div>
                     <div class="form-group">
                         <label for="new_password">New password</label>
-                        <input type="password" id="new_password" name="new_password" placeholder="15-128 characters" minlength="15" maxlength="128" required>
+                        <input type="password" id="new_password" name="new_password" placeholder="8-12 characters" minlength="8" required>
+                        {% include "partials/password_policy.html" %}
                     </div>
                     <div class="form-group">
                         <label for="confirm_password">Confirm new password</label>
-                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="15" maxlength="128" required>
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="8" required>
+                        <p class="password-match" data-password-match aria-live="polite">Confirm your password.</p>
                     </div>
                 </div>
                 <div class="form-actions">

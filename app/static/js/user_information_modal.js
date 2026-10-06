@@ -94,9 +94,12 @@
         if (editContactButton && saveContactButton && cancelContactButton && contactForm) {
             const contactInputs = Array.from(contactForm.querySelectorAll('input:not([type="hidden"])'));
             const initialValues = contactInputs.map((input) => input.value);
+            const preference = contactForm.querySelector('[name="preferred_contact"]');
+            const initialPreference = preference?.value;
 
             editContactButton.addEventListener('click', () => {
                 contactInputs.forEach((input) => input.removeAttribute('readonly'));
+                if (preference) preference.disabled = false;
                 editContactButton.classList.add('hidden');
                 saveContactButton.classList.remove('hidden');
                 cancelContactButton.classList.remove('hidden');
@@ -107,6 +110,10 @@
                     input.value = initialValues[index] || '';
                     input.setAttribute('readonly', 'readonly');
                 });
+                if (preference) {
+                    preference.value = initialPreference;
+                    preference.disabled = true;
+                }
                 editContactButton.classList.remove('hidden');
                 saveContactButton.classList.add('hidden');
                 cancelContactButton.classList.add('hidden');

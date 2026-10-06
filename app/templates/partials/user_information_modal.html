@@ -84,6 +84,13 @@
                         </div>
                         <form method="post" action="{{ url_for('pages.update_user_contact_info') }}" id="contact-info-form">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="form-group">
+                                <label for="profile-preferred-contact">Preferred contact</label>
+                                <select id="profile-preferred-contact" name="preferred_contact" disabled>
+                                    <option value="email" {% if profile.preferred_contact != 'phone' %}selected{% endif %}>Email</option>
+                                    <option value="phone" {% if profile.preferred_contact == 'phone' %}selected{% endif %}>Phone</option>
+                                </select>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Email</label>
@@ -189,7 +196,7 @@
                         <h3><i class="bx bx-lock-alt"></i> Change Password</h3>
                         <p>Choose a password you do not use anywhere else.</p>
                     </div>
-                    <form method="post" action="{{ url_for('pages.update_own_password') }}" id="password-form">
+                    <form method="post" action="{{ url_for('pages.update_own_password') }}" id="password-form" data-password-policy>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="form-row form-row--3col">
                             <div class="form-group">
@@ -198,11 +205,13 @@
                             </div>
                             <div class="form-group">
                                 <label for="new_password">New password</label>
-                                <input type="password" id="new_password" name="new_password" placeholder="At least 6 characters" minlength="6" required>
+                                <input type="password" id="new_password" name="new_password" placeholder="8-12 characters, uppercase, lowercase and numbers" minlength="8" required>
+                        {% include "partials/password_policy.html" %}
                             </div>
                             <div class="form-group">
                                 <label for="confirm_password">Confirm new password</label>
-                                <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="6" required>
+                                <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="8" required>
+                        <p class="password-match" data-password-match aria-live="polite">Confirm your password.</p>
                             </div>
                         </div>
                         <div class="form-actions">

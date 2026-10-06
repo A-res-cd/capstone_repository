@@ -28,23 +28,13 @@ def get_nav_links(role):
             "section": "Reports & Audit"
         },
 
-        {
-            "name": "Audit Logs", 
-            "title": "Audit Logs",
-            "url": "admin.audit_logs", 
-            "icon": "bx bx-history",
-            "roles": ["RET Chair"],
-            "section": "Reports & Audit"
-        },
-        
-
         # --- Process 2.0: Manage User and Role — Admin only ---
         {
             "name": "Users & Roles",
             "title": "User Management",
             "url": "admin.manage_users",
             "icon": "bx bx-group",
-            "roles": ["RET Chair"],
+            "roles": ["RET Chair", "Capstone Professor"],
             "section": "Management"
         },
 

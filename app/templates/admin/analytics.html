@@ -9,15 +9,6 @@
 
 {% block content %}
 <section class="analytics-section">
-    <details class="analytics-abbreviations">
-        <summary><i class="bx bx-info-circle" aria-hidden="true"></i> Abbreviation legend</summary>
-        <dl>
-            {% for item in abbreviations %}
-            <div><dt>{{ item.code }}</dt><dd>{{ item.name }}</dd></div>
-            {% endfor %}
-        </dl>
-    </details>
-
     {# Flash Messages — shows the exact DB error so it's actionable #}
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -121,8 +112,16 @@
         </div>
 
         <div class="analytics-panel analytics-panel--table">
-            <div class="analytics-panel__header">
+            <div class="analytics-panel__header analytics-panel__header--summary">
                 <h3>Summary by Specialization</h3>
+                <details class="analytics-abbreviations">
+                    <summary><i class="bx bx-info-circle" aria-hidden="true"></i> Abbreviation legend</summary>
+                    <dl>
+                        {% for item in abbreviations %}
+                        <div><dt>{{ item.code }}</dt><dd>{{ item.name }}</dd></div>
+                        {% endfor %}
+                    </dl>
+                </details>
             </div>
             <div class="analytics-table-wrap">
                 <table class="analytics-table">
@@ -134,7 +133,7 @@
                             <th>Utilized</th>
                             <th>Presented</th>
                             <th>Copyright Registered</th>
-                            <th>Print Report</th>
+                            <th>Reports</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -147,10 +146,14 @@
                             <td data-report-field="Presented">{{ row.presented }} <span class="analytics-table__pct">({{ row.presented_pct }}%)</span></td>
                             <td data-report-field="Copyright Registered">{{ row.copyright_registered }} <span class="analytics-table__pct">({{ row.copyright_pct }}%)</span></td>
                             <td>
-                                <button type="button" class="analytics-export-btn" data-print-report data-report-scope="row" data-report-url="{{ url_for('admin.analytics_specialization_report', specialization_id=row.id, year=selected_year) }}" aria-label="Print {{ row.name }} report">
-                                    <i class="bx bx-printer" aria-hidden="true"></i>
-                                    Print
-                                </button>
+                                <div class="analytics-report-actions">
+                                    <button type="button" class="analytics-export-btn" data-print-report data-report-scope="row" data-report-url="{{ url_for('admin.analytics_specialization_report', specialization_id=row.id, year=selected_year) }}" title="Print {{ row.name }} report" aria-label="Print {{ row.name }} report">
+                                        <i class="bx bx-printer" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="analytics-export-btn" data-export-report data-report-scope="row" data-report-url="{{ url_for('admin.analytics_specialization_report', specialization_id=row.id, year=selected_year) }}" title="Download {{ row.name }} report" data-workbook-url="{{ url_for('admin.analytics_specialization_workbook', specialization_id=row.id, year=selected_year) }}" aria-label="Download {{ row.name }} report">
+                                        <i class="bx bx-download" aria-hidden="true"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -164,10 +167,14 @@
                             <td data-report-field="Presented">{{ summary_totals.presented }}</td>
                             <td data-report-field="Copyright Registered">{{ summary_totals.copyright_registered }}</td>
                             <td>
-                                <button type="button" class="analytics-export-btn" data-print-report data-report-scope="all" data-report-url="{{ url_for('admin.analytics_all_specializations_report', year=selected_year) }}" aria-label="Print all specialization reports">
-                                    <i class="bx bx-printer" aria-hidden="true"></i>
-                                    Print All
-                                </button>
+                                <div class="analytics-report-actions">
+                                    <button type="button" class="analytics-export-btn" data-print-report data-report-scope="all" data-report-url="{{ url_for('admin.analytics_all_specializations_report', year=selected_year) }}" title="Print all specialization reports" aria-label="Print all specialization reports">
+                                        <i class="bx bx-printer" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="analytics-export-btn" data-export-report data-report-scope="all" data-report-url="{{ url_for('admin.analytics_all_specializations_report', year=selected_year) }}" title="Download all specialization reports" data-workbook-url="{{ url_for('admin.analytics_all_specializations_workbook', year=selected_year) }}" aria-label="Download all specialization reports">
+                                        <i class="bx bx-download" aria-hidden="true"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tfoot>
@@ -177,6 +184,39 @@
 
     </div>
 </section>
+
+<div class="analytics-export-modal" id="analytics-export-modal" role="dialog" aria-modal="true" aria-labelledby="analytics-export-title" hidden>
+    <div class="analytics-export-modal__dialog">
+        <button type="button" class="analytics-export-modal__close" id="analytics-export-close" aria-label="Close export dialog">
+            <i class="bx bx-x" aria-hidden="true"></i>
+        </button>
+        <span class="analytics-export-modal__icon"><i class="bx bx-export" aria-hidden="true"></i></span>
+        <h3 id="analytics-export-title">Export Report</h3>
+        <p id="analytics-export-context">Choose a file type for this report.</p>
+
+        <form id="analytics-export-form">
+            <fieldset class="analytics-export-formats">
+                <legend>File type</legend>
+                <label class="analytics-export-format">
+                    <input type="radio" name="export-format" value="csv">
+                    <span><i class="bx bx-spreadsheet" aria-hidden="true"></i><strong>CSV</strong><small>Spreadsheet data</small></span>
+                </label>
+                <label class="analytics-export-format">
+                    <input type="radio" name="export-format" value="pdf">
+                    <span><i class="bx bxs-file-pdf" aria-hidden="true"></i><strong>PDF</strong><small>Ready-to-share report</small></span>
+                </label>
+                <label class="analytics-export-format" id="analytics-export-excel" hidden>
+                    <input type="radio" name="export-format" value="xlsx">
+                    <span><i class="bx bx-grid-alt" aria-hidden="true"></i><strong>Excel</strong><small>Formatted workbook sheets</small></span>
+                </label>
+            </fieldset>
+            <div class="analytics-export-modal__actions">
+                <button type="button" class="btn-pill btn-pill--ghost" id="analytics-export-cancel">Cancel</button>
+                <button type="submit" class="btn-pill btn-pill--primary" id="analytics-export-submit" disabled><i class="bx bx-download" aria-hidden="true"></i>Export</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
     window.chartData = {

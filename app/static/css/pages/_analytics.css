@@ -268,6 +268,12 @@ main:has(.analytics-section) {
     margin: 0 0 2px;
 }
 
+.analytics-panel__header--summary {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-md);
+}
+
 .analytics-panel__header h4 {
     font-family: var(--font-display);
     font-size: var(--text-sm);
@@ -395,6 +401,9 @@ main:has(.analytics-section) {
 .analytics-export-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
     gap: 5px;
     padding: 5px 10px;
     border: 1px solid var(--color-primary-soft);
@@ -405,6 +414,9 @@ main:has(.analytics-section) {
     font-weight: 700;
     cursor: pointer;
 }
+
+.analytics-report-actions { display: flex; gap: .5rem; justify-content: center; }
+.analytics-export-btn i { font-size: 20px; }
 
 .analytics-export-btn:hover,
 .analytics-export-btn:focus-visible {
@@ -753,7 +765,7 @@ body.analytics-export-modal-open {
 
 .analytics-abbreviations {
     position: relative;
-    align-self: flex-end;
+    align-self: center;
     margin-left: auto;
     font-size: var(--text-sm);
     color: var(--text-dark);
