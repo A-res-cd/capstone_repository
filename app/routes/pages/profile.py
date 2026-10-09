@@ -24,7 +24,8 @@ EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 def user_info():
     user_id = session.get("user_id")
     profile = get_own_profile(user_id)
-    contacts = get_user_contacts(user_id)
+    contacts = [contact for contact in get_user_contacts(user_id)
+                if contact["contact_type"] in ("email", "phone")]
     contact_labels = [
         ("email", "Email"),
         ("phone", "Contact Number"),
@@ -54,9 +55,9 @@ def update_user_contact_info():
     preference = request.form.get("preferred_contact", "email")
     try:
         values["phone"] = normalize_phone(values["phone"])
-        if not EMAIL_PATTERN.fullmatch(values["email"]):
-            raise ValueError("Enter a valid email for account recovery.")
-        if preference not in ('email', 'phone') or (preference == 'phone' and not values['phone']):
+        if values["email"] and not EMAIL_PATTERN.fullmatch(values["email"]):
+            raise ValueError("Enter a valid email address.")
+        if preference not in ('email', 'phone') or not values.get(preference):
             raise ValueError("Provide your preferred contact details.")
         save_contact_settings(user_id, values['email'].lower(), values['phone'], preference)
         flash("Contact information updated successfully.", "success")

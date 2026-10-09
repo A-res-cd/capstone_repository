@@ -43,6 +43,7 @@ class Config:
     PG_DB = os.environ["PG_DB"]
     PG_POOL_MIN = _int_env("PG_POOL_MIN")
     PG_POOL_MAX = _int_env("PG_POOL_MAX")
+    PG_SSLMODE = os.environ.get("PG_SSLMODE", "prefer")
 
     MAIL_SERVER = os.environ.get("MAIL_SERVER")
     # Optional in dev (mail may be unconfigured locally) but must not crash
@@ -55,6 +56,12 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_USERNAME")
 
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER")
+    UPLOAD_STORAGE_BACKEND = os.environ.get("UPLOAD_STORAGE_BACKEND", "local")
+    SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+    SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY", "")
+    SUPABASE_MANUSCRIPT_BUCKET = os.environ.get("SUPABASE_MANUSCRIPT_BUCKET", "capre-manuscripts")
+    SUPABASE_REGISTRATION_BUCKET = os.environ.get("SUPABASE_REGISTRATION_BUCKET", "capre-registration")
+    SUPABASE_AVATAR_BUCKET = os.environ.get("SUPABASE_AVATAR_BUCKET", "capre-avatars")
 
     MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25 MB cap on request/upload size
 

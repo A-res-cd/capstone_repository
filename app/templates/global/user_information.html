@@ -43,13 +43,23 @@
 
         {# ── Personal Info + Contact Info, side by side — no more
            tab-switching, both are always visible. ── #}
-        <form method="post" action="{{ url_for('pages.update_picture') }}" enctype="multipart/form-data" class="user-information-update-group">
+        <form method="post" action="{{ url_for('pages.update_picture') }}" enctype="multipart/form-data" class="user-information-update-group ui-picture-card">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label for="profile-picture">Profile picture</label>
-            <input type="file" id="profile-picture" name="picture" accept="image/jpeg,image/png,image/webp">
-            <p class="helper-text">Still JPEG, PNG, or WebP. Maximum 2 MB and 4096 x 4096 pixels. Cropped to a square; metadata removed.</p>
-            <button class="btn-pill btn-pill--primary" type="submit">Save picture</button>
-            {% if profile.avatar_filename %}<button class="btn-pill btn-pill--ghost" type="submit" name="action" value="remove">Remove picture</button>{% endif %}
+            <div class="ui-card-header">
+                <h3>Profile picture</h3>
+                <p>Choose a photo for your account.</p>
+            </div>
+            <div class="ui-picture-card__body">
+                <div class="form-group file-upload-wrapper">
+                    <label for="profile-picture">Upload image</label>
+                    <input type="file" id="profile-picture" name="picture" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-picture-help">
+                    <p id="profile-picture-help" class="helper-text">JPEG, PNG, or WebP. Maximum 2 MB and 4096 × 4096 pixels. Cropped to a square; metadata removed.</p>
+                </div>
+                <div class="ui-picture-card__actions">
+                    <button class="btn-pill btn-pill--primary" type="submit">Save picture</button>
+                    {% if profile.avatar_filename %}<button class="btn-pill btn-pill--ghost" type="submit" name="action" value="remove">Remove picture</button>{% endif %}
+                </div>
+            </div>
         </form>
         <div class="ui-grid">
 
@@ -59,33 +69,13 @@
                     <p>Managed by the university registrar — reach out to Admin to request a correction.</p>
                 </div>
 
-                <div class="form-row form-row--3col">
-                    <div class="form-group">
-                        <label>First name</label>
-                        <input type="text" value="{{ profile.user_first_name or '' }}" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Middle name</label>
-                        <input type="text" value="{{ profile.user_middle_name or '' }}" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Last name</label>
-                        <input type="text" value="{{ profile.user_last_name or '' }}" readonly>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Username</label>
-                        <input type="text" value="{{ profile.username or '' }}" readonly>
-                        <span class="helper-text">This cannot be changed</span>
-                    </div>
-                    <div class="form-group">
-                        <label>University ID</label>
-                        <input type="text" value="{{ profile.university_no or '' }}" readonly>
-                        <span class="helper-text">Assigned by university</span>
-                    </div>
-                </div>
+                <dl class="ui-profile-facts">
+                    <div><dt>First name</dt><dd>{{ profile.user_first_name or 'Not provided' }}</dd></div>
+                    <div><dt>Middle name</dt><dd>{{ profile.user_middle_name or 'Not provided' }}</dd></div>
+                    <div><dt>Last name</dt><dd>{{ profile.user_last_name or 'Not provided' }}</dd></div>
+                    <div><dt>Username</dt><dd>{{ profile.username or 'Not provided' }}</dd></div>
+                    <div><dt>University ID</dt><dd>{{ profile.university_no or 'Not provided' }}</dd></div>
+                </dl>
             </div>
 
             <div class="user-information-update-group">
@@ -94,24 +84,26 @@
                     <p>Kept on file for faculty/admin outreach — not shown publicly in the archive.</p>
                 </div>
                 <form method="post" action="{{ url_for('pages.update_user_contact_info') }}" id="contact-info-form">
+                    <div class="form-group">
                     <label for="contact-preference">Preferred contact</label>
                     <select id="contact-preference" name="preferred_contact" disabled>
                         <option value="email" {% if profile.preferred_contact == 'email' %}selected{% endif %}>Email</option>
                         <option value="phone" {% if profile.preferred_contact == 'phone' %}selected{% endif %}>Phone</option>
                     </select>
+                    </div>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Email</label>
-                            <input type="email" name="email" value="{{ contact_by_type.get('email').contact_value if contact_by_type.get('email') else '' }}" placeholder="Not provided" readonly>
+                            <label for="contact-email">Email</label>
+                            <input type="email" id="contact-email" name="email" autocomplete="email" value="{{ contact_by_type.get('email').contact_value if contact_by_type.get('email') else '' }}" placeholder="Not provided" readonly>
                         </div>
                         <div class="form-group">
-                            <label>Contact number</label>
-                            <input type="tel" name="phone" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
+                            <label for="contact-phone">Phone number</label>
+                            <input type="tel" id="contact-phone" name="phone" autocomplete="tel" value="{{ contact_by_type.get('phone').contact_value if contact_by_type.get('phone') else '' }}" placeholder="Not provided" readonly>
                         </div>
                     </div>
                     <div class="form-actions">
-                        <button type="button" class="btn-pill btn-pill--secondary" id="edit-contact-btn">
+                        <button type="button" class="btn-pill btn-pill--ghost" id="edit-contact-btn">
                             <i class="bx bx-edit-alt"></i> Edit contact info
                         </button>
                         <button type="submit" class="btn-pill btn-pill--primary hidden" id="save-contact-btn">
@@ -139,15 +131,16 @@
                 <div class="form-row form-row--3col">
                     <div class="form-group">
                         <label for="current_password">Current password</label>
-                        <input type="password" id="current_password" name="current_password" placeholder="••••••••" required>
+                        <input type="password" id="current_password" autocomplete="current-password" name="current_password" placeholder="••••••••" required>
                     </div>
                     <div class="form-group">
                         <label for="new_password">New password</label>
-                        <input type="password" id="new_password" name="new_password" placeholder="15-128 characters" minlength="15" maxlength="128" required>
+                        <input type="password" id="new_password" autocomplete="new-password" name="new_password" placeholder="8-12 characters" minlength="8" maxlength="12" required>
+                        <p class="helper-text">Use 8-12 characters with uppercase, lowercase and numbers.</p>
                     </div>
                     <div class="form-group">
                         <label for="confirm_password">Confirm new password</label>
-                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter new password" minlength="15" maxlength="128" required>
+                        <input type="password" id="confirm_password" autocomplete="new-password" name="confirm_password" placeholder="Re-enter new password" minlength="8" maxlength="12" required>
                     </div>
                 </div>
                 <div class="form-actions">
@@ -166,6 +159,8 @@
             </div>
             <p>Permanently deletes your account and all associated data. This action <strong>cannot be undone</strong>.</p>
 
+            <details class="ui-delete-details">
+            <summary>Delete account</summary>
             <form method="post" action="{{ url_for('pages.delete_own_account_route') }}" id="delete-account-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-row form-row--single">
@@ -180,6 +175,7 @@
                     </button>
                 </div>
             </form>
+            </details>
         </div>
     </div>
 </section>
@@ -203,6 +199,8 @@
             editContactBtn.classList.add('hidden');
             saveContactBtn.classList.remove('hidden');
             cancelContactBtn.classList.remove('hidden');
+            contactForm.classList.add('is-editing');
+            document.getElementById('contact-email').focus();
         });
 
         cancelContactBtn.addEventListener('click', () => {
@@ -214,6 +212,8 @@
             editContactBtn.classList.remove('hidden');
             saveContactBtn.classList.add('hidden');
             cancelContactBtn.classList.add('hidden');
+            contactForm.classList.remove('is-editing');
+            editContactBtn.focus();
         });
     }
 

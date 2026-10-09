@@ -175,7 +175,7 @@ def test_direct_role_change_remains_admin_only(feature_app, monkeypatch, role):
 
 
 def signup_data(file=True):
-    data = dict(first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='secure-password', confirm_password='secure-password', preferred_contact='email', accept_terms='y')
+    data = dict(first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='Secure123', confirm_password='Secure123', preferred_contact='email', accept_terms='y')
     if file:
         data['cor'] = (BytesIO(pdf_bytes()), 'my COR.pdf')
     return data
@@ -184,7 +184,7 @@ def signup_data(file=True):
 def test_signup_requires_terms_before_storage_or_account_creation(feature_app, monkeypatch):
     def unexpected(*args, **kwargs):
         pytest.fail('Signup must not store a file or create an account without consent')
-    monkeypatch.setattr(auth.registration, 'save_cor_upload', unexpected)
+    monkeypatch.setattr(auth.registration, 'save_cor_document', unexpected)
     monkeypatch.setattr(auth.registration, 'create_user', unexpected)
     data = signup_data()
     data.pop('accept_terms')
@@ -240,7 +240,7 @@ def test_signup_atomic_document_and_admin_access(feature_app, feature_db):
 
 
 def test_legacy_request_and_migration(feature_db):
-    assert auth_db.create_user('Old', '', 'Student', None, 'old@example.com', 'old_user', 'secure-password')[0]
+    assert auth_db.create_user('Old', '', 'Student', None, 'old@example.com', 'old_user', 'Secure123')[0]
     with feature_db() as conn, conn.cursor() as cursor:
         cursor.execute((ROOT / 'migrations/20260910_verification_documents.sql').read_text())
         cursor.execute('SELECT request_id FROM request')
@@ -289,7 +289,7 @@ def test_verification_email_after_saved_decision(feature_app, feature_db, monkey
     from flask_mail import Mail
     feature_app.config['MAIL_DEFAULT_SENDER'] = 'noreply@example.com'
     Mail(feature_app)
-    assert auth_db.create_user('Maria', '', 'Cruz', None, 'maria@example.com', 'maria', 'secure-password')[0]
+    assert auth_db.create_user('Maria', '', 'Cruz', None, 'maria@example.com', 'maria', 'Secure123')[0]
     with feature_db() as conn, conn.cursor() as cursor:
         cursor.execute('SELECT request_id FROM request')
         request_id = cursor.fetchone()[0]
@@ -351,7 +351,7 @@ def test_failed_database_signup_removes_new_file(feature_app, monkeypatch):
 def test_upload_storage_error_does_not_create_account(feature_app, monkeypatch):
     def fail(_):
         raise OSError('storage unavailable')
-    monkeypatch.setattr(auth.registration, 'save_cor_upload', fail)
+    monkeypatch.setattr(auth.registration, 'save_cor_document', fail)
     monkeypatch.setattr(auth.registration, 'create_user', lambda *args, **kwargs: pytest.fail('Must not create account without a file'))
     response = feature_app.test_client().post('/signup', data=signup_data())
     assert response.status_code == 200 and b'Could not save your COR' in response.data
@@ -451,6 +451,10 @@ def test_password_icons_without_internet(feature_app, page, path):
 
     page.route('**/*', handle)
     page.goto('http://offline.test' + path)
+    if path == '/signup':
+        page.locator('#cor').set_input_files(dict(name='cor.pdf', mimeType='application/pdf', buffer=pdf_bytes()))
+        expect(page.locator('#cor')).to_have_attribute('data-extracting', 'false')
+        page.locator('[data-signup-next]').click()
     assert page.evaluate("async () => (await document.fonts.load('16px boxicons')).some(font => font.status === 'loaded')")
     for button in page.locator('.input-toggle-btn').all():
         field = page.locator('#' + button.get_attribute('aria-controls'))
@@ -531,10 +535,52 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     page.get_by_role('button', name='Review request', exact=True).click()
     expect(page.get_by_role('dialog')).to_contain_text('<img src=x onerror=alert(1)>')
     expect(page.get_by_role('dialog').locator('img')).to_have_count(0)
-    expect(page.get_by_role('link', name='Download COR (PDF)', exact=True)).to_be_visible()
+    expect(page.locator('[data-verification-viewer]')).to_be_visible()
     page.screenshot(path=str(ROOT / '.pytest_cache' / f'cor-{theme}-{width}.png'))
+    expect(page.locator('#verification-rejection-reason')).not_to_be_visible()
+    expect(page.locator('[data-verification-file]')).to_have_count(0)
+    page.get_by_role('button', name='Reject request', exact=True).click()
+    rejection = page.get_by_role('dialog', name='Reject account request', exact=True)
+    expect(rejection).to_be_visible()
+    expect(rejection.locator('form')).to_have_attribute('action', '/manage_users/verify/1')
+    rejection.get_by_role('button', name='Confirm rejection').click()
+    expect(rejection).to_be_visible()
+    reason = rejection.locator('textarea')
+    reason.fill('   ')
+    assert not reason.evaluate('(el) => el.checkValidity()')
+    reason.fill('Please upload a readable COR.')
+    assert reason.evaluate('(el) => el.checkValidity()')
+    assert rejection.evaluate('(el) => el.scrollWidth <= el.clientWidth')
+    assert rejection.evaluate('''el => {
+        const input = el.querySelector('textarea').getBoundingClientRect();
+        const actions = el.querySelector('.verification-dialog__decision-actions').getBoundingClientRect();
+        return actions.top >= input.bottom;
+    }''')
+    rejection.get_by_role('button', name='Cancel', exact=True).click()
+    expect(rejection).not_to_be_visible()
     page.get_by_role('button', name='Close', exact=True).click()
     login(client, 1)
+    monkeypatch.setattr(pages.profile, 'get_own_profile', lambda user_id: dict(
+        user_first_name='Maria', user_middle_name='', user_last_name='Cruz',
+        username='maria', role_name='Student', preferred_contact='email', avatar_filename=None))
+    monkeypatch.setattr(pages.profile, 'get_user_contacts', lambda user_id: [])
+    page.goto('http://features.test/user-info')
+    expect(page.locator('#profile-picture')).to_be_visible()
+    assert page.locator('.ui-picture-card').evaluate('''el => {
+        const input = el.querySelector('input[type="file"]').getBoundingClientRect();
+        const actions = el.querySelector('.ui-picture-card__actions').getBoundingClientRect();
+        return (actions.top >= input.bottom || actions.left >= input.right)
+            && el.scrollWidth <= el.clientWidth;
+    }''')
+    page.locator('#edit-contact-btn').click()
+    expect(page.locator('#contact-email')).to_be_focused()
+    page.locator('#contact-email').fill('changed@example.com')
+    page.locator('#cancel-contact-btn').click()
+    expect(page.locator('#contact-email')).to_have_value('')
+    expect(page.locator('#edit-contact-btn')).to_be_focused()
+    expect(page.locator('#delete_password')).not_to_be_visible()
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    page.screenshot(path=str(ROOT / '.pytest_cache' / f'profile-{theme}-{width}.png'))
     page.goto('http://features.test/propose-topic')
     expect(page.locator('#pt-description')).to_contain_text('abstract')
     expect(page.locator('#pt-keywords')).to_be_visible()
@@ -582,3 +628,57 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     assert 'request_reason=Reference+for+our+capstone+research.' in submitted[0]
     page.goto('http://features.test/signup')
     expect(page.locator('#cor')).to_be_visible()
+
+
+@pytest.mark.parametrize('preference', ['email', 'phone'])
+def test_signup_four_phases(feature_app, page, monkeypatch, preference):
+    client = feature_app.test_client()
+    captured = []
+    monkeypatch.setattr(auth.registration, 'create_user', lambda *args, **kwargs: (captured.append((args, kwargs)) or True, {}))
+    monkeypatch.setattr(auth.registration, 'extract_cor_fields', lambda content: {})
+
+    def handle(route):
+        url = urlsplit(route.request.url)
+        if url.netloc != 'offline.test':
+            route.abort()
+            return
+        if url.path == '/signup/extract-cor':
+            route.fulfill(json={})
+            return
+        response = client.open(url.path, method=route.request.method,
+                               data=route.request.post_data_buffer,
+                               content_type=route.request.headers.get('content-type'))
+        route.fulfill(status=response.status_code, body=response.data,
+                      headers=dict(response.headers))
+
+    page.route('**/*', handle)
+    page.goto('http://offline.test/signup')
+    expect(page.locator('[data-signup-step]:visible')).to_have_count(1)
+    page.locator('[data-signup-next]').click()
+    expect(page.locator('#signup-step-error')).to_contain_text('Upload')
+    page.locator('#cor').set_input_files(dict(name='cor.pdf', mimeType='application/pdf', buffer=pdf_bytes()))
+    expect(page.locator('#cor')).to_have_attribute('data-extracting', 'false')
+    page.locator('[data-signup-next]').click()
+    page.locator('#first_name').fill('Maria')
+    page.locator('#last_name').fill('Cruz')
+    page.locator('#username').fill('maria')
+    page.locator('#password').fill('Secure123')
+    page.locator('#confirm_password').fill('Secure123')
+    page.locator('[data-signup-next]').click()
+    page.locator('#preferred_contact').select_option(preference)
+    page.locator('#' + preference).fill('maria@example.com' if preference == 'email' else '09171234567')
+    page.locator('[data-signup-next]').click()
+    expect(page.locator('#signup-review')).to_contain_text('Maria Cruz')
+    expect(page.locator('#signup-review')).not_to_contain_text('Secure123')
+    page.locator('[data-signup-back]').click()
+    expect(page.locator('#preferred_contact')).to_have_value(preference)
+    page.locator('[data-signup-next]').click()
+    page.locator('#accept_terms').check()
+    with page.expect_response(lambda response: response.url.endswith('/signup') and response.request.method == 'POST') as submitted:
+        page.locator('#signup-submit').click()
+    assert submitted.value.status == 302
+    assert len(captured) == 1
+    assert captured[0][1]['preferred_contact'] == preference
+    if preference == 'phone':
+        assert captured[0][0][4] in ('', None)
+        assert captured[0][1]['phone'] == '+639171234567'

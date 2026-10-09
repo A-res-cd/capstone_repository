@@ -5,6 +5,7 @@ from pathlib import Path
 
 from flask import current_app
 from werkzeug.utils import secure_filename
+from app.utils.cloud_storage import cloud_storage_enabled, upload_cloud_file, cloud_file_path, remove_cloud_file
 
 
 ALLOWED_MANUSCRIPT_EXTENSIONS = {"pdf", "doc", "docx"}
@@ -39,6 +40,16 @@ def save_manuscript_upload(file_obj):
     if not allowed_manuscript(file_obj.filename):
         return None, "Invalid file type. Only PDF, DOC, and DOCX are allowed."
 
+    if cloud_storage_enabled():
+        filename = unique_manuscript_filename(file_obj.filename)
+        max_bytes = 25 * 1024 * 1024
+        try:
+            content = file_obj.stream.read(max_bytes + 1)
+            upload_cloud_file('manuscript', filename, content, manuscript_mimetype(filename), max_bytes)
+            return filename, None
+        except (OSError, ValueError):
+            return None, 'Could not store the manuscript. Check storage settings and file size.'
+
     folder = manuscript_upload_folder()
     os.makedirs(folder, exist_ok=True)
 
@@ -63,6 +74,10 @@ def resolve_manuscript_file(file_rel):
     if not filename:
         return None
 
+    if cloud_storage_enabled():
+        path = cloud_file_path('manuscript', filename, 25 * 1024 * 1024)
+        return str(path) if path else None
+
     candidates = [
         os.path.join(manuscript_upload_folder(), filename),
         os.path.join(current_app.root_path, "static", "uploads", filename),
@@ -81,3 +96,13 @@ def resolve_manuscript_file(file_rel):
 
 def manuscript_mimetype(path):
     return mimetypes.guess_type(path)[0] or "application/octet-stream"
+
+
+def remove_manuscript_file(file_rel):
+    if cloud_storage_enabled():
+        filename = secure_filename(os.path.basename(str(file_rel).replace('\\', '/')))
+        remove_cloud_file('manuscript', filename)
+    else:
+        path = resolve_manuscript_file(file_rel)
+        if path:
+            os.remove(path)

@@ -19,22 +19,30 @@ from app.utils.contact_policy import normalize_phone
 from app.utils.password_policy import password_error
 
 ROOT = Path(__file__).resolve().parents[1]
-PASSWORD = 'a long test passphrase'
+PASSWORD = 'Secure123'
 
 
-@pytest.mark.parametrize('value,valid', [('x' * 14, False), ('x' * 15, True),
-    ('x' * 128, True), ('x' * 129, False), ('spaces are allowed here', True)])
+@pytest.mark.parametrize('value,valid', [
+    ('Abc1234', False), ('Abc12345', True), ('Abc123456789', True),
+    ('Abc1234567890', False), ('abcdefgh1', False), ('ABCDEFGH1', False),
+    ('Abcdefghi', False), ('Abc 1234', True), ('Abc!1234', True),
+    ('', False), (None, False), (12345678, False),
+])
 def test_password_boundaries(value, valid):
     assert (password_error(value) is None) == valid
 
 
-def test_reset_and_change_enforce_same_policy():
+@pytest.mark.parametrize('password,valid', [
+    ('short', False), ('abcdefgh1', False), ('ABCDEFGH1', False),
+    ('Abcdefghi', False), ('Abc1234567890', False), ('Secure123', True),
+])
+def test_reset_and_change_enforce_same_policy(password, valid):
     app = Flask(__name__)
     app.config['WTF_CSRF_ENABLED'] = False
     with app.test_request_context():
-        data = MultiDict(dict(new_password='short', confirm_password='short', current_password='old'))
-        assert not ResetPasswordForm(data).validate()
-        assert not ChangePasswordForm(data).validate()
+        data = MultiDict(dict(new_password=password, confirm_password=password, current_password='old'))
+        assert ResetPasswordForm(data).validate() == valid
+        assert ChangePasswordForm(data).validate() == valid
 
 
 def test_phone_normalization():
@@ -121,6 +129,17 @@ def make_user(connect, name):
     with connect() as conn, conn.cursor() as cursor:
         cursor.execute('SELECT user_id FROM "user" WHERE user_first_name = %s', (name,))
         return cursor.fetchone()[0]
+
+
+def test_phone_only_registration(workflow_db):
+    ok, error = auth.create_user('Phone', '', 'Student', None, '', 'phone_student',
+                                 PASSWORD, preferred_contact='phone', phone='09171234567')
+    assert ok, error
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute("SELECT contact_type, contact_value FROM contact")
+        assert cursor.fetchall() == [('phone', '+639171234567')]
+        cursor.execute("SELECT COUNT(*) FROM request WHERE request_status = 'pending'")
+        assert cursor.fetchone()[0] == 1
 
 
 def test_registration_persists_privacy_and_contact(workflow_db):

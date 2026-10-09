@@ -31,6 +31,7 @@ def _create_pool():
         user=Config.PG_USER,
         password=Config.PG_PASSWORD,
         database=Config.PG_DB,
+        sslmode=Config.PG_SSLMODE,
     )
 
 

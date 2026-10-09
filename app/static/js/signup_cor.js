@@ -10,10 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
         middle_name: document.getElementById('middle_name'),
         last_name: document.getElementById('last_name'),
     };
+    let extraction = 0;
 
     upload.addEventListener('change', async () => {
+        const requestId = ++extraction;
         const file = upload.files[0];
+        upload.dataset.extracting = 'false';
         if (!file) return;
+        upload.dataset.extracting = 'true';
 
         status.textContent = 'Reading COR details...';
         status.className = 'cor-extraction-status';
@@ -28,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''},
             });
             const extracted = await response.json();
+            if (requestId !== extraction) return;
             if (!response.ok) throw new Error(extracted.error || 'Could not read this COR.');
 
             Object.entries(fields).forEach(([key, field]) => {
@@ -36,8 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
             status.textContent = extracted.warning || 'COR details found. Check the fields before creating your account.';
             status.classList.add(extracted.warning ? 'is-warning' : 'is-success');
         } catch (error) {
+            if (requestId !== extraction) return;
             status.textContent = `${error.message} You may enter the fields manually.`;
             status.classList.add('is-warning');
+        } finally {
+            if (requestId === extraction) upload.dataset.extracting = 'false';
         }
     });
 });

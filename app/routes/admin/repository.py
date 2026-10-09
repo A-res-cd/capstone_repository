@@ -9,11 +9,9 @@ from app.db.capstones import (
     get_programs,
     get_specializations,
     get_used_keyword,
-    insert_keywords,
     create_capstone_project,
     get_capstone_details,
     update_capstone_record,
-    update_keyword,
     set_capstone_people,
     get_capstone_people,
 )
@@ -27,6 +25,7 @@ from app.utils.uploads import (
     save_manuscript_upload,
     stored_manuscript_path,
     resolve_manuscript_file,
+    remove_manuscript_file,
 )
 
 
@@ -220,6 +219,8 @@ def admin_create_capstone():
         flash(_first_form_error(form), "danger")
         return _rerender()
 
+    filename = None
+    success = False
     try:
         file = form.capstone_file.data
 
@@ -233,43 +234,34 @@ def admin_create_capstone():
             return _rerender()
 
         file_path = stored_manuscript_path(filename)
-
-        success, result = insert_keywords(form.capstone_keywords.data)
-        if not success:
-            flash(result, "danger")
-        else:
-            keyword_id = result
-            success, message = create_capstone_project(
-                keyword_id, form.specialization_id.data, form.program_id.data,
-                form.capstone_title.data, form.capstone_year.data,
-                file_path, form.semester.data,
-                acting_user_id=session.get("user_id"),
-                is_utilized=form.is_utilized.data,
-                is_presented=form.is_presented.data,
-                is_published=form.is_published.data,
-                abstract_text=_abstract_for_manuscript(file_path),
-                is_copyright_registered=form.is_copyright_registered.data
-            )
-            if success:
-                new_capstone_id = message
-                authors, adviser = _people_for_db(form)
-
-                ok, err = set_capstone_people(
-                    new_capstone_id, authors, adviser,
-                    acting_user_id=session.get("user_id"))
-                if not ok:
-                    flash(
-                        f"Capstone created, but author/adviser save failed: {err}", "warning")
-                else:
-                    flash("Capstone created successfully!", "success")
-
-                return redirect(url_for("admin.view_capstone_repository"))
-            else:
-                flash(message, "danger")
+        authors, adviser = _people_for_db(form)
+        success, message = create_capstone_project(
+            None, form.specialization_id.data, form.program_id.data,
+            form.capstone_title.data, form.capstone_year.data,
+            file_path, form.semester.data,
+            acting_user_id=session.get("user_id"),
+            is_utilized=form.is_utilized.data,
+            is_presented=form.is_presented.data,
+            is_published=form.is_published.data,
+            abstract_text=_abstract_for_manuscript(file_path),
+            is_copyright_registered=form.is_copyright_registered.data,
+            capstone_keywords=form.capstone_keywords.data,
+            authors=authors, adviser=adviser,
+        )
+        if success:
+            flash("Capstone created successfully!", "success")
+            return redirect(url_for("admin.view_capstone_repository"))
+        flash(message, "danger")
 
     except Exception as exc:
         logger.error("admin_create_capstone error: %s", exc)
         flash("An error occurred while processing your request.", "danger")
+    finally:
+        if filename and not success:
+            try:
+                remove_manuscript_file(stored_manuscript_path(filename))
+            except OSError:
+                logger.exception("Could not clean up unsuccessful capstone upload")
 
     return _rerender()
 
@@ -316,20 +308,13 @@ def update_capstone(capstone_id):
                 return _rerender()
             file_path = stored_manuscript_path(filename)
 
-        # Update keyword if changed
-        keyword_id = capstone['keyword_id']
-        if new_keywords and new_keywords != capstone['capstone_keywords']:
-            success, error = update_keyword(keyword_id, new_keywords)
-            if not success:
-                flash(f"Error updating keyword: {error}", "danger")
-                return _rerender()
-
         # Update capstone record
         success, message = update_capstone_record(
-            capstone_id, keyword_id, form.specialization_id.data, form.program_id.data,
+            capstone_id, None, form.specialization_id.data, form.program_id.data,
             form.capstone_title.data, form.capstone_year.data, file_path,
             form.semester.data,
             acting_user_id=session.get("user_id"),
+            capstone_keywords=new_keywords,
             is_utilized=form.is_utilized.data,
             is_presented=form.is_presented.data,
             is_published=form.is_published.data,

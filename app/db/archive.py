@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+from app.db.keywords import KEYWORD_JOIN
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +56,7 @@ def get_archived_capstones(search=None, program_id=None, page=1, page_size=20):
         mithrix.execute(f"""
             SELECT COUNT(*) AS total
             FROM capstone c
-            JOIN keyword k
-                ON k.keyword_id = c.keyword_id
+            {KEYWORD_JOIN}
             JOIN specialization s
                 ON s.specialization_id = c.specialization_id
             JOIN program p
@@ -77,7 +77,6 @@ def get_archived_capstones(search=None, program_id=None, page=1, page_size=20):
                 c.capstone_file,
                 c.semester,
                 c.term,
-                k.keyword_id,
                 k.capstone_keywords,
                 s.specialization_id,
                 s.specialization_name,
@@ -85,8 +84,7 @@ def get_archived_capstones(search=None, program_id=None, page=1, page_size=20):
                 p.program_name,
                 c.archived_at
             FROM capstone c
-            JOIN keyword k
-                ON k.keyword_id = c.keyword_id
+            {KEYWORD_JOIN}
             JOIN specialization s
                 ON s.specialization_id = c.specialization_id
             JOIN program p
@@ -163,7 +161,7 @@ def delete_capstone(capstone_id, acting_user_id=None):
     mithrix = conn.cursor()
     try:
         mithrix.execute("""
-            SELECT keyword_id, is_archived, capstone_title FROM capstone
+            SELECT is_archived, capstone_title FROM capstone
             WHERE capstone_id = %s
             FOR UPDATE NOWAIT
         """, (capstone_id,))
@@ -172,7 +170,7 @@ def delete_capstone(capstone_id, acting_user_id=None):
             conn.rollback()
             return False, "Capstone not found. It may have already been deleted by another admin."
 
-        keyword_id, is_archived, capstone_title = row
+        is_archived, capstone_title = row
         if not is_archived:
             conn.rollback()
             return False, "This capstone was just restored by another admin and can no longer be deleted from the recycle bin."
@@ -190,15 +188,6 @@ def delete_capstone(capstone_id, acting_user_id=None):
         mithrix.execute("""
             DELETE FROM capstone WHERE capstone_id = %s
         """, (capstone_id,))
-
-        # delete the keyword if no other capstone is using it
-        mithrix.execute("""
-            DELETE FROM keyword
-            WHERE keyword_id = %s
-              AND NOT EXISTS (
-                  SELECT 1 FROM capstone WHERE keyword_id = %s
-              )
-        """, (keyword_id, keyword_id))
 
         log_audit(mithrix, acting_user_id, "delete_capstone", "capstone", capstone_id,
                    old_values=capstone_title)
@@ -390,7 +379,7 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12,
         mithrix.execute(f"""
             SELECT COUNT(*) AS total
             FROM capstone c
-            JOIN keyword k        ON k.keyword_id        = c.keyword_id
+            {KEYWORD_JOIN}
             JOIN specialization s ON s.specialization_id = c.specialization_id
             JOIN program p        ON p.program_id        = c.program_id
             {where}
@@ -430,7 +419,7 @@ def get_archive_capstones(search=None, year=None, page=1, page_size=12,
                 s.specialization_name, s.specialization_code,
                 p.program_name, p.program_code
             FROM capstone c
-            JOIN keyword k        ON k.keyword_id        = c.keyword_id
+            {KEYWORD_JOIN}
             JOIN specialization s ON s.specialization_id = c.specialization_id
             JOIN program p        ON p.program_id        = c.program_id
             {where}

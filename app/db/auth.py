@@ -163,7 +163,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     role_name = detect_role(university_no) if university_no else "Student"
 
     # validation
-    if not all([first_name, last_name, email, username, password]):
+    if not all([first_name, last_name, username, password]):
         return False, "All required fields must be filled in."
     if password_error(password):
         return False, password_error(password)
@@ -171,9 +171,9 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         phone = normalize_phone(phone)
     except ValueError as exc:
         return False, str(exc)
-    if preferred_contact not in ('email', 'phone') or (preferred_contact == 'phone' and not phone):
+    if preferred_contact not in ('email', 'phone') or (preferred_contact == 'phone' and not phone) or (preferred_contact == 'email' and not email):
         return False, "Choose a valid contact preference and supply its contact details."
-    if not EMAIL_PATTERN.match(email):
+    if email and not EMAIL_PATTERN.match(email):
         return False, "Invalid email format."
     if not USERNAME_PATTERN.match(username):
         return False, "Username must be 3-30 characters, letters, numbers, and underscores only."
@@ -183,6 +183,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
             "University number '%s' did not match any known patterns.", university_no)
         return False, ("University number format not recognized")
 
+    password_hash = generate_password_hash(password)
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     now = datetime.now(timezone.utc)
@@ -196,14 +197,14 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         insert_university_no = university_no or None
         mithrix.execute("""INSERT INTO "user"
             (role_id, user_first_name, user_middle_name,
-            user_last_name, university_no, account_status, cor_filename)
-            VALUES (%s, %s, %s, %s, %s, 'pending', %s)
+            user_last_name, university_no, account_status, cor_filename,
+            preferred_contact, terms_version, terms_accepted_at)
+            VALUES (%s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s)
             RETURNING user_id
-            """, (role_id, first_name, middle_name, last_name, insert_university_no, cor_filename))
+            """, (role_id, first_name, middle_name, last_name, insert_university_no,
+                  cor_filename, preferred_contact, terms_version, now if terms_version else None))
         user_id = mithrix.fetchone()["user_id"]
 
-        mithrix.execute('UPDATE "user" SET preferred_contact = %s, terms_version = %s, terms_accepted_at = %s WHERE user_id = %s',
-                        (preferred_contact, terms_version, now if terms_version else None, user_id))
         if phone:
             mithrix.execute("INSERT INTO contact (user_id, contact_type, contact_value, is_primary, created_at) VALUES (%s, 'phone', %s, TRUE, %s)",
                             (user_id, phone, now))
@@ -219,7 +220,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         mithrix.execute("""INSERT INTO ror (password, updated_at, previous_password_id)
             VALUES (%s, %s, NULL)
             RETURNING password_id
-        """, (generate_password_hash(password), now))
+        """, (password_hash, now))
         password_id = mithrix.fetchone()["password_id"]
 
         # insert the owner
@@ -230,11 +231,12 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         """, (username_id, password_id, user_id, now, now))
 
         # insert contact
-        mithrix.execute("""INSERT INTO contact
-            (user_id, contact_type, contact_value,
-            is_primary, created_at)
-            VALUES (%s, 'email', %s, TRUE, %s)
-        """, (user_id, email.lower(), now))
+        if email:
+            mithrix.execute("""INSERT INTO contact
+                (user_id, contact_type, contact_value,
+                is_primary, created_at)
+                VALUES (%s, 'email', %s, TRUE, %s)
+            """, (user_id, email.lower(), now))
 
         # add log to sign up tble
         mithrix.execute("""

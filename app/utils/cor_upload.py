@@ -45,6 +45,9 @@ def registration_upload_folder():
 def resolve_cor_file(filename):
     if not filename or filename != secure_filename(filename) or not filename.lower().endswith('.pdf'):
         return None
+    from app.utils.cloud_storage import cloud_storage_enabled, cloud_file_path
+    if cloud_storage_enabled():
+        return cloud_file_path('registration', filename, MAX_COR_BYTES)
     folder = registration_upload_folder()
     path = (folder / filename).resolve()
     if not path.is_relative_to(folder) or not path.is_file():
@@ -54,6 +57,16 @@ def resolve_cor_file(filename):
 
 def save_cor_upload(upload):
     document = read_cor_upload(upload)
+    return save_cor_document(document)
+
+
+def save_cor_document(document):
+    """Persist a document already validated by read_cor_upload."""
+    from app.utils.cloud_storage import cloud_storage_enabled, upload_cloud_file
+    if cloud_storage_enabled():
+        filename = f"{Path(document['filename']).stem[:150]}_{uuid4().hex}.pdf"
+        upload_cloud_file('registration', filename, document['content'], 'application/pdf', MAX_COR_BYTES)
+        return filename
     folder = registration_upload_folder()
     folder.mkdir(parents=True, exist_ok=True)
     filename = f"{Path(document['filename']).stem[:150]}_{uuid4().hex}.pdf"
@@ -72,6 +85,11 @@ def save_cor_upload(upload):
 
 def remove_cor_file(filename):
     """Remove only the file created for an unsuccessful signup."""
+    from app.utils.cloud_storage import cloud_storage_enabled, remove_cloud_file
+    if cloud_storage_enabled():
+        if filename:
+            remove_cloud_file('registration', filename)
+        return
     path = resolve_cor_file(filename)
     if path:
         path.unlink()

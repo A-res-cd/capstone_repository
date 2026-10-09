@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    from .utils.cloud_storage import validate_cloud_storage
+    with app.app_context():
+        validate_cloud_storage()
     for name in ('UPLOAD_MANUSCRIPT_FOLDER', 'UPLOAD_REGISTRATION_FOLDER'):
         app.config[name] = os.environ.get(name, app.config.get(name))
 

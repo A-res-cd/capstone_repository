@@ -115,24 +115,35 @@
                 </div>
                 <p class="verification-dialog__privacy-note">COR files are private and available only to authorized reviewers.</p>
                 <div class="verification-dialog__actions">
-                    <a class="btn-pill btn-pill--primary" data-verification-file hidden>Download COR (PDF)</a>
                     <div class="verification-dialog__decision-actions">
                         <form method="POST" data-verification-decision-form>
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="decision" value="approved">
                             <button type="submit" class="btn-pill btn-pill--primary" data-verification-approve disabled>Verify account</button>
                         </form>
-                        <form method="POST" data-verification-decision-form onsubmit="return confirm('Reject this account? The user will not be able to sign in.');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="decision" value="rejected">
-                            <label for="verification-rejection-reason">Rejection reason (included in email)</label>
-                            <textarea id="verification-rejection-reason" name="status_reason" required maxlength="2000" rows="3"></textarea>
-                            <button type="submit" class="btn-pill btn-pill--danger" data-verification-reject disabled>Reject request</button>
-                        </form>
+                        <button type="button" class="btn-pill btn-pill--danger" data-verification-reject disabled>Reject request</button>
                         <button type="button" class="btn-pill btn-pill--ghost" data-verification-close>Close</button>
                     </div>
                 </div>
             </div>
+    </dialog>
+
+    <dialog id="verification-rejection-dialog" class="review-paper verification-dialog review-form-dialog" aria-labelledby="verification-rejection-title">
+        <div class="verification-dialog__content">
+            <h2 id="verification-rejection-title">Reject account request</h2>
+            <form method="POST" data-verification-decision-form>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="decision" value="rejected">
+                <div class="form-group">
+                    <label for="verification-rejection-reason">Rejection message (required, included in email)</label>
+                    <textarea id="verification-rejection-reason" name="status_reason" required maxlength="2000" rows="4"></textarea>
+                </div>
+                <div class="verification-dialog__decision-actions">
+                    <button type="submit" class="btn-pill btn-pill--danger" disabled>Confirm rejection</button>
+                    <button type="button" class="btn-pill btn-pill--ghost" data-rejection-cancel>Cancel</button>
+                </div>
+            </form>
+        </div>
     </dialog>
 
     {# ══════════════════════════════════════════════════════

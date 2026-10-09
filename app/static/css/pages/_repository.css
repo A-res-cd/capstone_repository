@@ -501,67 +501,34 @@ body.repo-modal-open {
 /* ── Two-step wizard: Capstone Details → Authors ── */
 .form-steps-indicator {
     display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding-bottom: var(--space-md);
-    margin-bottom: var(--space-xs);
-    border-bottom: 2px dashed var(--border-color);
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
 }
 
 .form-step-dot {
     display: flex;
-    align-items: center;
-    gap: 7px;
-    opacity: 0.45;
-    transition: opacity 0.2s ease;
-}
-
-.form-step-dot--active,
-.form-step-dot--done {
-    opacity: 1;
-}
-
-.form-step-dot__num {
-    display: flex;
+    flex: 1;
+    min-width: 0;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: var(--color-gray-light, #E5E7EB);
-    color: var(--color-gray-dark);
-    font-size: var(--text-xs);
+    gap: .35rem;
+    padding: .6rem .4rem;
+    border-bottom: 3px solid var(--color-gray);
+    color: var(--text-dark);
+    font-size: .8rem;
+    text-align: center;
+}
+
+.form-step-dot--active {
+    border-color: var(--color-primary);
+    color: var(--text-brand);
     font-weight: 700;
 }
 
-.form-step-dot--active .form-step-dot__num {
-    background: var(--color-primary);
-    color: #fff;
-}
-
-.form-step-dot--done .form-step-dot__num {
-    background: #27AE60;
-    color: #fff;
-}
-
-.form-step-dot--done .form-step-dot__num::before {
-    content: '\2713'; /* checkmark, replaces the step number once completed */
-}
-
-.form-step-dot__label {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--text-brand);
-    white-space: nowrap;
-}
-
-.form-step-dot__line {
-    flex: 1;
-    height: 2px;
-    background: var(--border-color);
-    min-width: 24px;
-}
+.form-step-dot__num::after { content: '.'; }
+.form-step-dot__label { overflow-wrap: anywhere; }
+.form-step-dot__line { display: none; }
 
 .form-step {
     display: flex;
@@ -701,8 +668,7 @@ body.repo-modal-open {
 
     .form-actions { flex-direction: column; align-items: stretch; }
 
-    .form-step-dot__label { display: none; }
-    .form-step-dot__line { min-width: 12px; }
+    .form-step-dot__label { white-space: normal; }
 
     .btn-pill { justify-content: center; }
 }

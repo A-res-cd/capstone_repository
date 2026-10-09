@@ -1,0 +1,160 @@
+Source: capre_original_final.sql
+Format: column - datatype - constraints - brief description - example
+Examples are illustrative, not seed data. Quoted values represent text.
+NULL allowed unless NOT NULL or PRIMARY KEY is stated.
+SERIAL generates integer values from a sequence and implies NOT NULL.
+Composite PRIMARY KEY applies to the listed columns together and implies NOT NULL.
+Foreign keys use PostgreSQL's default ON DELETE NO ACTION unless stated otherwise.
+TIMESTAMP has no time zone; TIMESTAMPTZ represents an instant with time zone support.
+
+TABLE: role
+role_id - SERIAL - PRIMARY KEY - Unique role identifier - 1
+role_name - VARCHAR(50) - None - Name of the account role - 'Student'
+role_level - INT - None - Numeric level assigned to the role - 1
+
+TABLE: user
+user_id - SERIAL - PRIMARY KEY - Unique user identifier - 1
+role_id - INT - FOREIGN KEY REFERENCES role(role_id) - Role assigned to the user - 1
+user_first_name - VARCHAR(100) - None - User's first name - 'Ana'
+user_middle_name - VARCHAR(100) - None - User's middle name - 'Reyes'
+user_last_name - VARCHAR(100) - None - User's last name - 'Santos'
+university_no - VARCHAR(50) - None - User's university identification number - '2026-00001'
+locked_until - TIMESTAMP - None - Time when the account lock expires - '2026-10-09 09:30:00'
+account_status - VARCHAR(20) - DEFAULT 'pending' - Current account status - 'pending'
+cor_filename - VARCHAR(200) - None - Filename of the certificate of registration - 'cor_ana.pdf'
+preferred_contact - VARCHAR(10) - NOT NULL; DEFAULT 'email'; CHECK (preferred_contact IN ('email', 'phone')) - Preferred contact method - 'email'
+avatar_filename - TEXT - None - Filename of the user's avatar - 'avatar_ana.png'
+terms_version - VARCHAR(30) - None - Version of the terms accepted by the user - 'v1.0'
+terms_accepted_at - TIMESTAMPTZ - None - Time when the user accepted the terms - '2026-10-09 09:00:00+08:00'
+promotion_failures - INTEGER - NOT NULL; DEFAULT 0 - Number of failed promotion attempts - 0
+promotion_locked_until - TIMESTAMPTZ - None - Time when the promotion lock expires - '2026-10-09 09:30:00+08:00'
+
+TABLE: kappa
+username_id - SERIAL - PRIMARY KEY - Unique username identifier - 1
+username - VARCHAR(100) - UNIQUE; NOT NULL - Username used for login - 'ana.santos'
+
+TABLE: ror
+password_id - SERIAL - PRIMARY KEY - Unique password record identifier - 1
+password - VARCHAR(255) - None - Stored password hash - 'scrypt:32768:8:1$example_salt$example_hash'
+updated_at - TIMESTAMP - None - Time when the password record was updated - '2026-10-09 09:00:00'
+previous_password_id - INT - DEFAULT NULL; FOREIGN KEY REFERENCES ror(password_id) - Previous password record for password history - NULL
+
+TABLE: slug
+username_id - INT - Composite PRIMARY KEY (username_id, password_id); FOREIGN KEY REFERENCES kappa(username_id) - Username linked to this credential assignment - 1
+password_id - INT - Composite PRIMARY KEY (username_id, password_id); FOREIGN KEY REFERENCES ror(password_id) - Password linked to this credential assignment - 1
+user_id - INT - FOREIGN KEY REFERENCES "user"(user_id) - User who owns the credentials - 1
+assigned_at - TIMESTAMP - None - Time when the credentials were assigned - '2026-10-09 09:00:00'
+updated_at - TIMESTAMP - None - Time when the assignment was updated - '2026-10-09 09:15:00'
+is_current - BOOLEAN - None - Whether this credential assignment is current - TRUE
+
+TABLE: login
+log_in_id - SERIAL - PRIMARY KEY - Unique login record identifier - 1
+user_id - INT - FOREIGN KEY REFERENCES "user"(user_id) - User associated with the login - 1
+log_in_time - TIMESTAMP - None - Time of the login event - '2026-10-09 09:00:00'
+login_device_ip - VARCHAR(50) - None - IP address used for the login - '192.0.2.10'
+failed_attempts - INT - DEFAULT 0 - Number of failed login attempts - 0
+
+TABLE: logout
+log_out_id - SERIAL - PRIMARY KEY - Unique logout record identifier - 1
+user_id - INT - FOREIGN KEY REFERENCES "user"(user_id) - User associated with the logout - 1
+log_out_time - TIMESTAMP - None - Time of the logout event - '2026-10-09 10:00:00'
+logout_device_ip - VARCHAR(50) - None - IP address used for the logout - '192.0.2.10'
+
+TABLE: signup
+signup_id - SERIAL - PRIMARY KEY - Unique signup record identifier - 1
+user_id - INT - FOREIGN KEY REFERENCES "user"(user_id) - User who registered - 1
+registration_date - TIMESTAMP - None - Time when the user registered - '2026-10-09 08:00:00'
+
+TABLE: audit
+audit_id - SERIAL - PRIMARY KEY - Unique audit record identifier - 1
+user_id - INT - FOREIGN KEY REFERENCES "user"(user_id) - User who performed the recorded action - 1
+action_type - VARCHAR(50) - None - Type of action recorded - 'create_capstone'
+affected_table - VARCHAR(100) - None - Table affected by the action - 'capstone'
+affected_record_id - INT - None - Identifier of the affected record - 1
+old_values - TEXT - None - Values recorded before the action - 'Previous title'
+new_values - TEXT - None - Values recorded after the action - 'Updated title'
+action_timestamp - TIMESTAMP - None - Time when the action occurred - '2026-10-09 09:00:00'
+
+TABLE: contact
+contact_id - SERIAL - PRIMARY KEY - Unique contact record identifier - 1
+user_id - INT - FOREIGN KEY REFERENCES "user"(user_id) - User who owns this contact detail - 1
+contact_type - VARCHAR(50) - None - Type of contact detail - 'email'
+contact_value - VARCHAR(100) - None - Email address or phone number - 'ana@example.com'
+is_primary - BOOLEAN - None - Whether this is the primary contact detail - TRUE
+created_at - TIMESTAMP - None - Time when the contact detail was created - '2026-10-09 08:00:00'
+
+TABLE: password_reset
+reset_id - SERIAL - PRIMARY KEY - Unique password reset record identifier - 1
+contact_id - INT - FOREIGN KEY REFERENCES contact(contact_id) - Contact associated with the reset - 1
+reset_token - VARCHAR(255) - None - Token used to verify the reset request - 'example-reset-token'
+expiry_date - TIMESTAMP - None - Time when the reset token expires - '2026-10-09 09:30:00'
+is_primary - BOOLEAN - None - Whether this reset record is marked primary - TRUE
+is_used - BOOLEAN - None - Whether the reset token has been used - FALSE
+created_at - TIMESTAMP - DEFAULT CURRENT_TIMESTAMP - Time when the reset record was created - '2026-10-09 09:00:00'
+attempt_count - INT - DEFAULT 0 - Number of reset verification attempts - 0
+
+TABLE: program
+program_id - SERIAL - PRIMARY KEY - Unique academic program identifier - 1
+program_name - VARCHAR(100) - None - Full name of the academic program - 'Bachelor of Science in Information Technology'
+program_code - VARCHAR(30) - None - Short code for the academic program - 'BSIT'
+
+TABLE: specialization
+specialization_id - SERIAL - PRIMARY KEY - Unique specialization identifier - 1
+specialization_name - VARCHAR(100) - None - Full name of the specialization - 'Web Systems Technology'
+specialization_code - VARCHAR(30) - None - Short code for the specialization - 'WST'
+
+TABLE: keyword
+keyword_id - SERIAL - PRIMARY KEY - Unique keyword identifier - 1
+keyword_text - TEXT - NOT NULL; UNIQUE (keyword_text_unique); CHECK (keyword_text <> '' AND keyword_text = LOWER(BTRIM(keyword_text)) AND POSITION(',' IN keyword_text) = 0) (keyword_text_normalized) - One unique lowercase keyword or phrase, with no surrounding spaces or commas - 'machine learning'
+
+TABLE: capstone
+capstone_id - SERIAL - PRIMARY KEY - Unique capstone project identifier - 1
+specialization_id - INT - FOREIGN KEY REFERENCES specialization(specialization_id) - Specialization associated with the capstone - 1
+program_id - INT - FOREIGN KEY REFERENCES program(program_id) - Academic program associated with the capstone - 1
+capstone_title - VARCHAR(255) - None - Title of the capstone project - 'Smart Attendance System'
+capstone_year - INT - None - Year associated with the capstone - 2026
+capstone_file - TEXT - None - Stored path or storage key of the manuscript - 'uploads/manuscripts/attendance.pdf'
+semester - VARCHAR(20) - None - Semester associated with the capstone - '1st'
+term - INT - None - Numeric term associated with the capstone - 1
+is_archived - BOOLEAN - DEFAULT FALSE - Whether the capstone is in the recycle bin - FALSE
+archived_at - TIMESTAMP - DEFAULT CURRENT_TIMESTAMP - Timestamp associated with archiving; defaults to creation time even if is_archived is FALSE - '2026-10-09 09:00:00'
+is_utilized - BOOLEAN - DEFAULT FALSE - Whether the capstone has been utilized - FALSE
+is_presented - BOOLEAN - DEFAULT FALSE - Whether the capstone has been presented - TRUE
+is_copyright_registered - BOOLEAN - DEFAULT FALSE - Whether the capstone has a registered copyright - FALSE
+is_published - BOOLEAN - DEFAULT FALSE - Whether the capstone is marked published - TRUE
+abstract_text - TEXT - None - Abstract of the capstone manuscript - 'This study develops an automated attendance system.'
+
+TABLE: capstone_keyword
+capstone_id - INT - Composite PRIMARY KEY (capstone_id, keyword_id); FOREIGN KEY REFERENCES capstone(capstone_id) ON DELETE CASCADE - Capstone associated with this keyword link - 1
+keyword_id - INT - Composite PRIMARY KEY (capstone_id, keyword_id); FOREIGN KEY REFERENCES keyword(keyword_id) ON DELETE CASCADE - Keyword associated with this capstone link - 1
+
+TABLE: author
+author_id - SERIAL - PRIMARY KEY - Unique author or adviser identifier - 1
+aut_first_name - VARCHAR(100) - None - Author's or adviser's first name - 'Juan'
+aut_middle_name - VARCHAR(100) - None - Author's or adviser's middle name - 'Reyes'
+aut_last_name - VARCHAR(100) - None - Author's or adviser's last name - 'Cruz'
+
+TABLE: capauth
+capstone_id - INT - Composite PRIMARY KEY (capstone_id, author_id); FOREIGN KEY REFERENCES capstone(capstone_id) - Capstone associated with this person - 1
+author_id - INT - Composite PRIMARY KEY (capstone_id, author_id); FOREIGN KEY REFERENCES author(author_id) - Author or adviser associated with this capstone - 1
+role - VARCHAR(50) - None - Person's role in the capstone - 'adviser'
+author_order - INT - None - Display order of the person in the capstone author list - 1
+
+TABLE: request
+request_id - SERIAL - PRIMARY KEY - Unique request identifier - 1
+user_id - INT - FOREIGN KEY REFERENCES "user"(user_id) - User who submitted the request - 1
+capstone_id - INT - FOREIGN KEY REFERENCES capstone(capstone_id) ON DELETE SET NULL - Capstone associated with the request; cleared when the capstone is deleted - 1
+request_status - VARCHAR(50) - None - Current status of the request - 'pending'
+request_reason - TEXT - None - Reason provided by the requester - 'Needed for related research.'
+request_date - TIMESTAMP - None - Time when the request was submitted - '2026-10-09 09:00:00'
+decision_date - TIMESTAMP - None - Time when the request was reviewed - '2026-10-09 10:00:00'
+reviewed_by - INT - FOREIGN KEY REFERENCES "user"(user_id) - User who reviewed the request - 2
+status_reason - TEXT - None - Explanation for the review decision - 'Approved for academic use.'
+request_type - VARCHAR(50) - DEFAULT 'manuscript' - Type of request submitted - 'manuscript'
+notification_seen_at - TIMESTAMP - None - Time when the requester viewed the notification - '2026-10-09 10:15:00'
+target_role_id - INT - FOREIGN KEY REFERENCES role(role_id) - Role requested for an account promotion - 2
+
+TABLE: capstone_view_history
+user_id - INTEGER - NOT NULL; Composite PRIMARY KEY (user_id, capstone_id); FOREIGN KEY REFERENCES "user"(user_id) ON DELETE CASCADE - User who viewed the capstone - 1
+capstone_id - INTEGER - NOT NULL; Composite PRIMARY KEY (user_id, capstone_id); FOREIGN KEY REFERENCES capstone(capstone_id) ON DELETE CASCADE - Capstone viewed by the user - 1
+viewed_at - TIMESTAMPTZ - NOT NULL; DEFAULT CURRENT_TIMESTAMP - Recorded time of the user's view of this capstone - '2026-10-09 09:00:00+08:00'

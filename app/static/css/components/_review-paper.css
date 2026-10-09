@@ -45,6 +45,17 @@
 .verification-dialog__actions { display: flex; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-md); margin-top: var(--space-lg); padding-top: var(--space-md); border-top: 1px dashed var(--border-tag); }
 .verification-dialog__actions form { margin: 0; }
 .verification-dialog__decision-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-md); }
+.verification-dialog__actions, .verification-dialog__decision-actions { align-items: center; }
+.verification-dialog .btn-pill { min-height: 42px; justify-content: center; font-family: var(--font-primary); box-sizing: border-box; }
+.verification-dialog .btn-pill:focus-visible { outline: 2px solid var(--text-brand); outline-offset: 3px; }
+.verification-dialog .btn-pill:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+#verification-rejection-dialog textarea { width: 100%; box-sizing: border-box; padding: var(--space-md); border: 1px solid var(--border-input); border-radius: var(--radius-md); color: var(--text-dark); background: var(--surface-input); font: inherit; }
+#verification-rejection-dialog textarea:focus-visible { outline: 2px solid var(--text-brand); outline-offset: 2px; }
+#verification-rejection-dialog .verification-dialog__content { display: block; height: auto; box-sizing: border-box; }
+#verification-rejection-dialog form { display: flex; flex-direction: column; gap: var(--space-lg); margin: 0; min-width: 0; }
+#verification-rejection-dialog .form-group { display: flex; flex-direction: column; gap: var(--space-sm); margin: 0; height: auto; min-width: 0; }
+#verification-rejection-dialog textarea { display: block; flex: none; height: 160px; }
+#verification-rejection-dialog .verification-dialog__decision-actions { flex: none; padding-top: var(--space-md); border-top: 1px dashed var(--border-tag); }
 .verification-dialog [hidden] { display: none !important; }
 .audit-page .btn-pill--ghost, .verification-dialog .btn-pill--ghost { color: var(--text-brand); }
 .verification-dialog.review-form-dialog { width: min(600px, calc(100vw - 32px)); height: fit-content; max-height: calc(100dvh - 32px); overflow: auto; }

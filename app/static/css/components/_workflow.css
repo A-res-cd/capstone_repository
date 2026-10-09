@@ -6,6 +6,26 @@
 .review-history th, .review-history td { text-align: left; padding: .75rem; border-bottom: 1px solid #8886; overflow-wrap: anywhere; }
 .review-history nav { display: flex; gap: 1rem; margin-top: 1rem; }
 .propose-topic-form textarea { width: 100%; box-sizing: border-box; min-height: 7rem; padding: .75rem; font: inherit; color: inherit; background: transparent; border: 1px solid #8888; border-radius: .5rem; }
-.header-audit-link { color: inherit; font-size: .8rem; white-space: nowrap; }
+.header-audit-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    min-height: 40px;
+    padding: .5rem .85rem;
+    box-sizing: border-box;
+    border: 1px solid var(--color-primary-soft);
+    border-radius: var(--radius-pill);
+    background: var(--surface-brand-soft);
+    color: var(--text-brand);
+    font-size: .8rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s, border-color .15s;
+}
+.header-audit-link i { font-size: 1.1rem; }
+.header-audit-link:hover { background: var(--hover-tint); border-color: var(--text-brand); }
+.header-audit-link:focus-visible { outline: 2px solid var(--text-brand); outline-offset: 3px; }
 
 

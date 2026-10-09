@@ -5,11 +5,30 @@
     dialog.dataset.bound = 'true';
     const status = dialog.querySelector('[data-verification-status]');
     const fields = dialog.querySelector('[data-verification-fields]');
-    const file = dialog.querySelector('[data-verification-file]');
     const viewerWrap = dialog.querySelector('[data-verification-viewer-wrap]');
     const viewer = dialog.querySelector('[data-verification-viewer]');
-    const decisionForms = Array.from(dialog.querySelectorAll('[data-verification-decision-form]'));
-    const decisionButtons = decisionForms.map(form => form.querySelector('button'));
+    const rejectionDialog = page.querySelector('#verification-rejection-dialog');
+    const rejectionReason = rejectionDialog.querySelector('textarea');
+    const rejectButton = dialog.querySelector('[data-verification-reject]');
+    const decisionForms = Array.from(page.querySelectorAll('[data-verification-decision-form]'));
+    const decisionButtons = [...decisionForms.map(form => form.querySelector('button[type="submit"]')), rejectButton];
+    rejectButton.addEventListener('click', () => {
+        rejectionReason.setCustomValidity('');
+        rejectionDialog.showModal();
+        rejectionReason.focus();
+    });
+    rejectionDialog.querySelector('[data-rejection-cancel]').addEventListener('click', () => rejectionDialog.close());
+    rejectionReason.addEventListener('input', () => {
+        rejectionReason.setCustomValidity(rejectionReason.value.trim() ? '' : 'Enter a rejection message.');
+    });
+    rejectionDialog.querySelector('form').addEventListener('submit', event => {
+        rejectionReason.value = rejectionReason.value.trim();
+        if (!rejectionReason.value) {
+            event.preventDefault();
+            rejectionReason.setCustomValidity('Enter a rejection message.');
+            rejectionReason.reportValidity();
+        }
+    });
     let controller;
 
     function setDecisionState(action, enabled) {
@@ -30,8 +49,6 @@
         setDecisionState(button.dataset.verificationAction, false);
         fields.replaceChildren();
         fields.hidden = true;
-        file.hidden = true;
-        file.removeAttribute('href');
         viewerWrap.hidden = true;
         viewer.removeAttribute('src');
         status.textContent = 'Loading account details…';
@@ -64,9 +81,6 @@
                 if (url.origin !== location.origin) throw new Error('Invalid file link');
                 viewer.src = `${url.href}?inline=1`;
                 viewerWrap.hidden = false;
-                file.href = url.href;
-                file.setAttribute('download', data.filename || 'cor.pdf');
-                file.hidden = false;
             }
         } catch (error) {
             viewerWrap.hidden = true;
@@ -75,6 +89,7 @@
         }
     });
     dialog.addEventListener('close', () => {
+        rejectionDialog.close();
         decisionForms.forEach(form => form.reset());
         controller?.abort();
         controller = null;

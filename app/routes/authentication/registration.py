@@ -3,7 +3,7 @@ from . import auth
 from flask import flash, render_template, request, redirect, url_for, jsonify
 import logging
 from app.db.auth import create_user
-from app.utils.cor_upload import save_cor_upload, remove_cor_file, read_cor_upload
+from app.utils.cor_upload import save_cor_document, remove_cor_file, read_cor_upload
 from app.utils.cor_extractor import extract_cor_fields
 from app.routes.forms import SignupForm
 
@@ -17,13 +17,15 @@ def signup():
 
     if form.validate_on_submit():
         try:
-            extracted = extract_cor_fields(read_cor_upload(form.cor.data)["content"])
+            document = read_cor_upload(form.cor.data)
+            extracted = (extract_cor_fields(document["content"])
+                         if not form.student_no.data else {})
         except ValueError as exc:
             form.cor.errors.append(str(exc))
             return render_template('authentication/signup.html', form=form,
                                    hide_nav=True, hide_header=True, form_data=request.form)
         try:
-            cor_filename = save_cor_upload(form.cor.data)
+            cor_filename = save_cor_document(document)
         except ValueError as exc:
             form.cor.errors.append(str(exc))
             return render_template('authentication/signup.html', form=form,

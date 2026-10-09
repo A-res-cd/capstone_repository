@@ -125,6 +125,10 @@ def decide_verification(request_id):
         flash("Invalid decision.", "danger")
         return redirect(url_for("admin.manage_users"))
 
+    if decision == 'rejected' and (not status_reason or len(status_reason) > 2000):
+        flash('Enter a rejection message of 1–2000 characters.', 'danger')
+        return redirect(url_for("admin.manage_users"))
+
     recipient = get_verification_request_recipient(request_id)
     ok, err = review_verification_request(request_id, decision, status_reason, reviewed_by)
     if ok:
