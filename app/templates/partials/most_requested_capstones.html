@@ -1,0 +1,28 @@
+<section class="most-requested" aria-labelledby="most-requested-title">
+    <h2 id="most-requested-title" class="section-title">Most Requested Capstones</h2>
+    <p class="archive-results-count">All-time manuscript requests</p>
+    {% if most_requested is none %}
+        <p class="archive-results-count" role="status">Request rankings are temporarily unavailable.</p>
+    {% elif most_requested %}
+        <ol class="most-requested-list">
+            {% for capstone in most_requested %}
+            <li>
+                <a class="most-requested-card" title="{{ capstone.capstone_title }} — {{ capstone.authors }}" href="{{ url_for('admin.view_capstone_pdf', capstone_id=capstone.capstone_id) }}">
+                    <span class="most-requested-rank" aria-hidden="true">{{ loop.index }}</span>
+                    <div class="most-requested-card__body">
+                        <strong>{{ capstone.capstone_title }}</strong>
+                        <span>{{ capstone.authors or 'Authors not listed' }}</span>
+                        <span>{{ capstone.capstone_year or 'Year not listed' }}</span>
+                    </div>
+                    <span class="most-requested-count">{{ capstone.request_count }} {{ 'request' if capstone.request_count == 1 else 'requests' }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ol>
+    {% else %}
+        <div class="empty-state" role="status">
+            <i class="bx bx-folder-open" aria-hidden="true"></i>
+            <p>No requests yet</p>
+        </div>
+    {% endif %}
+</section>

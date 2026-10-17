@@ -5,6 +5,7 @@ from flask import Flask, abort, render_template, request, session, url_for
 from flask_mail import Mail
 from config import Config
 from flask_wtf.csrf import CSRFProtect, CSRFError
+from werkzeug.middleware.proxy_fix import ProxyFix
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask_debugtoolbar import DebugToolbarExtension
 
@@ -20,6 +21,9 @@ logger = logging.getLogger(__name__)
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    proxy_hops = app.config.get('TRUSTED_PROXY_HOPS', 0)
+    if proxy_hops:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_hops, x_proto=0, x_host=0, x_port=0, x_prefix=0)
     from .utils.cloud_storage import validate_cloud_storage
     with app.app_context():
         validate_cloud_storage()
@@ -39,6 +43,8 @@ def create_app():
         DebugToolbarExtension(app)
 
     app.before_request(load_current_user)
+    from .utils.auth_rate_limit import throttle_actions
+    app.before_request(throttle_actions)
 
     @app.before_request
     def block_public_uploads():

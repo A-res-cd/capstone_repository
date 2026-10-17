@@ -1,0 +1,21 @@
+services:
+  capre:
+    build: .
+    env_file: .env
+    ports:
+      - "10000:10000"
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      DOCUMENT_MAX_JOBS: "1"
+      DOCUMENT_MEMORY_MB: "768"
+      DOCUMENT_JOB_SECONDS: "30"
+    volumes:
+      - capre-instance:/app/instance
+volumes:
+  capre-instance:

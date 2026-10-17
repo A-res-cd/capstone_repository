@@ -113,6 +113,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseForm = document.getElementById('btn-close-form');
     const btnCancel = document.getElementById('btn-cancel');
     let preserveCreateDraft = false;
+    const authorCount = document.getElementById('author-count');
+    function setAuthorCount(count) {
+        const total = Math.max(1, Math.min(5, Number(count) || 1));
+        authorCount.value = String(total);
+        document.querySelectorAll('[data-author-row]').forEach(row => {
+            const visible = Number(row.dataset.authorRow) < total;
+            row.style.display = visible ? '' : 'none';
+            row.querySelectorAll('input').forEach(input => {
+                input.disabled = !visible;
+                input.required = visible && !input.name.endsWith('middle_name');
+            });
+        });
+        window.CAPRE?.syncSelect?.(authorCount);
+    }
+    authorCount.addEventListener('change', () => setAuthorCount(authorCount.value));
+    setAuthorCount(1);
+
+    function fillAuthors(authors) {
+        document.querySelectorAll('[data-author-row] input').forEach(input => { input.value = ''; });
+        setAuthorCount(authors.length);
+        authors.slice(0, 5).forEach((author, i) => {
+            setField(`authors-${i}-first_name`, author.first || '');
+            setField(`authors-${i}-middle_name`, author.middle || '');
+            setField(`authors-${i}-last_name`, author.last || '');
+        });
+    }
 
     // Recycle Bin has no repository form panel.
     if (!panelForm || !btnOpenCreate || !btnCloseForm || !btnCancel) return;
@@ -188,11 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;
-                data.authors.forEach((author, i) => {
-                    setField(`authors-${i}-first_name`, author.first || '');
-                    setField(`authors-${i}-middle_name`, author.middle || '');
-                    setField(`authors-${i}-last_name`, author.last || '');
-                });
+                fillAuthors(data.authors || []);
                 if (data.adviser) {
                     setField('adviser-first_name', data.adviser.first || '');
                     setField('adviser-middle_name', data.adviser.middle || '');
@@ -214,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetForm() {
         document.getElementById('capstone-form').reset();
+        setAuthorCount(1);
         document.getElementById('field-capstone-id').value = '';
         setField('extracted-filename', '');
         setDisplay('keyword-chips', 'none');
@@ -357,6 +380,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 fillForm(json.data);
 
+                if ((json.data.authors || []).length > 5) {
+                    extractStatus.className = 'extract-status extract-status--error';
+                    setExtractStatus('bx bx-error-circle', 'This manuscript lists more than 5 authors. Review the five filled members before submitting.', true);
+                    return;
+                }
+
                 extractStatus.className = 'extract-status extract-status--success';
                 setExtractStatus('bx bx-check-circle',
                     `Fields pre-filled from ${file.name}. Review everything below before submitting.`, true);
@@ -389,11 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (d.authors && d.authors.length) {
-            d.authors.forEach((author, i) => {
-                setField(`authors-${i}-first_name`, author.first || '');
-                setField(`authors-${i}-middle_name`, author.middle || '');
-                setField(`authors-${i}-last_name`, author.last || '');
-            });
+            fillAuthors(d.authors);
         }
 
         if (d.adviser) {

@@ -1,0 +1,23 @@
+{% if requests %}
+<p class="archive-results-count">{{ requests|length }} request{{ 's' if requests|length != 1 else '' }}</p>
+<div class="archive-grid" id="requests-grid">
+    {% for req in requests %}
+    <div class="archive-card request-row"
+         data-request-id="{{ req.request_id }}"
+         data-requester="{{ req.requester_name }}"
+         data-capstone="{{ req.capstone_title }}"
+         data-reason="{{ req.request_reason }}"
+         data-status="{{ req.request_status }}"
+         data-feedback="{{ req.status_reason or '' }}"
+         data-date="{{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}"
+         data-capstone-id="{{ req.capstone_id }}">
+        <div class="col-title"><strong>{{ req.requester_name }}</strong></div>
+        <span class="col-program">{{ req.capstone_title }}</span>
+        <span class="col-year"><i class="bx bx-calendar"></i> {{ req.request_date.strftime('%b %d, %Y') if req.request_date else 'N/A' }}</span>
+        <span class="status-badge status-badge--{{ req.request_status }}">{{ req.request_status | capitalize }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="archive-empty"><i class="bx bx-folder-open"></i><p>No requests found.</p></div>
+{% endif %}

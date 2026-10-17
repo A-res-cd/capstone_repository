@@ -50,23 +50,21 @@ def _extract_page_text(page) -> str:
     return text
 
 
-def _parse_abstract_page(pages):
+def _parse_abstract_page(pages, text_cache=None):
     """
     Returns (page_number, abstract_text) for the actual Abstract page.
     Ignores the Table of Contents.
     """
-    toc_found = False
-
     for page_num, page in enumerate(pages, start=1):
-        text = _extract_page_text(page)
+        if text_cache is not None and page_num - 1 in text_cache:
+            text = text_cache[page_num - 1]
+        else:
+            text = _extract_page_text(page)
+            if text_cache is not None:
+                text_cache[page_num - 1] = text
 
         # Detect the Table of Contents page
-        if not toc_found and re.search(r"TABLE\s*OF\s*CONTENTS", text, re.IGNORECASE):
-            toc_found = True
-            continue
-
-        # Don't look for ABSTRACT until after the TOC
-        if not toc_found:
+        if re.search(r"TABLE\s*OF\s*CONTENTS", text, re.IGNORECASE):
             continue
 
         lines = text.splitlines()
@@ -99,6 +97,8 @@ _SURNAME_PARTICLES = {
 
 
 def _format_name_token(token: str) -> str:
+    if token.casefold().rstrip('.') in {'jr', 'sr'}:
+        return token.capitalize()
     return token.upper() if _MIDDLE_INITIAL_PATTERN.fullmatch(token) else token.title()
 
 
@@ -124,7 +124,7 @@ def _parse_name_string(raw: str) -> dict | None:
       DELA CRUZ, ALVIN JAMES DC. -> first=Alvin James, middle=DC., last=Dela Cruz
       OLMO, ELMARK JOSH          -> first=Elmark, middle=Josh,     last=Olmo
     """
-    raw = raw.strip()
+    raw = raw.strip(' ,')
     if ',' not in raw:
         return None
     last_part, rest = raw.split(',', 1)
@@ -139,9 +139,9 @@ def _parse_name_string(raw: str) -> dict | None:
         middle = ' '.join(_format_name_token(part) for part in middle_part.split())
     else:
         first, middle = _split_given_names(given_parts)
-        # In LAST, FIRST MIDDLE format, a full middle name has no initial
-        # punctuation. Treat remaining words as middle when no initial exists.
-        if not middle and len(given_parts) > 1:
+        # Preserve multiple first names; a single undotted trailing word may
+        # be the full middle name in LAST, FIRST MIDDLE format.
+        if not middle and len(given_parts) == 2:
             first = _format_name_token(given_parts[0])
             middle = ' '.join(_format_name_token(part) for part in given_parts[1:])
     if not first:
@@ -161,6 +161,8 @@ def _parse_natural_name(raw: str) -> dict | None:
         return None
 
     surname_start = len(words) - 1
+    if words[-1].rstrip('.').casefold() in {'jr', 'sr', 'ii', 'iii', 'iv'}:
+        surname_start -= 1
     while surname_start > 0 and words[surname_start - 1].lower().rstrip('.') in _SURNAME_PARTICLES:
         surname_start -= 1
     if surname_start == 0:
@@ -174,6 +176,52 @@ def _parse_natural_name(raw: str) -> dict | None:
     }
 
 
+_DEGREE_PATTERN = re.compile(r',?\s*\b(?:Ph\.?D\.?|M\.?S\.?I\.?T\.?|MIT|DIT|MBusAn|MSc)\b\.?', re.I)
+_PERSON_NOISE = {'the', 'our', 'their', 'for', 'from', 'thanks', 'project', 'research',
+                 'capstone', 'instructor', 'teacher', 'adviser', 'advisor', 'date', 'approved'}
+
+
+def _clean_person_name(raw: str) -> dict | None:
+    raw = re.sub(r'^(?:Dr|Mr|Mrs|Ms|Prof)\.?\s+', '', raw.strip(), flags=re.I)
+    raw = _DEGREE_PATTERN.sub('', raw).strip(' ,_')
+    raw = re.sub(r'([a-z])([A-Z]\.)', r'\1 \2', raw)
+    raw = re.sub(r'(?<=\.)(?=[A-Za-z]{2})', ' ', raw)
+    tokens = raw.split()
+    if (not 2 <= len(tokens) <= 8 or set(word.casefold().strip('.,') for word in tokens) & _PERSON_NOISE
+            or not re.fullmatch(r"[^\W\d_](?:[^\W\d_]|[.,'’\s-])*", raw)):
+        return None
+    return _parse_name_string(raw) if ',' in raw else _parse_natural_name(raw)
+
+
+def _parse_cover_authors(lines: list[str]) -> list[dict]:
+    candidates = []
+    in_authors = False
+    for line in lines:
+        if re.fullmatch(r'(?:submitted\s+)?by\s*:?\s*', line, re.I):
+            in_authors = True
+            continue
+        if not in_authors:
+            continue
+        if (re.search(r'\d{4}|\b(?:BSIT|BSDS|submitted|instructor|advis[eo]r)\b', line, re.I)
+                or re.match(r'^(?:January|February|March|April|May|June|July|August|September|October|November|December)\b', line, re.I)):
+            break
+        candidates.extend(re.split(r'\s{2,}', line))
+    surname_first = sum(',' in line for line in candidates) >= len(candidates) / 2
+    authors = []
+    seen = set()
+    for raw in candidates:
+        if surname_first and ',' not in raw and len(raw.split()) > 1:
+            last, rest = raw.split(None, 1)
+            raw = f'{last}, {rest}'
+        person = _clean_person_name(raw)
+        if person:
+            key = tuple(value.casefold() for value in person.values())
+            if key not in seen:
+                authors.append(person)
+                seen.add(key)
+    return authors
+
+
 def _parse_adviser_from_approval(lines: list[str]) -> dict | None:
     """
     The approval sheet renders the course teacher and adviser names on
@@ -182,29 +230,84 @@ def _parse_adviser_from_approval(lines: list[str]) -> dict | None:
       'Ruth G. Luciano, PhD  Jodell R. Bulaclac, MSIT'
       'Course Teacher         Adviser'
 
-    Finds the label line containing 'Adviser', looks one line up for the
-    names, strips degree suffixes, then takes the right-hand name.
+    Match role order to name columns, supporting either adviser position.
+    Skip signature rules and degree suffixes without guessing from prose.
     """
-    degree_pattern = re.compile(
-        r',?\s*(Ph\.?D\.?|M\.?S\.?I\.?T\.?|MIT|DIT|MBusAn|Dr\.|PhD|MSIT)',
-        re.IGNORECASE
-    )
-
     for i, line in enumerate(lines):
-        if re.search(r'\bAdviser\b', line, re.IGNORECASE) and i > 0:
-            names_line = lines[i - 1]
-            cleaned    = degree_pattern.sub('', names_line).strip()
-
-            # Two names separated by 2+ spaces (from two-column layout)
-            parts = re.split(r'\s{2,}', cleaned)
-            adviser_raw = parts[-1].strip() if len(parts) >= 2 else ' '.join(cleaned.split()[len(cleaned.split())//2:])
-
-            parsed = _parse_natural_name(adviser_raw)
+        if not re.search(r'\bAdvis[eo]r\b', line, re.I):
+            continue
+        inline = re.match(r'^\s*(?:Capstone\s+|Research\s+)?Advis[eo]r\s*:\s*(.+)', line, re.I)
+        if inline:
+            parsed = _clean_person_name(inline.group(1))
             if parsed:
-                logger.debug("Parsed adviser name: %s -> %s", adviser_raw, parsed)
                 return parsed
+        labels = re.findall(r'\b(?:Advis[eo]r|(?:Course\s+|Capstone\s+)?Teacher|(?:Capstone\s+)?Instructor)\b', line, re.I)
+        # Only role-only lines may select an adjacent signature; prose is not a name.
+        if re.sub(r'\b(?:Advis[eo]r|Teacher|Instructor|Course|Capstone|Research)\b|[\s&/,:-]', '', line, flags=re.I):
+            continue
+        column = next((n for n, role in enumerate(labels) if re.fullmatch(r'Advis[eo]r', role, re.I)), 0)
+        for names_line in reversed(lines[max(0, i - 3):i]):
+            if not re.search(r'[^\W\d_]', names_line):
+                continue
+            parts = [part.strip(' ,') for part in _DEGREE_PATTERN.split(names_line) if part.strip(' ,')]
+            if len(parts) == 1:
+                parts = re.split(r'\s{2,}', parts[0])
+            if column < len(parts):
+                parsed = _clean_person_name(parts[column])
+                if parsed:
+                    return parsed
     logger.debug("No adviser found in approval sheet lines.")
     return None
+
+
+def _parse_adviser_mention(text: str) -> dict | None:
+    """Fallback only to an explicitly named adviser in front-matter prose."""
+    text = re.sub(r'\s+', ' ', text)
+    name = r"([^\W\d_](?:[^\W\d_]|[.'’-])*(?:\s+[^\W\d_](?:[^\W\d_]|[.'’-])*){1,7}?)"
+    patterns = [
+        r'\badvis[eo]r\s*[, :]\s*(?:(?:Dr|Mr|Mrs|Ms|Prof)\.?\s+)?' + name + r'(?=,|\s+(?:who|for|and our)\b)',
+        r'\b(?:Dr|Mr|Mrs|Ms|Prof)\.?\s+' + name + r',\s*(?:our\s+|the researchers[’\x27]\s+)?(?:capstone\s+|research\s+)?advis[eo]r\b',
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, re.I):
+            person = _clean_person_name(match.group(1))
+            if person:
+                return person
+    return None
+
+_TOPIC_PHRASES = (
+    # Topic patterns represented by datasets/wst, datasets/dst and datasets/nst.
+    'records management', 'record management', 'student profile', 'academic information',
+    'scholarship application', 'incident reporting', 'infrastructure issues', 'faculty evaluation',
+    'career readiness', 'smart farming', 'data logger', 'automated misting', 'lettuce cultivation',
+    'stock monitoring', 'point of sales', 'e-commerce', 'guest monitoring', 'reservation',
+    'dispatching', 'trucking services', 'wireless local area network', 'wireless bridge connection',
+    'wired network infrastructure', 'wireless network', 'bandwidth management', 'parental controls',
+    'internet connectivity', 'network expansion', 'router deployment', 'access point',
+    'cat6 ethernet cable', 'centralized internet infrastructure', 'wireless connectivity',
+    'soil moisture', 'irrigation monitoring', 'feedback', 'complaint', 'child-at-risk',
+    'inventory management', 'information management', 'record and monitoring', 'internet sharing',
+)
+_KEYWORD_NOISE = {'a', 'an', 'and', 'the', 'of', 'for', 'to', 'in', 'at', 'with', 'using',
+                  'by', 'on', 'based', 'web', 'design', 'development', 'implementation',
+                  'system', 'systems', 'study', 'research', 'project', 'capstone', 'abstract',
+                  'results', 'respondents', 'researchers', 'proposed', 'developed',
+                  'implementing', 'enhancing', 'front', 'page', 'platform',
+                  'spiral', 'model', 'life', 'cycle', 'sdlc', 'likert', 'respondent',
+                  'statistical', 'validation', 'acceptance', 'testing', 'methodology',
+                  'aim', 'aims', 'aimed', 'support', 'enhance', 'improve', 'improving',
+                  'strengthening', 'optimizing', 'expanding', 'fortifying', 'this', 'that'}
+_INSTITUTION_WORDS = {'neust', 'university', 'school', 'highschool', 'college', 'barangay',
+                      'city', 'government', 'museo', 'museum', 'station', 'hall', 'center', 'hostel',
+                      'institution', 'institutions', 'heis'}
+
+
+def _topic_tokens(phrase):
+    variants = {'records': 'record', 'profiles': 'profile', 'applications': 'application',
+                'networks': 'network', 'services': 'service', 'routers': 'router',
+                'connections': 'connection'}
+    return {variants.get(word, word) for word in re.findall(r'[a-z0-9]+', phrase.lower())} - _KEYWORD_NOISE
+
 
 def _suggest_keywords_yake(text: str, top_n: int = 6) -> list[str]:
     """
@@ -229,7 +332,7 @@ def _suggest_keywords_yake(text: str, top_n: int = 6) -> list[str]:
 
     results = extract(text, candidate_limit)
     title_results = extract(title, candidate_limit) if separator else []
-    title_tokens = set(re.findall(r"[a-z0-9]+", title.lower()))
+    title_tokens = _topic_tokens(title)
 
     # Keep the best YAKE score for each phrase, and mark title-derived phrases
     # so they win ties against broad abstract terms.
@@ -247,18 +350,47 @@ def _suggest_keywords_yake(text: str, top_n: int = 6) -> list[str]:
             else:
                 current[2] = True
 
+    domain_phrases = set()
+    for template in _TOPIC_PHRASES:
+        pattern = r'\b' + re.escape(template).replace(r'\ ', r'[\s-]+') + r'\b'
+        if template in {'feedback', 'complaint'} and not re.search(pattern, title, re.I):
+            continue
+        match = re.search(pattern, text, re.I)
+        if match:
+            phrase = ' '.join(match.group(0).split())
+            key = phrase.casefold()
+            domain_phrases.add(key)
+            if key not in candidates:
+                candidates[key] = [phrase, 1.0, bool(re.search(pattern, title, re.I))]
+
+    location_tokens = set()
+    domain_tokens = set().union(*(_topic_tokens(phrase) for phrase in domain_phrases)) if domain_phrases else set()
+    for location in re.finditer(r'\b(?:at|for|in|of)\s+(.+?)(?=\b(?:using|to|with)\b|$)', title, re.I):
+        tokens = _topic_tokens(location.group(1))
+        if tokens & _INSTITUTION_WORDS:
+            location_tokens.update(tokens - domain_tokens)
+
     ranked = []
     for phrase, score, from_title in candidates.values():
-        tokens = set(re.findall(r"[a-z0-9]+", phrase.lower()))
+        tokens = _topic_tokens(phrase)
+        domain = phrase.casefold() in domain_phrases
+        if (not tokens or (not domain and (len(tokens) == 1
+                or tokens & (_INSTITUTION_WORDS | location_tokens)))):
+            continue
         overlap = len(tokens & title_tokens)
+        if not domain and not overlap:
+            continue
         relevance = overlap / len(tokens) if tokens else 0
-        ranked.append((-relevance, -overlap, not from_title, score, phrase))
+        # Prefer topic-bearing phrases over school/location names or methodology.
+        topic_score = (10 * domain + 3 * relevance + 0.5 * overlap
+                       + 0.5 * from_title + 0.5 / (1 + score))
+        ranked.append((-topic_score, -overlap, not from_title, score, phrase))
 
     ranked.sort()
     selected = []
     selected_token_sets = []
     for _relevance, _overlap, _not_title, _score, phrase in ranked:
-        tokens = set(re.findall(r"[a-z0-9]+", phrase.lower()))
+        tokens = _topic_tokens(phrase)
         # Avoid filling the six slots with minor variations of one phrase.
         if any(tokens and (tokens <= prior or prior <= tokens) for prior in selected_token_sets):
             continue
@@ -292,14 +424,22 @@ def extract_capstone_data(pdf_path: str) -> dict:
         with pdfplumber.open(pdf_path) as pdf:
 
             # ── Page 1: Cover ─────────────────────────────────────
-            p1_text  = _extract_page_text(pdf.pages[0])
+            text_cache = {}
+            def page_text(index):
+                if index not in text_cache:
+                    text_cache[index] = _extract_page_text(pdf.pages[index])
+                return text_cache[index]
+
+            p1_text  = page_text(0)
             p1_lines = [l.strip() for l in p1_text.splitlines() if l.strip()]
 
             # Title: all lines before "A CAPSTONE AND RESEARCH PROJECT"
             title_lines = []
             for line in p1_lines:
-                if re.match(r'^A CAPSTONE', line, re.IGNORECASE):
+                if re.match(r'^(?:A\s*CAPSTONE|An\s+Undergraduate)', line, re.IGNORECASE):
                     break
+                if line.upper() == 'FRONT PAGE':
+                    continue
                 title_lines.append(line)
             if title_lines:
                 result['title'] = ' '.join(title_lines)
@@ -318,30 +458,21 @@ def extract_capstone_data(pdf_path: str) -> dict:
                 result['year'] = int((dated_years or year_matches)[-1])
 
             # Authors: lines between "by:" and the date line (e.g. "DECEMBER 2025")
-            in_authors = False
-            for line in p1_lines:
-                if re.fullmatch(r'by\s*:?', line, re.IGNORECASE):
-                    in_authors = True
-                    continue
-                if in_authors:
-                    if re.match(r'^[A-Z]+\s+\d{4}$', line):
-                        break
-                    # Cover authors may be printed in side-by-side columns.
-                    for author_line in re.split(r'\s{2,}', line):
-                        parsed = _parse_name_string(author_line)
-                        if parsed:
-                            result['authors'].append(parsed)
+            result['authors'] = _parse_cover_authors(p1_lines)
 
             # ── Page 3: Approval Sheet ────────────────────────────
-            p3_lines = [
-                l.strip()
-                for l in _extract_page_text(pdf.pages[2]).splitlines()
-                if l.strip()
-            ] if len(pdf.pages) > 2 else []
-            result['adviser'] = _parse_adviser_from_approval(p3_lines)
+            front_matter = []
+            for index in range(min(8, len(pdf.pages))):
+                text = page_text(index)
+                front_matter.append(text)
+                result['adviser'] = _parse_adviser_from_approval([line.strip() for line in text.splitlines() if line.strip()])
+                if result['adviser']:
+                    break
+            if not result['adviser']:
+                result['adviser'] = _parse_adviser_mention(' '.join(front_matter))
 
             # ── Abstract page: scan all pages ─────────────────────
-            abstract_page, abstract_full_text = _parse_abstract_page(pdf.pages)
+            abstract_page, abstract_full_text = _parse_abstract_page(pdf.pages, text_cache)
             result['abstract_page'] = abstract_page
             result['abstract_text'] = abstract_full_text
 

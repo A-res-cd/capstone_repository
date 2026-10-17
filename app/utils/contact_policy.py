@@ -1,4 +1,4 @@
-"""Contact preferences do not change the email-based recovery channel."""
+"""Contact normalization; recovery delivery is selected separately."""
 import re
 
 

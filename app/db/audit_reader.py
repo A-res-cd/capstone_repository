@@ -6,7 +6,9 @@ from app.utils.audit_summary import ACTION_GROUPS, summarize_audit
 
 
 def get_audit_logs(filters, page=1):
-    clauses, params = [], []
+    # Keep audit focused on meaningful account and request activity. Routine
+    # sign-in/sign-out events belong in the dedicated authentication log.
+    clauses, params = ["a.action_type NOT IN ('login', 'logout')"], []
     for name, operator in [('start', '>='), ('end', '<')]:
         if filters.get(name):
             clauses.append(f'a.action_timestamp {operator} %s')

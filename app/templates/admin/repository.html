@@ -321,9 +321,17 @@
                 <div class="form-step form-step--hidden" data-step="2">
 
                 <fieldset class="form-group form-group--full people-section">
-                    <legend>Authors <span class="label-note">Up to 4</span></legend>
-                    {% for i in range(4) %}
-                    <div class="form-row person-name-row">
+                    <legend>Authors <span class="label-note">1–5 members</span></legend>
+                    <div class="form-group">
+                        <label for="author-count">Number of authors</label>
+                        <select id="author-count">
+                            {% for count in range(1, 6) %}
+                            <option value="{{ count }}">{{ count }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% for i in range(5) %}
+                    <div class="form-row person-name-row" data-author-row="{{ i }}">
                         <div class="form-group">
                             <label for="authors-{{ i }}-first_name">Author {{ i + 1 }} — First</label>
                             <input type="text" id="authors-{{ i }}-first_name" name="authors-{{ i }}-first_name" placeholder="First name">

@@ -6,6 +6,7 @@ logout, signup, or password_reset tables lives here.
 """
 import re
 import logging
+import secrets
 import psycopg2.extras
 from datetime import datetime, timedelta, timezone
 from app.utils.password_policy import password_error
@@ -18,7 +19,7 @@ from app.db.audit import log_audit
 logger = logging.getLogger(__name__)
 
 # student and faculty auto detection role pattern
-STUDENT_PATTERN = re.compile(r'^(?:[SUM]{3})?\d{4}-\d+$', re.IGNORECASE)
+STUDENT_PATTERN = re.compile(r'^(?:(?:[SUM]{3})?\d{4}-\d+|[0-9]{10})$', re.IGNORECASE)
 PROFESSOR_PATTERN = re.compile(r'^\d{4}$')
 ADMIN_PATTERN = re.compile(r'^admin\d{3}$', re.IGNORECASE)
 
@@ -31,6 +32,7 @@ LOCKOUT_DURATION = 20  # lockout duration in minutes
 
 OTP_EXPIRY_MINUTES = 4
 OTP_MAX_ATTEMPTS = 2
+DUMMY_PASSWORD_HASH = generate_password_hash(secrets.token_urlsafe(32))
 
 
 def detect_role(university_no):
@@ -141,8 +143,7 @@ def reapply_for_verification(user_id):
 # _____________________________________helper functions gang_______________________________ ps i was getting lost in the code so therese allat of notes now
 
 def get_device_ip(request):
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    # ProxyFix adjusts this only for an explicitly trusted proxy chain.
     return request.remote_addr
 
 def get_role_id(mithrix, role_name):
@@ -151,7 +152,7 @@ def get_role_id(mithrix, role_name):
     row = mithrix.fetchone()
     return row["role_id"] if row else None
 
-def create_user(first_name, middle_name, last_name, university_no, email, username, password, cor_filename=None, preferred_contact="email", phone="", terms_version=None):
+def create_user(first_name, middle_name, last_name, university_no, email, username, password, cor_filename=None, preferred_contact="email", phone="", terms_version=None, requested_role=None, signup_verification_id=None):
 
     #strip and basic validation
     first_name    = first_name.strip()    if first_name    else ""
@@ -160,7 +161,7 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
     university_no = (university_no or "").strip()
     email         = email.strip()         if email         else ""
     username      = username.strip()      if username      else ""
-    role_name = detect_role(university_no) if university_no else "Student"
+    role_name = requested_role or (detect_role(university_no) if university_no else "Student")
 
     # validation
     if not all([first_name, last_name, username, password]):
@@ -171,14 +172,18 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         phone = normalize_phone(phone)
     except ValueError as exc:
         return False, str(exc)
-    if preferred_contact not in ('email', 'phone') or (preferred_contact == 'phone' and not phone) or (preferred_contact == 'email' and not email):
+    if not email:
+        return False, "Enter an email for account recovery."
+    if preferred_contact not in ('email', 'phone') or (preferred_contact == 'phone' and not phone):
         return False, "Choose a valid contact preference and supply its contact details."
     if email and not EMAIL_PATTERN.match(email):
         return False, "Invalid email format."
     if not USERNAME_PATTERN.match(username):
         return False, "Username must be 3-30 characters, letters, numbers, and underscores only."
 
-    if university_no and role_name is None:
+    if role_name not in ("Student", "Faculty"):
+        return False, "Choose Student or Faculty as your account type."
+    if university_no and detect_role(university_no) != role_name:
         logger.warning(
             "University number '%s' did not match any known patterns.", university_no)
         return False, ("University number format not recognized")
@@ -192,6 +197,17 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         role_id = get_role_id(mithrix, role_name)
         if role_id is None:
             return False, f"Role '{role_name}' is not in the system"
+
+        if signup_verification_id is not None:
+            from app.db.signup_verification import consume_email_verification
+            mithrix.execute("SELECT pg_advisory_xact_lock(hashtext('signup-email'), hashtext(%s))", (email.lower(),))
+            mithrix.execute("SELECT 1 FROM contact WHERE contact_type = 'email' AND LOWER(contact_value) = %s LIMIT 1", (email.lower(),))
+            if mithrix.fetchone():
+                conn.rollback()
+                return False, "That email is already registered."
+            if not consume_email_verification(mithrix, signup_verification_id, email):
+                conn.rollback()
+                return False, "Verify your email again before creating an account."
 
         # insert to user table
         insert_university_no = university_no or None
@@ -292,13 +308,15 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
 # ____________________________sign in or authentication idk_______________________
 
 def sign_in(username, password, device_ip=None):
+    if not isinstance(username, str) or not isinstance(password, str) or len(username) > 30 or len(password) > 1024:
+        return None, "Invalid username or password."
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     now = datetime.now(timezone.utc)
 
     try:
         mithrix.execute("""
-        SELECT u.user_id, u.locked_until, u.account_status, k.username, r.password AS password_hash,
+        SELECT u.user_id, u.account_status, k.username, r.password AS password_hash, sl.password_id,
                ro.role_id, ro.role_name,
                u.user_first_name, u.user_last_name
         FROM kappa k
@@ -313,22 +331,8 @@ def sign_in(username, password, device_ip=None):
         row = mithrix.fetchone()
 
         if not row:
+            check_password_hash(DUMMY_PASSWORD_HASH, password)
             return None, "Invalid username or password."
-
-        # start of new sign in with lockout and audit logging (if the bruth force defence is not needed delete the code from here to the end of the next comment)
-        if row["locked_until"]:
-            locked_until = row["locked_until"]
-            if locked_until.tzinfo is None:
-                locked_until = locked_until.replace(tzinfo=timezone.utc)
-            if now < locked_until:
-                remaining = int((locked_until - now).total_seconds() // 60) + 1
-                return None, f"Account locked. Try again in {remaining} minute(s)."
-            else:
-                # lockout expired, clear it and continue
-                mithrix.execute("""
-                    UPDATE "user" SET locked_until = NULL WHERE user_id = %s
-                """, (row["user_id"],))
-                conn.commit()  # commit the clear before continuing
 
         if not check_password_hash(row["password_hash"], password):
 
@@ -337,33 +341,6 @@ def sign_in(username, password, device_ip=None):
                 VALUES (%s, %s, %s, 1)
                 RETURNING log_in_id
             """, (row["user_id"], now, device_ip))
-
-            mithrix.execute("""
-                SELECT COUNT(*) AS fails
-                FROM login
-                WHERE user_id = %s
-                  AND failed_attempts > 0
-                  AND log_in_time >= GREATEST(
-                      NOW() - (%s * INTERVAL '1 minute'),
-                      COALESCE(
-                          (SELECT MAX(log_in_time)
-                           FROM login
-                           WHERE user_id = %s AND failed_attempts = 0),
-                          '-infinity'::timestamp
-                      )
-                  )
-            """, (row["user_id"], LOCKOUT_DURATION, row["user_id"]))
-            fails = mithrix.fetchone()["fails"]
-
-            if fails >= LOCKOUT_THRESHOLD:
-                from datetime import timedelta
-                mithrix.execute("""
-                    UPDATE "user"
-                    SET locked_until = %s
-                    WHERE user_id = %s
-                """, (now + timedelta(minutes=LOCKOUT_DURATION), row["user_id"]))
-                conn.commit()
-                return None, f"Too many failed attempts. Account locked for {LOCKOUT_DURATION} minutes."
 
             conn.commit()
             # Deliberately generic — a differing message here (e.g. "X attempts
@@ -396,6 +373,7 @@ def sign_in(username, password, device_ip=None):
 
         return {
             "user_id":         user_id,
+            "password_id":     row["password_id"],
             "username":        row["username"],
             "role_id":         row["role_id"],
             "role_name":       row["role_name"],
@@ -446,10 +424,25 @@ def lookup_user_for_reset(username, email):
         mithrix.close()
         conn.close()
 
-def create_otp(contact_id):
-    import random
+def lookup_phone_for_reset(user_id):
+    conn = db_connect()
+    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        mithrix.execute("""
+            SELECT contact_id, contact_value FROM contact
+            WHERE user_id = %s AND contact_type = 'phone' AND is_primary = TRUE
+            ORDER BY contact_id LIMIT 1
+        """, (user_id,))
+        return mithrix.fetchone()
+    except Exception:
+        raise RuntimeError('Could not look up the recovery phone.') from None
+    finally:
+        mithrix.close()
+        conn.close()
 
-    otp = f"{random.randint(0, 999999):06d}"
+
+def create_otp(contact_id, expected_destination=None):
+    otp = f"{secrets.randbelow(1000000):06d}"
 
     conn = db_connect()
     mithrix = conn.cursor()
@@ -460,6 +453,14 @@ def create_otp(contact_id):
     expiry = now + timedelta(minutes=OTP_EXPIRY_MINUTES)
 
     try:
+        mithrix.execute('''SELECT u.user_id FROM "user" u JOIN contact c ON c.user_id = u.user_id
+                           WHERE c.contact_id = %s FOR UPDATE OF u''', (contact_id,))
+        if not mithrix.fetchone():
+            raise ValueError('Recovery contact unavailable.')
+        mithrix.execute('SELECT contact_value FROM contact WHERE contact_id = %s FOR UPDATE', (contact_id,))
+        contact = mithrix.fetchone()
+        if not contact or (expected_destination is not None and contact[0] != expected_destination):
+            raise ValueError('Recovery contact changed. Start again.')
         mithrix .execute("""
             UPDATE password_reset
             SET is_used = TRUE
@@ -495,11 +496,13 @@ def verify_otp(reset_id, otp_entered):
             SELECT reset_id, reset_token, expiry_date, is_used, COALESCE(attempt_count, 0) AS attempt_count
             FROM password_reset
             WHERE reset_id = %s
+            FOR UPDATE
         """, (reset_id,))
         row = mithrix.fetchone()
 
         if not row:
             return False, "invalid reset token"
+        now = datetime.now(timezone.utc)
         if row["is_used"]:
             return False, "This reset token has alredy been used"
         expiry = row["expiry_date"]
@@ -521,6 +524,7 @@ def verify_otp(reset_id, otp_entered):
                 return False, "Too many incorrect attempts. Please request a new OTP."
             return False, f"Incorrect OTP. {remaining} attempt(s) remaining."
 
+        mithrix.execute("UPDATE password_reset SET verified_at = %s WHERE reset_id = %s", (now, reset_id))
         log_audit(mithrix, None, "otp_verified", "password_reset",
                   reset_id, old_values="unused", new_values="verified")
 
@@ -536,7 +540,7 @@ def verify_otp(reset_id, otp_entered):
         mithrix.close()
         conn.close()
 
-def change_password(reset_id, user_id, new_password):
+def change_password(reset_id, user_id, new_password, current_password=None):
     if password_error(new_password):
         return False, password_error(new_password)
 
@@ -545,6 +549,30 @@ def change_password(reset_id, user_id, new_password):
     now = datetime.now(timezone.utc)
 
     try:
+        mithrix.execute('SELECT user_id FROM "user" WHERE user_id = %s FOR UPDATE', (user_id,))
+        if not mithrix.fetchone():
+            return False, "Account not found."
+        now = datetime.now(timezone.utc)
+        if reset_id is not None:
+            mithrix.execute("""
+                SELECT pr.reset_id FROM password_reset pr
+                JOIN contact c ON c.contact_id = pr.contact_id
+                WHERE pr.reset_id = %s AND c.user_id = %s
+                  AND pr.is_used = FALSE AND pr.verified_at IS NOT NULL
+                  AND pr.expiry_date > %s
+                FOR UPDATE OF pr
+            """, (reset_id, user_id, now))
+            if not mithrix.fetchone():
+                return False, "Reset expired or already used. Please start again."
+        else:
+            mithrix.execute("""
+                SELECT r.password FROM slug sl JOIN ror r ON r.password_id = sl.password_id
+                WHERE sl.user_id = %s AND sl.is_current = TRUE
+            """, (user_id,))
+            credential = mithrix.fetchone()
+            if (not credential or not isinstance(current_password, str) or len(current_password) > 1024
+                    or not check_password_hash(credential['password'], current_password)):
+                return False, "Current password is incorrect."
         mithrix.execute("""
             SELECT password_id FROM slug
             WHERE user_id   = %s
@@ -578,8 +606,8 @@ def change_password(reset_id, user_id, new_password):
 
         mithrix.execute("""
             UPDATE password_reset SET is_used = TRUE
-            WHERE reset_id = %s
-        """, (reset_id,))
+            WHERE contact_id IN (SELECT contact_id FROM contact WHERE user_id = %s)
+        """, (user_id,))
 
         log_audit(mithrix, user_id, 'password_reset', 'ror', new_password_id,
                   old_values=str(old_password_id), new_values=str(new_password_id))
@@ -597,36 +625,8 @@ def change_password(reset_id, user_id, new_password):
         conn.close()
 
 def change_own_password(user_id, current_password, new_password):
-    """
-    Self-service password change from the User Information page —
-    distinct from change_password(), which is reached via the
-    forgot-password/OTP flow (proves identity through email instead of
-    a known current password). Verifies current_password first, then
-    reuses change_password()'s existing swap logic with reset_id=None
-    (there's no password_reset row to mark used in this flow).
-    """
-    conn = db_connect()
-    mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
-        mithrix.execute("""
-            SELECT r.password AS password_hash
-            FROM slug sl
-            JOIN ror r ON r.password_id = sl.password_id
-            WHERE sl.user_id = %s AND sl.is_current = TRUE
-            LIMIT 1
-        """, (user_id,))
-        row = mithrix.fetchone()
-
-        if not row or not check_password_hash(row["password_hash"], current_password):
-            return False, "Current password is incorrect."
-    except Exception as exc:
-        logger.error("Database error: %s", exc)
-        return False, "A database error occurred. Please try again."
-    finally:
-        mithrix.close()
-        conn.close()
-
-    return change_password(None, user_id, new_password)
+    """Check the current credential and swap it in one locked transaction."""
+    return change_password(None, user_id, new_password, current_password=current_password)
 
 
 def sign_out(user_id, device_ip=None):

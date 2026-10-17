@@ -184,6 +184,9 @@
 }
 
 .logout {
+    width: 100%;
+    font-family: inherit;
+    cursor: pointer;
     background: rgba(211,60,45,0.08);
     color: var(--color-red);
     border-radius: var(--radius-md);

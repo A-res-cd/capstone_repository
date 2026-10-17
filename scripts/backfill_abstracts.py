@@ -7,7 +7,7 @@ from flask import Flask
 from config import Config
 from app.db.connection import db_connect
 from app.utils.uploads import resolve_manuscript_file
-from app.utils.pdf_extractor import extract_abstract_text
+from app.utils.document_processing import process_document
 
 
 def main():
@@ -26,7 +26,13 @@ def main():
                 if not path or Path(path).suffix.lower() != '.pdf':
                     skipped += 1
                     continue
-                abstract = extract_abstract_text(path)
+                try:
+                    with open(path, 'rb') as source:
+                        content = source.read(20 * 1024**2 + 1)
+                    abstract = process_document(content, '.pdf', 'abstract').get('abstract', '')
+                except ValueError:
+                    skipped += 1
+                    continue
                 cursor.execute('UPDATE capstone SET abstract_text = %s WHERE capstone_id = %s AND abstract_text IS NULL', (abstract, capstone_id))
                 updated += cursor.rowcount
             conn.commit()

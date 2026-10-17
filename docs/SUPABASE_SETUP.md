@@ -37,7 +37,7 @@ The setup creates these private buckets:
 | Bucket | Files | Maximum file size |
 | --- | --- | --- |
 | `capre-manuscripts` | PDF, DOC and DOCX | 25 MiB |
-| `capre-registration` | COR PDFs | 5 MiB |
+| `capre-registration` | COR PDFs and faculty ID JPG/PNG images | 5 MiB |
 | `capre-avatars` | Sanitized PNG avatars | 2 MiB |
 
 To enable cloud uploads, add the settings from `.env.storage.example` to your
@@ -58,7 +58,7 @@ to the corresponding private buckets before switching existing records.
 
 ## Check the result
 
-In Supabase, verify that the Table Editor contains the 20 application tables and
+In Supabase, verify that the Table Editor contains the 23 application tables and
 `schema_migration`, and Storage contains three private buckets. Role, program and
 specialization lookups should be populated. No administrator account is created.
 

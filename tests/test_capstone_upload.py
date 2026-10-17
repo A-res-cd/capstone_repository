@@ -84,6 +84,7 @@ def test_extract_then_submit_saves_one_copy(upload_client, monkeypatch, extensio
         'program_id': '1', 'specialization_id': '1', 'semester': '1st',
         'capstone_keywords': 'test', 'adviser-first_name': 'Test',
         'adviser-last_name': 'Adviser',
+        'authors-0-first_name': 'Test', 'authors-0-last_name': 'Author',
     })
     assert response.status_code == (302 if create_success else 200)
     files = list(permanent.iterdir())

@@ -34,6 +34,16 @@ for _var in _REQUIRED_ENV_VARS:
 
 
 class Config:
+    DOCUMENT_MAX_JOBS = _int_env('DOCUMENT_MAX_JOBS', 1)
+    DOCUMENT_RENDER_DIMENSION = _int_env('DOCUMENT_RENDER_DIMENSION', 2000)
+    DOCUMENT_PAGE_PIXELS = _int_env('DOCUMENT_PAGE_PIXELS', 4_000_000)
+    DOCUMENT_TOTAL_PIXELS = _int_env('DOCUMENT_TOTAL_PIXELS', 40_000_000)
+    DOCUMENT_IMAGE_PIXELS = _int_env('DOCUMENT_IMAGE_PIXELS', 16_000_000)
+    DOCUMENT_PAGE_POINTS = _int_env('DOCUMENT_PAGE_POINTS', 14400)
+    DOCUMENT_TEXT_CHARS = _int_env('DOCUMENT_TEXT_CHARS', 200_000)
+    DOCUMENT_OCR_SECONDS = _int_env('DOCUMENT_OCR_SECONDS', 10)
+    DOCUMENT_JOB_SECONDS = _int_env('DOCUMENT_JOB_SECONDS', 30)
+    DOCUMENT_MEMORY_MB = _int_env('DOCUMENT_MEMORY_MB', 768)
     SECRET_KEY = os.environ["SECRET_KEY"]
 
     PG_HOST = os.environ["PG_HOST"]
@@ -44,6 +54,10 @@ class Config:
     PG_POOL_MIN = _int_env("PG_POOL_MIN")
     PG_POOL_MAX = _int_env("PG_POOL_MAX")
     PG_SSLMODE = os.environ.get("PG_SSLMODE", "prefer")
+    PG_CONNECT_TIMEOUT = _int_env("PG_CONNECT_TIMEOUT", 10)
+    PG_STATEMENT_TIMEOUT_MS = _int_env("PG_STATEMENT_TIMEOUT_MS", 0)
+    PG_LOCK_TIMEOUT_MS = _int_env("PG_LOCK_TIMEOUT_MS", 0)
+    PG_IDLE_TRANSACTION_TIMEOUT_MS = _int_env("PG_IDLE_TRANSACTION_TIMEOUT_MS", 0)
 
     MAIL_SERVER = os.environ.get("MAIL_SERVER")
     # Optional in dev (mail may be unconfigured locally) but must not crash
@@ -54,6 +68,8 @@ class Config:
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_USERNAME")
+    SEMAPHORE_API_KEY = os.environ.get("SEMAPHORE_API_KEY", "")
+    SEMAPHORE_SENDER_NAME = os.environ.get("SEMAPHORE_SENDER_NAME", "")
 
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER")
     UPLOAD_STORAGE_BACKEND = os.environ.get("UPLOAD_STORAGE_BACKEND", "local")
@@ -68,3 +84,5 @@ class Config:
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    PERMANENT_SESSION_LIFETIME = 1800  # 30 minutes of inactivity
+    TRUSTED_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "0"))

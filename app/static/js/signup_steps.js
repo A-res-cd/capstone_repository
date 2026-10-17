@@ -8,15 +8,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const submit = document.getElementById('signup-submit');
     const error = document.getElementById('signup-step-error');
     const preference = form.querySelector('[name="preferred_contact"]');
+    const role = form.querySelector('[name="role"]');
     const contactFields = form.querySelectorAll('[data-contact-field]');
-    let current = Math.max(0, steps.findIndex(step => step.querySelector('.field-error')));
+    // Files and passwords cannot be restored after a server validation error.
+    let current = 0;
     let furthest = current;
     let submitting = false;
     const submitLabel = submit.innerHTML;
 
     function updateContact() {
         contactFields.forEach(group => {
-            const selected = group.dataset.contactField === preference.value;
+            const selected = group.dataset.contactField === 'email' || group.dataset.contactField === preference.value;
             group.hidden = !selected;
             const input = group.querySelector('input');
             input.disabled = !selected;
@@ -26,9 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateReview() {
         const values = [
-            ['COR', document.getElementById('cor').files[0]?.name || 'Upload required'],
+            [role.value === 'Faculty' ? 'Faculty ID' : 'COR', document.getElementById('cor').files[0]?.name || 'Upload required'],
             ['Name', ['first_name', 'middle_name', 'last_name'].map(name => form.elements[name].value).filter(Boolean).join(' ')],
-            ['Student number', form.elements.student_no.value || 'Not provided'],
+            ['ID number', form.elements.student_no.value || 'Not provided'],
             ['Username', form.elements.username.value],
             ['Preferred contact', preference.value === 'phone' ? 'Phone' : 'Email'],
             ['Contact details', form.elements[preference.value]?.value || ''],
@@ -74,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
         if (index === 0 && !document.getElementById('cor').files.length) {
-            error.textContent = 'Upload your COR PDF to continue.';
+            error.textContent = role.value === 'Faculty' ? 'Upload a JPG or PNG faculty ID.' : 'Upload your COR PDF to continue.';
             error.hidden = false;
             return false;
         }
@@ -88,7 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('password').value;
             const confirmed = form.querySelector('[name="confirm_password"]').value;
             let message = '';
-            if (!/^(?=.{8,12}$)(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9]).*$/.test(password)) {
+            const length = Array.from(password).length;
+            if (length < 8 || length > 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
                 message = 'Use 8–12 characters with uppercase, lowercase and numbers.';
             } else if (password !== confirmed) {
                 message = 'Passwords do not match.';
@@ -103,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     form.querySelector('.signup-actions').hidden = false;
+    form.querySelector('.signup-progress').hidden = false;
     document.getElementById('cor-extraction').hidden = false;
     preference.addEventListener('change', updateContact);
     updateContact();

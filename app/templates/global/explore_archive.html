@@ -67,6 +67,7 @@
                     <a href="{{ url_for('pages.browse') }}" class="btn-clear">Clear</a>
                 {% endif %}
             </form>
+            <p id="archive-filter-status" role="status" aria-live="polite" hidden></p>
         </div>
 
         <div class="archive-layout-wrapper">
@@ -305,4 +306,5 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/archive_sidebar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/archive_filters.js') }}"></script>
 {% endblock %}

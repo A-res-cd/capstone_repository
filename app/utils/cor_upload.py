@@ -1,17 +1,34 @@
-"""Validate a small, readable COR PDF without trusting its filename or MIME header."""
+"""Validate private student COR PDFs and faculty ID images."""
 from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 from flask import current_app
-import pdfplumber
+from app.utils.document_processing import process_document
+import os
+import shutil
+import pytesseract
 from werkzeug.utils import secure_filename
 
 MAX_COR_BYTES = 5 * 1024 * 1024
 
 
-def read_cor_upload(upload):
-    if not upload or not upload.filename or not upload.filename.lower().endswith('.pdf'):
-        raise ValueError('Upload your Certificate of Registration (COR) as a PDF.')
+def configure_tesseract():
+    configured_command = os.getenv("TESSERACT_CMD")
+    if configured_command:
+        pytesseract.pytesseract.tesseract_cmd = configured_command
+    elif not shutil.which("tesseract"):
+        for command in (r"C:\Program Files\Tesseract-OCR\tesseract.exe", r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"):
+            if Path(command).is_file():
+                pytesseract.pytesseract.tesseract_cmd = command
+                break
+
+
+def read_cor_upload(upload, extract=False):
+    if not upload or not upload.filename:
+        raise ValueError('Upload your verification document.')
+    extension = Path(upload.filename).suffix.lower()
+    if extension not in ('.pdf', '.jpg', '.jpeg', '.png'):
+        raise ValueError('Upload a PDF or JPG/PNG image.')
     position = upload.stream.tell()
     try:
         content = upload.stream.read(MAX_COR_BYTES + 1)
@@ -19,17 +36,11 @@ def read_cor_upload(upload):
         upload.stream.seek(position)
     if len(content) > MAX_COR_BYTES:
         raise ValueError('COR must be 5 MB or smaller.')
-    if not content.startswith(b'%PDF-'):
+    if extension == '.pdf' and not content.startswith(b'%PDF-'):
         raise ValueError('The uploaded file is not a valid PDF.')
-    try:
-        with pdfplumber.open(BytesIO(content)) as pdf:
-            if not 1 <= len(pdf.pages) <= 20:
-                raise ValueError('COR must contain between 1 and 20 pages.')
-            if not all(page.width > 0 and page.height > 0 for page in pdf.pages):
-                raise ValueError('Invalid page size.')
-    except Exception as exc:
-        raise ValueError('Upload a readable, unencrypted PDF containing 1–20 pages.') from exc
-    return {'filename': (secure_filename(upload.filename) or 'cor.pdf')[-200:], 'content': content}
+    fields = process_document(content, extension, 'extract' if extract else 'validate')
+    fallback = 'faculty-id' + extension if extension != '.pdf' else 'cor.pdf'
+    return {'filename': (secure_filename(upload.filename) or fallback)[-200:], 'content': content, 'fields': fields}
 
 
 def registration_upload_folder():
@@ -43,7 +54,7 @@ def registration_upload_folder():
 
 
 def resolve_cor_file(filename):
-    if not filename or filename != secure_filename(filename) or not filename.lower().endswith('.pdf'):
+    if not filename or filename != secure_filename(filename) or Path(filename).suffix.lower() not in ('.pdf', '.jpg', '.jpeg', '.png'):
         return None
     from app.utils.cloud_storage import cloud_storage_enabled, cloud_file_path
     if cloud_storage_enabled():
@@ -64,12 +75,21 @@ def save_cor_document(document):
     """Persist a document already validated by read_cor_upload."""
     from app.utils.cloud_storage import cloud_storage_enabled, upload_cloud_file
     if cloud_storage_enabled():
-        filename = f"{Path(document['filename']).stem[:150]}_{uuid4().hex}.pdf"
-        upload_cloud_file('registration', filename, document['content'], 'application/pdf', MAX_COR_BYTES)
+        extension = Path(document['filename']).suffix.lower()
+        filename = f"{Path(document['filename']).stem[:150]}_{uuid4().hex}{extension}"
+        content_type = 'application/pdf' if extension == '.pdf' else f"image/{'jpeg' if extension in ('.jpg', '.jpeg') else 'png'}"
+        upload_cloud_file('registration', filename, document['content'], content_type, MAX_COR_BYTES)
         return filename
     folder = registration_upload_folder()
-    folder.mkdir(parents=True, exist_ok=True)
-    filename = f"{Path(document['filename']).stem[:150]}_{uuid4().hex}.pdf"
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # Use an app-owned workspace folder when deployment's configured path
+        # is unavailable or read-only.
+        folder = (Path(current_app.root_path).parent / 'instance' / 'uploads' / 'registration').resolve()
+        folder.mkdir(parents=True, exist_ok=True)
+    extension = Path(document['filename']).suffix.lower()
+    filename = f"{Path(document['filename']).stem[:150]}_{uuid4().hex}{extension}"
     path = folder / filename
     created = False
     try:

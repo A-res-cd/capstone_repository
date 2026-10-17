@@ -2,6 +2,7 @@ from app.utils.password_policy import validate_password
 from app.utils.contact_policy import normalize_phone
 from wtforms.validators import ValidationError
 from flask_wtf import FlaskForm
+from flask import request
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import (
     StringField, PasswordField, HiddenField, IntegerField, SelectField,
@@ -10,19 +11,20 @@ from wtforms import (
 from wtforms.validators import DataRequired, Email, Length, Regexp, EqualTo, Optional, NumberRange
 
 class SigninForm(FlaskForm):
-    username = StringField("Username", validators=[DataRequired(message = "Username is required.")])
-    password = PasswordField("password", validators=[DataRequired(message = "Password is required.")])
+    username = StringField("Username", validators=[DataRequired(message = "Username is required."), Length(max=30)])
+    password = PasswordField("password", validators=[DataRequired(message = "Password is required."), Length(max=1024)])
 
 class SignupForm(FlaskForm):
-    cor = FileField('Certificate of Registration (COR)', validators=[
-        FileRequired(message='Upload your COR for account verification.'),
-        FileAllowed(['pdf'], 'COR must be a PDF file.'),
+    website = HiddenField()
+    role = SelectField("Sign up as", choices=[("Student", "Student"), ("Faculty", "Faculty")], validators=[DataRequired(message="Choose an account type.")])
+    cor = FileField('Verification document', validators=[
+        FileAllowed(['pdf', 'jpg', 'jpeg', 'png'], 'Upload a PDF or JPG/PNG image.'),
     ])
-    student_no = StringField("Student No", validators=[Optional(), Length(max=50)])
+    student_no = StringField("ID Number", validators=[Optional(), Length(max=50)])
     first_name = StringField("First Name", validators=[DataRequired(message = "Firt Name is required."), Length(max=50)])
     middle_name = StringField("Middle Name", validators=[Optional(), Length(max=50)])
     last_name = StringField("Last Name", validators=[DataRequired(message = "Last Name is required")])
-    email = StringField("Email", validators=[Optional(), Email(message="Invalid Email format.")])
+    email = StringField("Recovery email", validators=[DataRequired(message="Enter an email for account recovery."), Email(message="Invalid Email format."), Length(max=254)])
     username = StringField("Username", validators=[DataRequired(message = "Username is required."), 
                                                    Regexp(r'^[a-zA-Z0-9_]{3,30}$', 
                                                           message="Username must be 3-30 characters, letters, numbers, and underscores only.")])
@@ -48,7 +50,13 @@ class SignupForm(FlaskForm):
         validators=[DataRequired(message="You must accept the Terms and Agreements to create an account.")]
     )
     
+class SignupEmailForm(FlaskForm):
+    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=254)])
+    code = StringField("Verification code", validators=[Optional(), Regexp(r'^[0-9]{6}$', message="Enter the six-digit code.")])
+
+
 class ForgotPasswordForm(FlaskForm):
+    delivery_channel = SelectField("Send code via", choices=[('email', 'Email'), ('sms', 'SMS to registered phone')], default='email')
     username = StringField("Username", validators = [DataRequired(message="Username is required.")])
     email = StringField("Email", validators = [DataRequired("Email is required."), Email(message="Invalid email format.")])
 
@@ -77,9 +85,8 @@ class VerifyOTPForm(FlaskForm):
 # ad-hoc checks (e.g. the adviser first/last "if not X: flash(...)" pattern).
 
 class AuthorForm(FlaskForm):
-    """One author row. Base form is intentionally lenient — only 1 of the
-    4 author slots is actually required by the app, so a blank row must
-    stay valid; the adviser variant below tightens this."""
+    """One author row. Blank extra slots are valid; the parent form requires
+    1–5 complete authors. The adviser variant requires first/last names."""
     # Disable each subform's own CSRF field — FieldList/FormField would
     # otherwise render one nested token per row, and the outer form's
     # single token (from Flask-WTF's global CSRFProtect) already covers
@@ -94,7 +101,7 @@ class AuthorForm(FlaskForm):
 
 class AdviserForm(AuthorForm):
     """Same shape as AuthorForm, but first/last are mandatory — an
-    adviser is required for every capstone, unlike the 4 author slots."""
+    adviser is required for every capstone."""
     first_name = StringField("First", validators=[DataRequired(message="Adviser first name is required."), Length(max=100)])
     last_name = StringField("Last", validators=[DataRequired(message="Adviser last name is required."), Length(max=100)])
 
@@ -166,11 +173,25 @@ class CreateCapstoneForm(FlaskForm):
     ## Authors
     authors = FieldList(
         FormField(AuthorForm),
-        min_entries=4,
-        max_entries=4
+        min_entries=1,
+        max_entries=5
     )
 
     adviser = FormField(AdviserForm)
+
+    def validate_authors(self, field):
+        # FieldList truncates excess entries; reject them rather than lose members.
+        indices = {int(key.split('-')[1]) for key in request.form
+                   if key.startswith('authors-') and key.split('-')[1].isdigit()}
+        if any(index >= 5 for index in indices):
+            raise ValidationError('Enter between 1 and 5 authors.')
+        members = [entry for entry in field
+                   if any((value or '').strip() for value in entry.data.values())]
+        if not members:
+            raise ValidationError('Enter at least one author.')
+        if any(not entry.first_name.data or not entry.first_name.data.strip()
+               or not entry.last_name.data or not entry.last_name.data.strip() for entry in members):
+            raise ValidationError('Each author needs a first and last name.')
 
 
 class UpdateCapstoneForm(CreateCapstoneForm):

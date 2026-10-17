@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (!titleInput) return;
+    const overlapBands = JSON.parse(formEl.dataset.overlapBands);
+    const percentage = score => (Number(score) * 100).toFixed(1);
+    const hasSearchInput = () => titleInput.value.trim().length >= 4 || document.getElementById('pt-keywords').value.trim().length > 0;
 
     formEl.addEventListener('submit', event => event.preventDefault());
 
@@ -66,28 +69,27 @@ document.addEventListener('DOMContentLoaded', () => {
         else setMetric('title', `Good length · ${titleWords} words`, 'good');
 
         if (!hasChecked) {
-            setMetric('similarity', title.length >= 4 ? 'Checking archive…' : 'Waiting for a title');
+            setMetric('similarity', hasSearchInput() ? 'Checking archive…' : 'Waiting for title or keywords');
             setMetric('specialization', 'No suggestion yet');
         } else {
             const highestScore = Math.max(0, ...matches.map(match => Number(match.similarity || 0)));
-            if (highestScore >= 0.45) setMetric('similarity', `High overlap · ${Math.round(highestScore * 100)}%`, 'danger');
-            else if (highestScore >= 0.25) setMetric('similarity', `Some overlap · ${Math.round(highestScore * 100)}%`, 'warning');
-            else setMetric('similarity', highestScore ? `Low overlap · ${Math.round(highestScore * 100)}%` : 'No close match found', 'good');
+            const severity = severityFor(highestScore);
+            setMetric('similarity', highestScore ? `${severity.label} · ${percentage(highestScore)}% score` : 'No close match found', severity.tone);
 
             const specialization = likelySpecialization(matches);
             setMetric('specialization', specialization || 'No confident suggestion', specialization ? 'good' : 'neutral');
         }
 
-        if (title.length < 4) readinessEls.guidance.textContent = 'Enter a working title that describes the problem, users, and technology.';
-        else if (hasChecked && matches.some(match => Number(match.similarity) >= 0.45)) readinessEls.guidance.textContent = 'Review the high-overlap capstone and narrow the users, setting, problem, or approach in your proposed title.';
+        if (title.length < 4) readinessEls.guidance.textContent = hasSearchInput() ? 'Keyword matches can identify related capstones. Add a working title to compare your proposed topic too.' : 'Enter a working title or keywords to find related capstones.';
+        else if (hasChecked && matches.some(match => Number(match.similarity) >= overlapBands.high || Number(match.keyword_overlap?.score) >= overlapBands.high)) readinessEls.guidance.textContent = 'Review the high-overlap capstone and narrow the users, setting, problem, or approach in your proposed title.';
         else if (hasChecked) readinessEls.guidance.textContent = 'Title scores are a starting point. Review the archive and discuss your proposal with your adviser.';
         else readinessEls.guidance.textContent = 'Checking your title against the archive…';
     }
 
     function severityFor(score) {
-        if (score >= 0.45) return { label: 'High overlap',   cls: 'pt-badge--high'   };
-        if (score >= 0.25) return { label: 'Some overlap',   cls: 'pt-badge--medium' };
-        return               { label: 'Slight overlap', cls: 'pt-badge--low'    };
+        if (score >= overlapBands.high) return {label: 'High overlap', cls: 'pt-badge--high', tone: 'danger'};
+        if (score >= overlapBands.moderate) return {label: 'Moderate overlap', cls: 'pt-badge--medium', tone: 'warning'};
+        return {label: score > 0 ? 'Slight overlap' : 'No overlap', cls: 'pt-badge--low', tone: 'good'};
     }
 
     function renderMatches(matches) {
@@ -95,19 +97,19 @@ document.addEventListener('DOMContentLoaded', () => {
         updateReadiness(matches, true);
 
         if (!matches.length) {
-            emptyTextEl.textContent = 'No similar titles above the 12% display threshold';
+            emptyTextEl.textContent = 'No text matches above 12% or shared keyword terms found';
             emptyEl.hidden = false;
             listEl.hidden = true;
-            statusEl.textContent = 'No similar titles found. Different wording can describe the same topic.';
+            statusEl.textContent = 'No related capstones found for this input. Different wording can describe the same topic.';
             return;
         }
 
         emptyEl.hidden = true;
         listEl.hidden = false;
-        statusEl.textContent = `${matches.length} similar title${matches.length > 1 ? 's' : ''} found.`;
+        statusEl.textContent = `${matches.length} related capstone${matches.length > 1 ? 's' : ''} found.`;
 
         matches.forEach(m => {
-            const pct = Math.round(m.similarity * 100);
+            const pct = percentage(m.similarity);
             const sev = severityFor(m.similarity);
             const href = abstractUrlFor(m.capstone_id);
 
@@ -130,18 +132,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const body = document.createElement('div');
             body.className = 'pt-match__body';
-            if (m.matched_keywords?.length) {
-                const keywords = document.createElement('small');
-                keywords.textContent = 'Matched keywords: ' + m.matched_keywords.join(', ');
-                body.appendChild(keywords);
-            }
             const title = document.createElement('span');
             title.className = 'pt-match__title';
             title.textContent = String(m.capstone_title || 'Untitled capstone');
             const badge = document.createElement('span');
             badge.className = `pt-badge ${sev.cls}`;
-            badge.textContent = `${sev.label} · ${pct}%`;
+            badge.textContent = `Text: ${sev.label} · ${pct}% score`;
             body.append(title, badge);
+            if (m.matched_keywords?.length) {
+                const terms = document.createElement('small');
+                terms.textContent = 'Terms found in proposal: ' + m.matched_keywords.join(', ');
+                body.appendChild(terms);
+            }
+
+            const overlap = m.keyword_overlap;
+            if (overlap) {
+                const summary = document.createElement('small');
+                summary.className = 'pt-keyword-summary';
+                if (overlap.score == null) {
+                    summary.textContent = overlap.archived.length ? 'Enter keywords to measure keyword overlap.' : 'No archived keywords to compare.';
+                } else {
+                    const keywordSeverity = severityFor(overlap.score);
+                    summary.textContent = `Keywords: ${keywordSeverity.label} · ${percentage(overlap.score)}% (${overlap.shared_count} shared / ${overlap.union_count} unique phrases)`;
+                }
+                const tags = document.createElement('div');
+                tags.className = 'pt-keyword-tags';
+                if (overlap.shared_terms?.length) {
+                    const terms = document.createElement('small');
+                    terms.textContent = 'Shared keyword terms: ' + overlap.shared_terms.join(', ');
+                    body.appendChild(terms);
+                    if (!overlap.shared.length) summary.textContent = summary.textContent.replace('Keywords:', 'Exact phrases:');
+                }
+                overlap.archived.forEach(phrase => {
+                    const tag = document.createElement('span');
+                    const exact = overlap.shared.includes(phrase);
+                    const shared = exact || overlap.matched_archived?.includes(phrase);
+                    tag.className = 'pt-keyword-tag' + (shared ? ' is-overlap' : '');
+                    tag.textContent = (shared ? '✓ ' : '') + phrase;
+                    tag.title = exact ? 'Shared keyword phrase' : shared ? 'Contains a shared keyword term' : 'Archived keyword phrase';
+                    tags.appendChild(tag);
+                });
+                body.append(summary, tags);
+            }
 
             row.append(iconWrap, body);
             if (href) {
@@ -165,9 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function checkSimilarity() {
         const title = titleInput.value.trim();
 
-        if (title.length < 4) {
+        if (!hasSearchInput()) {
             setLoading(false);
-            statusEl.textContent = 'Start typing to check for similar existing capstones.';
+            statusEl.textContent = 'Enter a title or keywords to find related capstones.';
             emptyTextEl.textContent = 'No matches checked yet';
             emptyEl.hidden = false;
             listEl.hidden = true;
@@ -225,8 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
         listEl.replaceChildren();
         listEl.hidden = true;
         emptyEl.hidden = false;
-        emptyTextEl.textContent = titleInput.value.trim().length >= 4 ? 'Waiting to check title…' : 'No matches checked yet';
-        statusEl.textContent = titleInput.value.trim().length >= 4 ? 'Checking against the archive…' : 'Start typing to check for similar existing capstones.';
+        emptyTextEl.textContent = hasSearchInput() ? 'Waiting to check title or keywords…' : 'No matches checked yet';
+        statusEl.textContent = hasSearchInput() ? 'Checking against the archive…' : 'Enter a title or keywords to find related capstones.';
         updateReadiness([], false);
         debounceTimer = setTimeout(checkSimilarity, 450);
     }

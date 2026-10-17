@@ -12,6 +12,7 @@ from flask import (
     send_file,
 )
 import logging
+from pathlib import Path
 from app.utils.cor_upload import resolve_cor_file
 from app.db.verification_documents import get_verification_details, get_verification_document
 from app.db.auth import (
@@ -70,9 +71,11 @@ def verification_document(request_id):
     path = resolve_cor_file(document['filename'])
     if not path:
         abort(404)
-    # Treat uploaded PDFs as untrusted: keep them isolated while the browser PDF viewer renders them.
+    # Keep uploaded verification documents isolated while rendered in the browser.
     inline = request.args.get('inline') == '1'
-    response = send_file(path, mimetype='application/pdf',
+    extension = Path(path).suffix.lower().lstrip('.')
+    mimetype = {'pdf': 'application/pdf', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png'}.get(extension, 'application/octet-stream')
+    response = send_file(path, mimetype=mimetype,
                          as_attachment=not inline, download_name=document['filename'], max_age=0)
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'

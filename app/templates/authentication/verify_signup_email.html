@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Verify Email | CAPRE{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_auth.css') }}">
+{% endblock %}
+{% block content %}
+<div class="auth-shell">
+    <div class="auth-shell__bg"></div>
+    {% include 'partials/flash_messages.html' %}
+    <header class="auth-shell__nav">
+        <a href="{{ url_for('main.home') }}" class="auth-shell__wordmark">CAPRE</a>
+        <a href="{{ url_for('main.home') }}" class="auth-shell__back">Back to Home</a>
+    </header>
+    <div class="auth-shell__body">
+        <div class="auth-annotation">
+            <span class="auth-annotation__eyebrow">Account security</span>
+            <h1 class="auth-annotation__title">Confirm your<br><em>email</em></h1>
+            <p class="auth-annotation__text">Use the same email as your signup form. Keep that tab open while verifying here.</p>
+        </div>
+        <div class="auth-card-wrap">
+        <div class="auth-form-card">
+            <span class="auth-card__tab">Email Verification</span>
+            <div class="auth-form-card__header">
+                <h2>Verify your email</h2>
+                <p>Request a code, enter it below, then return to your signup tab.</p>
+            </div>
+            <form method="POST" class="auth-form" novalidate>
+                {{ form.hidden_tag() }}
+                <div class="form-group">
+                    {{ form.email.label }}
+                    {{ form.email(type='email', autocomplete='email', required=true) }}
+                    {% for error in form.email.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+                </div>
+                <button type="submit" name="action" value="send" class="btn-auth-primary">Send code</button>
+                <div class="form-group">
+                    {{ form.code.label }}
+                    {{ form.code(inputmode='numeric', autocomplete='one-time-code', maxlength=6) }}
+                    {% for error in form.code.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}
+                </div>
+                <button type="submit" name="action" value="verify" class="btn-auth-primary">Verify email</button>
+                <p class="helper-text">The code expires in 15 minutes. Five incorrect attempts lock it. Sending another code replaces the previous one.</p>
+                <a href="{{ url_for('auth.signup') }}">Open signup</a>
+            </form>
+        </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

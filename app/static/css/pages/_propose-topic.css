@@ -214,6 +214,11 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-height: 0;
+    max-height: min(55dvh, 480px);
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
 }
 
 @media (min-width: 901px) {
@@ -247,6 +252,7 @@
 }
 
 .pt-match {
+    flex-shrink: 0;
     border-bottom: 1px dashed var(--border-color);
 }
 
@@ -345,6 +351,11 @@ a.pt-match__link:hover {
     font-weight: 600;
     color: var(--text-brand);
 }
+
+.pt-keyword-tags { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.pt-keyword-tag { padding: 3px 8px; border: 1px solid var(--border-tag); border-radius: var(--radius-sm); font-size: var(--text-xs); overflow-wrap: anywhere; background: var(--surface-paper); }
+.pt-keyword-tag.is-overlap { color: var(--status-approved); border-color: currentColor; font-weight: 600; }
+.pt-keyword-summary { color: var(--color-gray-dark); overflow-wrap: anywhere; }
 
 .pt-badge {
     align-self: flex-start;

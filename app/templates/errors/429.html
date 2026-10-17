@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Please Wait | CAPRE{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_error.css') }}">
+{% endblock %}
+{% block content %}
+<main class="error-section">
+    <div class="error-card" role="alert">
+        <span class="error-code">429</span>
+        <h1>Please wait before trying again</h1>
+        <p>{{ message }}</p>
+        <p>Your account has not been locked.</p>
+        <a class="btn-pill btn-pill--primary" href="{{ url_for('main.home') }}">Back to home</a>
+    </div>
+</main>
+{% endblock %}

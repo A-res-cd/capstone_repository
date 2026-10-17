@@ -1,7 +1,7 @@
 """
 app/services/recommender.py
 
-Title-only topic-similarity recommender.
+Title, abstract and keyword topic-similarity recommender.
 
 Purpose: when a student proposes a new capstone title/topic, check it
 against every existing (non-archived) capstone's title and
@@ -36,6 +36,32 @@ _STOPWORDS = {
 }
 
 _TOKEN_RE = re.compile(r"[a-zA-Z][a-zA-Z\-]+")
+
+# Application guidance, pending calibration against adviser-labelled pairs.
+OVERLAP_BANDS = {"moderate": 0.30, "high": 0.70}
+
+
+def keyword_overlap(proposed, archived):
+    def phrases(value):
+        return {re.sub(r"\s+", " ", phrase.strip().casefold())
+                for phrase in (value or "").split(",") if phrase.strip()}
+
+    query = phrases(proposed)
+    stored = phrases(archived)
+    shared = query & stored
+    union = query | stored
+    query_terms = set(_tokenize(proposed))
+    shared_terms = query_terms & set(_tokenize(archived))
+    matched_archived = sorted(phrase for phrase in stored if query_terms & set(_tokenize(phrase)))
+    return {
+        "score": round(len(shared) / len(union), 3) if query and stored else None,
+        "shared": sorted(shared),
+        "archived": sorted(stored),
+        "shared_count": len(shared),
+        "union_count": len(union),
+        "shared_terms": sorted(shared_terms),
+        "matched_archived": matched_archived,
+    }
 
 
 def _tokenize(text):
@@ -104,8 +130,8 @@ class TopicRecommender:
     def find_similar(self, query_title, top_n=5, min_score=0.12, abstract="", keywords=""):
         """
         Returns the top_n most similar existing capstones to the given
-        proposed title, sorted highest similarity first.
-        Scores below min_score are dropped as noise.
+        proposed title. Entered keyword matches sort first, followed by exact
+        phrase overlap and text similarity. Shared keyword terms bypass min_score.
         """
         query_tokens = _tokenize(" ".join((query_title, abstract, keywords)))
         query_vec = self._record_vector({"capstone_title": query_title, "abstract_text": abstract, "capstone_keywords": keywords})
@@ -113,14 +139,18 @@ class TopicRecommender:
         scored = []
         for record, doc_vec in zip(self.records, self._doc_vectors):
             score = self._cosine(query_vec, doc_vec)
-            if score >= min_score:
+            overlap = keyword_overlap(keywords, record.get("capstone_keywords"))
+            keyword_match = bool(overlap["shared"] or overlap["shared_terms"])
+            if ((len(query_title.strip()) >= 4 and score >= min_score) or keyword_match):
                 scored.append({
                     "capstone_id": record.get("capstone_id"),
                     "capstone_title": record.get("capstone_title"),
                     "specialization_name": record.get("specialization_name") or "",
                     "similarity": round(score, 3),
                     "matched_keywords": sorted(set(_tokenize(record.get("capstone_keywords") or "")) & set(query_tokens)),
+                    "keyword_overlap": overlap,
                 })
 
-        scored.sort(key=lambda r: r["similarity"], reverse=True)
+        scored.sort(key=lambda r: (bool(r["keyword_overlap"]["shared"] or r["keyword_overlap"]["shared_terms"]),
+                                   r["keyword_overlap"]["score"] or 0, r["similarity"]), reverse=True)
         return scored[:top_n]

@@ -22,6 +22,10 @@ def _create_pool():
     max_connections = Config.PG_POOL_MAX
     if min_connections < 1 or max_connections < min_connections:
         raise RuntimeError("PG_POOL_MIN and PG_POOL_MAX must satisfy 1 <= min <= max")
+    timeouts = (Config.PG_STATEMENT_TIMEOUT_MS, Config.PG_LOCK_TIMEOUT_MS,
+                Config.PG_IDLE_TRANSACTION_TIMEOUT_MS)
+    if Config.PG_CONNECT_TIMEOUT < 1 or any(value < 0 for value in timeouts):
+        raise RuntimeError("PG_CONNECT_TIMEOUT must be positive and database timeouts nonnegative")
 
     return ThreadedConnectionPool(
         minconn=min_connections,
@@ -32,6 +36,10 @@ def _create_pool():
         password=Config.PG_PASSWORD,
         database=Config.PG_DB,
         sslmode=Config.PG_SSLMODE,
+        connect_timeout=Config.PG_CONNECT_TIMEOUT,
+        options=(f"-c statement_timeout={timeouts[0]} "
+                 f"-c lock_timeout={timeouts[1]} "
+                 f"-c idle_in_transaction_session_timeout={timeouts[2]}"),
     )
 
 

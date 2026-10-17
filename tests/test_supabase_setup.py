@@ -99,7 +99,7 @@ def test_supabase_sql_in_isolated_postgres_transaction():
             cursor.execute('''SELECT COUNT(*), BOOL_AND(c.relrowsecurity)
                 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE n.nspname = %s AND c.relkind = 'r' ''', (app_schema,))
-            assert cursor.fetchone() == (21, True)
+            assert cursor.fetchone() == (24, True)
             for role in (anon_role, auth_role):
                 cursor.execute('SELECT has_table_privilege(%s, %s, %s)',
                                (role, app_schema + '."user"', 'SELECT'))

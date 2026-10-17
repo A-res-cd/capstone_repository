@@ -13,10 +13,10 @@ DECLARE
 BEGIN
     FOR account IN
         SELECT * FROM (VALUES
-        ('Student', 'Student', 'Demo', 'Student', 'DEMO-STU-001', 'student@example.com', 'scrypt:32768:8:1$0TgpxAic7mjIjHzo$9ec1c428b18d9d7b1563713774e48ad63ad4bae65e870c8edda5ef34de55407f18ea9b381a0c2278176da58ceac203385a837959e24fc97c2a741410559c7647'),
-        ('Faculty', 'Faculty', 'Demo', 'Faculty', NULL, 'faculty@example.com', 'scrypt:32768:8:1$dPDH0xsYEgZge01f$8724aa271c0ec27edceae1a5162ea3083f16ce5b25c0cff19f6bdc007a130d57796de7520f45a6b4f74a9e6f78825fa3d68ca796889442fcb52b1cb3e9ef7b75'),
-        ('Capstone Professor', 'CapProf', 'Demo', 'Professor', NULL, 'professor@example.com', 'scrypt:32768:8:1$tAtYAQM9aNwexRfD$cd0480f6216dfdc30878c3a8561aeec7e1f6d0ed73926331cdb06a9addbec03869a1786d24a1dab44dffd7b6130916f2a41962f798e5cad11f6593ed979bddd8'),
-        ('Admin', 'Admin', 'Demo', 'Admin', NULL, 'admin@example.com', 'scrypt:32768:8:1$VEqZNd5RIs9IxNJL$c7b6271d5ca30db25df49492a72709d736399f5fcf142414b16de0dc7b946e9e862524ee421a29cba8c7af9613aec6941347cfe1fb1e975ce864f411e20b5a2a')
+        ('Student', 'Student', 'Demo', 'Student', 'DEMO-STU-001', 'aariessapin@gmail.com', 'scrypt:32768:8:1$0TgpxAic7mjIjHzo$9ec1c428b18d9d7b1563713774e48ad63ad4bae65e870c8edda5ef34de55407f18ea9b381a0c2278176da58ceac203385a837959e24fc97c2a741410559c7647'),
+        ('Faculty', 'Faculty', 'Demo', 'Faculty', NULL, 'aariessapin05@gmail.com', 'scrypt:32768:8:1$dPDH0xsYEgZge01f$8724aa271c0ec27edceae1a5162ea3083f16ce5b25c0cff19f6bdc007a130d57796de7520f45a6b4f74a9e6f78825fa3d68ca796889442fcb52b1cb3e9ef7b75'),
+        ('Capstone Professor', 'CapProf', 'Demo', 'Professor', NULL, 'aariespogi213@gmail.com', 'scrypt:32768:8:1$tAtYAQM9aNwexRfD$cd0480f6216dfdc30878c3a8561aeec7e1f6d0ed73926331cdb06a9addbec03869a1786d24a1dab44dffd7b6130916f2a41962f798e5cad11f6593ed979bddd8'),
+        ('Admin', 'Admin', 'Demo', 'Admin', NULL, 'ariessapin24@gmail.com', 'scrypt:32768:8:1$VEqZNd5RIs9IxNJL$c7b6271d5ca30db25df49492a72709d736399f5fcf142414b16de0dc7b946e9e862524ee421a29cba8c7af9613aec6941347cfe1fb1e975ce864f411e20b5a2a')
         ) AS seed(role_name, username, first_name, last_name, university_no, email, password_hash)
     LOOP
         IF EXISTS (SELECT 1 FROM public.kappa WHERE username = account.username) THEN

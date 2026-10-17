@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, g, jsonify
 from app.constants.nav import get_nav_links, get_role_meta, resolve_title, get_breadcrumb
 from app.db.qol import (
-    get_admin_pending_nav_counts,
-    get_user_notification_summary,
+    get_page_nav_summary,
     mark_all_notifications_read,
 )
 
@@ -51,10 +50,9 @@ def inject_global_template_vars():
 
     page_title = resolve_title(nav_sections, nav_links, request.path)
     breadcrumb = get_breadcrumb(nav_links, request.path)
-    notifications, notification_unread_count = get_user_notification_summary(
-        session.get("user_id")
+    notifications, notification_unread_count, nav_pending_counts = get_page_nav_summary(
+        session.get("user_id"), is_admin=role == "Admin"
     )
-    nav_pending_counts = get_admin_pending_nav_counts() if role == "Admin" else {}
 
     return {
         "nav_links":    nav_links,

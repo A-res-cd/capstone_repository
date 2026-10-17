@@ -5,6 +5,7 @@ Web UI:    http://localhost:8089
 """
 
 import random
+import re
 from locust import HttpUser, task, between
 
 
@@ -60,7 +61,10 @@ class StudentUser(HttpUser):
 
     @task(1)
     def logout(self):
-        self.client.get("/logout")
+        response = self.client.get("/signin")
+        token = re.search(r'name="csrf-token" content="([^"]+)"', response.text)
+        if token:
+            self.client.post("/logout", data={"csrf_token": token.group(1)})
 
 
 class AdminUser(HttpUser):

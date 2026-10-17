@@ -22,9 +22,9 @@ RUN useradd --create-home capre \
 COPY app ./app
 COPY config.py run.py ./
 COPY migrations ./migrations
-COPY scripts/migrate.py ./scripts/migrate.py
+COPY scripts/migrate.py scripts/backfill_abstracts.py ./scripts/
 
 USER capre
 EXPOSE 10000
 
-CMD ["sh", "-c", "exec gunicorn run:app --bind 0.0.0.0:${PORT:-10000} --workers 1 --timeout 120"]
+CMD ["sh", "-c", "exec gunicorn run:app --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 4 --timeout 45"]

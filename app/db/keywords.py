@@ -16,15 +16,17 @@ def split_keywords(value):
 
 
 def insert_keyword_ids(cursor, value):
-    keyword_ids = []
-    for text in split_keywords(value):
-        cursor.execute("""
-            INSERT INTO keyword (keyword_text) VALUES (%s)
-            ON CONFLICT (keyword_text) DO UPDATE SET keyword_text = EXCLUDED.keyword_text
-            RETURNING keyword_id
-        """, (text,))
-        keyword_ids.append(cursor.fetchone()[0])
-    return keyword_ids
+    texts = split_keywords(value)
+    if not texts:
+        return []
+    # Sorted insertion retains consistent lock ordering for shared keywords.
+    cursor.execute("""
+        INSERT INTO keyword (keyword_text)
+        SELECT text FROM UNNEST(%s::text[]) AS input(text) ORDER BY text
+        ON CONFLICT (keyword_text) DO UPDATE SET keyword_text = EXCLUDED.keyword_text
+        RETURNING keyword_id, keyword_text
+    """, (texts,))
+    return [row[0] for row in sorted(cursor.fetchall(), key=lambda row: row[1])]
 
 
 def set_capstone_keywords(cursor, capstone_id, value):
@@ -33,7 +35,8 @@ def set_capstone_keywords(cursor, capstone_id, value):
                    (capstone_id,))
     keyword_ids = insert_keyword_ids(cursor, value)
     cursor.execute('DELETE FROM capstone_keyword WHERE capstone_id = %s', (capstone_id,))
-    for keyword_id in keyword_ids:
+    if keyword_ids:
         cursor.execute("""
-            INSERT INTO capstone_keyword (capstone_id, keyword_id) VALUES (%s, %s)
-        """, (capstone_id, keyword_id))
+            INSERT INTO capstone_keyword (capstone_id, keyword_id)
+            SELECT %s, keyword_id FROM UNNEST(%s::int[]) AS input(keyword_id)
+        """, (capstone_id, keyword_ids))

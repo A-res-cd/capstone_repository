@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.fixture
 def email_app():
     app = Flask(__name__, template_folder=str(ROOT / 'app/templates'))
-    app.config.update(SECRET_KEY='email-test', WTF_CSRF_ENABLED=False, MAIL_DEFAULT_SENDER='noreply@example.com')
+    app.config.update(SECRET_KEY='email-test', WTF_CSRF_ENABLED=False, MAIL_DEFAULT_SENDER='noreply@example.com', AUTH_RATE_LIMIT_ENABLED=False)
     Mail(app)
     return app
 
@@ -74,7 +74,7 @@ def test_password_reset_route_sends_formatted_email_and_retains_failure_handling
     email_app.register_blueprint(routes.auth)
     sent = []
     monkeypatch.setattr(routes, 'lookup_user_for_reset', lambda username, email: (11, 7, None))
-    monkeypatch.setattr(routes, 'create_otp', lambda contact_id: ('004201', 9))
+    monkeypatch.setattr(routes, 'create_otp', lambda contact_id, destination: ('004201', 9))
     monkeypatch.setattr(routes, 'mail', SimpleNamespace(send=sent.append))
     client = email_app.test_client()
     response = client.post('/forgot_password', data={'username': 'Maria_Cruz', 'email': 'student@example.com'})

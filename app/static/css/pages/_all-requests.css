@@ -108,7 +108,7 @@
 
 .request-timeline {
     display: grid;
-    grid-template-columns: repeat(3, minmax(90px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     margin: 6px 0 3px;
     padding: 9px 10px;
     border: 1px solid var(--border-color);
@@ -180,7 +180,7 @@
 
 .manuscript-request-layout {
     display: grid;
-    grid-template-columns: 1fr 1.2fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
     gap: var(--space-lg);
     align-items: start;
 }
@@ -189,7 +189,23 @@
    exists for this capstone) — the history grid takes the full row
    instead of sitting in a half-empty two-column layout. */
 .manuscript-request-layout--single {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.manuscript-request-layout > * {
+    min-width: 0;
+}
+
+.manuscript-request-section .record-card__title,
+.manuscript-request-section .record-card__note,
+.manuscript-request-section .record-card__meta-item {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.manuscript-request-section .record-card__meta-item {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .manuscript-request-layout textarea {
@@ -359,7 +375,7 @@
     }
 
     .manuscript-request-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .mr-page-header {
@@ -370,8 +386,7 @@
     .mr-page-header .btn-pill { justify-content: center; }
 
     .mr-tabs {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        flex-wrap: wrap;
     }
 
     .mr-tab { white-space: nowrap; }

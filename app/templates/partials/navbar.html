@@ -53,10 +53,13 @@
 
     <!-- FOOTER -->
     <div class="nav-container-footer">
-        <a href="/logout" class="nav-item logout">
-            <i class="bx bx-log-out"></i>
-            <span>Logout</span>
-        </a>
+        <form action="{{ url_for('auth.logout') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="nav-item logout">
+                <i class="bx bx-log-out" aria-hidden="true"></i>
+                <span>Logout</span>
+            </button>
+        </form>
     </div>
 
 </nav>

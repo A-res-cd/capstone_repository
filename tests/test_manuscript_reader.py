@@ -64,6 +64,7 @@ def reader_app(monkeypatch, tmp_path):
         add_job=lambda *args, **kwargs: None, start=lambda: None))
     app = application.create_app()
     app.config.update(TESTING=True, SECRET_KEY='reader-test', WTF_CSRF_ENABLED=False,
+                      ACTION_RATE_LIMIT_ENABLED=False,
                       UPLOAD_MANUSCRIPT_FOLDER=str(tmp_path / 'manuscripts'))
     folder = Path(app.config['UPLOAD_MANUSCRIPT_FOLDER'])
     folder.mkdir()
@@ -71,7 +72,7 @@ def reader_app(monkeypatch, tmp_path):
     for module in (pages, admin):
         monkeypatch.setattr(module, 'get_capstone_details', lambda cid: record if cid == 7 else None)
         monkeypatch.setattr(module, 'get_capstone_authors', lambda cid: [])
-    monkeypatch.setattr(admin, 'extract_abstract_text', lambda path: 'Public abstract only.')
+    record['abstract_text'] = 'Public abstract only.'
     monkeypatch.setattr(decorators, 'get_user_requests', lambda uid: [
         dict(capstone_id=7, request_status='approved' if uid in approved else 'pending')])
     app.reader_state = SimpleNamespace(users=users, approved=approved, record=record, file=folder / 'private.pdf')

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Most Requested Capstones | CAPRE{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/_table.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/_archive.css') }}">
+{% endblock %}
+
+{% block content %}
+    {% include 'partials/most_requested_capstones.html' %}
+{% endblock %}

@@ -1,6 +1,10 @@
 from app.utils.cor_extractor import parse_cor_text
 
 
+def test_parse_numeric_student_number():
+    assert parse_cor_text('Student No: 2017100890')['student_no'] == '2017100890'
+
+
 def test_parse_cor_template_fields():
     fields = parse_cor_text(
         "RegistrationNo: 5361807\n"

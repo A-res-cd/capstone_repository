@@ -11,7 +11,7 @@
 
     <div class="propose-topic-layout" id="pt-layout" data-abstract-base-url="{{ url_for('admin.view_capstone_pdf', capstone_id=0) }}">
 
-        <form class="propose-topic-form" id="propose-topic-form" autocomplete="off">
+        <form class="propose-topic-form" id="propose-topic-form" autocomplete="off" data-overlap-bands='{{ overlap_bands|tojson }}'>
 
 
             <label for="pt-title">Proposed Title</label>
@@ -21,6 +21,7 @@
             <textarea id="pt-abstract" name="abstract" rows="5" maxlength="10000"></textarea>
             <label for="pt-keywords">Keywords (optional, comma separated)</label>
             <input id="pt-keywords" name="keywords" maxlength="1000" placeholder="e.g. attendance, image recognition">
+            <p class="propose-topic-description">Keywords also work without a title. Shared whole words match archived keyword phrases; highlighted tags show those matches.</p>
             <p class="propose-topic-hint" id="pt-status" role="status" aria-live="polite">Start typing to check for similar existing capstones.</p>
 
             <p class="propose-topic-description" id="pt-description">Compare your title, optional abstract, and keywords with archived capstones. Titles receive the most weight; available abstracts and keywords contribute too. Matches suggest related work, not plagiarism or proof of originality.</p>
@@ -28,14 +29,16 @@
 
         <div class="propose-topic-results" id="pt-results">
             <div class="propose-topic-results__head">
-                <span id="pt-results-label">Similar titles</span>
+                <span id="pt-results-label">Related capstones</span>
                 <span class="pt-legend" tabindex="0">
                     <i class="bx bx-info-circle"></i>
                     <span class="pt-legend__tooltip">
-                        <strong>Title similarity</strong> compares titles, abstracts, and keywords. These overlap bands are guidance; they do not establish duplication or originality.<br><br>
-                        <span class="pt-badge pt-badge--low">Slight</span> 12–24% ·
-                        <span class="pt-badge pt-badge--medium">Some</span> 25–44% ·
-                        <span class="pt-badge pt-badge--high">High</span> 45%+
+                        <strong>Text similarity</strong> uses weighted cosine scoring; its percentage is a score, not a percentage of copied words.<br>
+                        <strong>Keyword overlap</strong> = shared complete keyword phrases ÷ all unique phrases across both lists. Highlighted tags can also contain a shared whole-word term; these partial phrase matches do not count toward the exact-phrase percentage.<br><br>
+                        <span class="pt-badge pt-badge--low">Slight</span> above 0–below {{ (overlap_bands.moderate * 100)|int }}% ·
+                        <span class="pt-badge pt-badge--medium">Moderate</span> {{ (overlap_bands.moderate * 100)|int }}–below {{ (overlap_bands.high * 100)|int }}% ·
+                        <span class="pt-badge pt-badge--high">High</span> {{ (overlap_bands.high * 100)|int }}–100%.<br>
+                        These are provisional application bands, not universal research cutoffs or proof of plagiarism. A 0% exact-phrase score can still have shared keyword terms. Text matches below 12% are hidden unless they share an entered keyword term.
                     </span>
                 </span>
             </div>
@@ -47,7 +50,7 @@
                 <span class="pt-spinner"></span>
                 <span>Checking against the archive…</span>
             </div>
-            <ul class="propose-topic-list" id="pt-list" hidden></ul>
+            <ul class="propose-topic-list" id="pt-list" tabindex="0" aria-labelledby="pt-results-label" hidden></ul>
         </div>
 
     </div>

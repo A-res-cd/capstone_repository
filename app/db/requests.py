@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 
 from app.db.connection import db_connect
 from app.db.audit import log_audit
+from app.db.capstone_requests import record_capstone_request
 from datetime import datetime, timezone 
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,11 @@ def request_fullview(user_id, capstone_id, request_reason):
             conn.rollback()
             return False, "This action is currently being processed by another user."
 
+        mithrix.execute("SELECT capstone_id FROM capstone WHERE capstone_id = %s AND is_archived = FALSE FOR SHARE", (capstone_id,))
+        if not mithrix.fetchone():
+            conn.rollback()
+            return False, "This capstone is no longer available."
+
         mithrix.execute("""
             SELECT request_id
             FROM request
@@ -42,12 +48,23 @@ def request_fullview(user_id, capstone_id, request_reason):
             return False, "You already have a request for this capstone."
 
         mithrix.execute("""
+            SELECT request_id FROM request
+            WHERE user_id = %s AND capstone_id = %s AND request_type = 'manuscript'
+              AND request_date > CURRENT_TIMESTAMP - INTERVAL '15 minutes'
+            LIMIT 1
+        """, (user_id, capstone_id))
+        if mithrix.fetchone():
+            conn.rollback()
+            return False, "Please wait 15 minutes before resubmitting a request for this capstone."
+
+        mithrix.execute("""
             INSERT INTO request(user_id, capstone_id, request_status, request_reason, request_date, request_type)
             VALUES(%s, %s, 'pending', %s, %s, 'manuscript')
             RETURNING request_id
         """, (user_id, capstone_id, request_reason, now))
 
         request_id = mithrix.fetchone()["request_id"]
+        record_capstone_request(mithrix, capstone_id, user_id)
         log_audit(mithrix, user_id, "manuscript_request",
                   "manuscript_request", request_id)
 
@@ -168,6 +185,31 @@ def get_user_requests(user_id):
     finally:
         mithrix.close()
         conn.close()
+
+
+def get_approved_capstone_ids(user_id, capstone_ids):
+    """Only fetch approval membership for projects displayed on this page."""
+    if not capstone_ids:
+        return []
+    conn = None
+    cursor = None
+    try:
+        conn = db_connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT capstone_id FROM request
+            WHERE user_id = %s AND request_status = 'approved'
+              AND capstone_id = ANY(%s::int[])
+        """, (user_id, list(capstone_ids)))
+        return [row[0] for row in cursor.fetchall()]
+    except Exception as exc:
+        logger.error("Database error loading approved capstones: %s", exc)
+        return []
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
 
 
 def get_requestable_capstones(user_id):

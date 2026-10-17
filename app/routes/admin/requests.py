@@ -13,6 +13,9 @@ def view_requests():
 
     requests = get_all_requests(selected_status)
 
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return render_template("admin/_request_list.html", requests=requests)
+
     statuses = [
         "all",
         "pending",

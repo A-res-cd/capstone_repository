@@ -126,6 +126,9 @@ def purge_expired_archived_capstones():
         """, (cutoff,))
 
         expired_rows = mithrix.fetchall()
+        # Release this connection before delete_capstone checks out its own.
+        mithrix.close()
+        conn.close()
         deleted_count = 0
 
         for row in expired_rows:
@@ -456,6 +459,35 @@ def get_archive_years():
     finally:
         mithrix.close()
         conn.close()
+
+
+def get_archive_filters():
+    """Return the existing year/program/specialization lists in one round trip."""
+    conn = None
+    cursor = None
+    try:
+        conn = db_connect()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                COALESCE((SELECT json_agg(capstone_year ORDER BY capstone_year DESC)
+                          FROM (SELECT DISTINCT capstone_year FROM capstone
+                                WHERE capstone_year IS NOT NULL) years), '[]'::json),
+                COALESCE((SELECT json_agg(json_build_array(program_id, program_name))
+                          FROM program), '[]'::json),
+                COALESCE((SELECT json_agg(json_build_array(specialization_id, specialization_name))
+                          FROM specialization), '[]'::json)
+        """)
+        years, programs, specializations = cursor.fetchone()
+        return years, [tuple(row) for row in programs], [tuple(row) for row in specializations]
+    except Exception as exc:
+        logger.error("Database error loading archive filters: %s", exc)
+        return [], [], []
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
 
 
 # ______________________________Manage Users___________________________

@@ -3,8 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const isMobile = () => window.matchMedia(MOBILE_QUERY).matches;
     const sidebarEl = document.querySelector('.archive-sidebar');
 
-    document.querySelectorAll('.request-row').forEach(row => {
-        row.addEventListener('click', () => {
+    document.addEventListener('click', event => {
+        const row = event.target.closest('.request-row');
+        if (!row) return;
             if (row.classList.contains('active')) {
                 row.classList.remove('active');
                 document.getElementById('sidebar-empty').style.display = 'flex';
@@ -64,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 sidebarEl.classList.add('archive-sidebar--mobile-open');
                 document.body.classList.add('archive-mobile-detail-open');
             }
-        });
     });
 
     const sidebarCloseBtn = document.getElementById('sidebar-close-btn');

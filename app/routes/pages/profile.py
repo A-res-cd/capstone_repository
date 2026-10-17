@@ -3,7 +3,13 @@ from . import pages
 from flask import render_template, request, flash, session, redirect, url_for, send_file, abort, current_app
 from app.utils.contact_policy import normalize_phone
 from app.utils.avatars import save_avatar, remove_avatar, avatar_path
-from app.db.profile_settings import save_contact_settings, swap_avatar
+from app.db.profile_settings import swap_avatar
+from app.db import contact_changes
+from app.utils.auth_rate_limit import consume_limit
+from app.utils.account_emails import contact_change_email
+from app.utils.account_sms import send_sms, send_contact_change_sms
+from app import mail
+import secrets
 import re
 from io import BytesIO
 from app.db.users import (
@@ -59,14 +65,65 @@ def update_user_contact_info():
             raise ValueError("Enter a valid email address.")
         if preference not in ('email', 'phone') or not values.get(preference):
             raise ValueError("Provide your preferred contact details.")
-        save_contact_settings(user_id, values['email'].lower(), values['phone'], preference)
-        flash("Contact information updated successfully.", "success")
+        values['email'] = values['email'].lower()
+        for destination in values.values():
+            if destination and consume_limit('contact-destination', destination, 5, 900):
+                raise ValueError('Too many contact requests. Try again later.')
+        binding = session.setdefault('contact_change_binding', secrets.token_urlsafe(32))
+        pending = contact_changes.request_change(user_id, request.form.get('current_password'), binding, values, preference)
+        if pending:
+            change_id, code, kind, destination = pending
+            try:
+                if kind == 'email':
+                    mail.send(contact_change_email(destination, code))
+                else:
+                    send_contact_change_sms(destination, code)
+            except Exception:
+                contact_changes.finish_delivery(user_id, change_id, False)
+                raise ValueError('Could not deliver verification code. Existing contacts are unchanged.')
+            contact_changes.finish_delivery(user_id, change_id, True)
+            session['contact_change_id'] = change_id
+            flash('Code sent to the new destination. Confirm below within 15 minutes.', 'success')
+        else:
+            flash('Contact preference updated.', 'success')
     except ValueError as exc:
         flash(str(exc), "danger")
     except Exception:
-        current_app.logger.exception("Contact update failed")
+        current_app.logger.error("Contact update failed for account %s", user_id)
         flash("Could not update contacts. Check that the email is not already in use.", "danger")
     return redirect(url_for("pages.user_info"))
+
+
+@pages.route('/user-info/contact/confirm', methods=['POST'])
+@login_required
+def confirm_user_contact():
+    user_id = session['user_id']
+    try:
+        change_id = session.get('contact_change_id')
+        if not change_id:
+            raise ValueError('Request a contact change first.')
+        kind, previous = contact_changes.confirm_change(
+            user_id, change_id, session.get('contact_change_binding'), request.form.get('code', ''))
+    except ValueError as exc:
+        flash(str(exc), 'danger')
+    except Exception:
+        current_app.logger.error('Contact confirmation failed for account %s', user_id)
+        flash('Could not confirm contact change. Try again later.', 'danger')
+    else:
+        session.pop('contact_change_id', None)
+        for destination in set(previous):
+            try:
+                if kind == 'email':
+                    mail.send(contact_change_email(destination))
+                else:
+                    send_sms(destination, 'Your CAPRE recovery phone has changed. Contact support if you did not authorize this.')
+            except Exception:
+                try:
+                    contact_changes.notification_failed(user_id)
+                except Exception:
+                    current_app.logger.error('Contact notification audit failed for account %s', user_id)
+        flash('Recovery contact verified and updated.', 'success')
+    return redirect(url_for('pages.user_info'))
 
 
 @pages.route("/user-info/picture", methods=["POST"])

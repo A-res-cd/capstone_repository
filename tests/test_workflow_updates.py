@@ -22,9 +22,18 @@ ROOT = Path(__file__).resolve().parents[1]
 PASSWORD = 'Secure123'
 
 
+@pytest.mark.parametrize('number,role', [
+    ('2017100890', 'Student'), ('2026-12345', 'Student'), ('SUM2023-01246', 'Student'),
+    ('201710089', None), ('20171008900', None), ('1234', 'Faculty'), ('admin123', 'Admin'),
+])
+def test_detect_role_student_number_formats(number, role):
+    assert auth.detect_role(number) == role
+
+
 @pytest.mark.parametrize('value,valid', [
     ('Abc1234', False), ('Abc12345', True), ('Abc123456789', True),
     ('Abc1234567890', False), ('abcdefgh1', False), ('ABCDEFGH1', False),
+    ('Ab1' + 'x' * 9, True), ('Ab1' + 'x' * 10, False),
     ('Abcdefghi', False), ('Abc 1234', True), ('Abc!1234', True),
     ('', False), (None, False), (12345678, False),
 ])
@@ -34,7 +43,7 @@ def test_password_boundaries(value, valid):
 
 @pytest.mark.parametrize('password,valid', [
     ('short', False), ('abcdefgh1', False), ('ABCDEFGH1', False),
-    ('Abcdefghi', False), ('Abc1234567890', False), ('Secure123', True),
+    ('Abcdefghi', False), ('Abc1234567890', False), ('Abc123456789', True), ('Secure123', True),
 ])
 def test_reset_and_change_enforce_same_policy(password, valid):
     app = Flask(__name__)
@@ -106,6 +115,7 @@ def workflow_db(isolated_database, monkeypatch):
         cursor.execute("INSERT INTO program (program_name) VALUES ('BSIT')")
         cursor.execute("INSERT INTO specialization (specialization_name) VALUES ('DST'), ('NST'), ('WST')")
         cursor.execute((ROOT / 'migrations/20261003_account_repository_workflows.sql').read_text(encoding='utf-8'))
+        cursor.execute((ROOT / 'migrations/20261011_auth_security.sql').read_text(encoding='utf-8'))
         cursor.execute((ROOT / "migrations/20261003_remove_program_specialization.sql").read_text(encoding="utf-8"))
         cursor.execute((ROOT / "migrations/20261003_student_view_history.sql").read_text(encoding="utf-8"))
         conn.commit()
@@ -134,12 +144,12 @@ def make_user(connect, name):
 def test_phone_only_registration(workflow_db):
     ok, error = auth.create_user('Phone', '', 'Student', None, '', 'phone_student',
                                  PASSWORD, preferred_contact='phone', phone='09171234567')
-    assert ok, error
+    assert not ok and 'email' in error.lower()
     with workflow_db() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT contact_type, contact_value FROM contact")
-        assert cursor.fetchall() == [('phone', '+639171234567')]
+        assert cursor.fetchall() == []
         cursor.execute("SELECT COUNT(*) FROM request WHERE request_status = 'pending'")
-        assert cursor.fetchone()[0] == 1
+        assert cursor.fetchone()[0] == 0
 
 
 def test_registration_persists_privacy_and_contact(workflow_db):

@@ -99,6 +99,9 @@ def feature_db(isolated_database, monkeypatch):
         cursor.execute((ROOT / 'database/capreDB.sql').read_text(encoding='utf-8'))
         cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'Admin'), (4, 'Capstone Professor')")
         cursor.execute((ROOT / "migrations/20261003_account_repository_workflows.sql").read_text(encoding="utf-8"))
+        cursor.execute((ROOT / "migrations/20261011_auth_security.sql").read_text(encoding="utf-8"))
+        cursor.execute((ROOT / "migrations/20261011_signup_spam_prevention.sql").read_text(encoding="utf-8"))
+        cursor.execute((ROOT / "migrations/20261013_contact_verification.sql").read_text(encoding="utf-8"))
         conn.commit()
 
     class ClosingPool:
@@ -111,13 +114,15 @@ def feature_db(isolated_database, monkeypatch):
 
     for module in (auth_db, audit_reader, verification_documents):
         monkeypatch.setattr(module, 'db_connect', connect)
+    from app.utils import document_processing
+    monkeypatch.setattr(document_processing, 'db_connect', connect)
     return connect
 
 
 @pytest.fixture
 def feature_app(monkeypatch, tmp_path):
     app = Flask(__name__, template_folder=str(ROOT / 'app/templates'), static_folder=str(ROOT / 'app/static'))
-    app.config.update(TESTING=True, SECRET_KEY='features-test', WTF_CSRF_ENABLED=False)
+    app.config.update(TESTING=True, SECRET_KEY='features-test', WTF_CSRF_ENABLED=False, AUTH_RATE_LIMIT_ENABLED=False)
     app.config['UPLOAD_REGISTRATION_FOLDER'] = str(tmp_path / 'registration')
     app.config['UPLOAD_MANUSCRIPT_FOLDER'] = str(tmp_path / 'manuscripts')
     CSRFProtect(app)
@@ -135,6 +140,10 @@ def feature_app(monkeypatch, tmp_path):
         return dict(hide_header=True, hide_nav=True)
 
     monkeypatch.setattr(pages.history, 'record_capstone_view', lambda *args: True)
+    # Existing workflow tests isolate email ownership and bot checks; dedicated
+    # spam-prevention tests restore the real guards.
+    monkeypatch.setattr(auth.registration, 'signup_form_ready', lambda form: True)
+    monkeypatch.setattr(auth.registration, 'signup_email_is_verified', lambda *args: True)
     monkeypatch.setattr(pages.topics, 'get_capstones_corpus', lambda: [dict(capstone_id=1, capstone_title='Attendance Tracking System')])
     return app
 
@@ -175,7 +184,7 @@ def test_direct_role_change_remains_admin_only(feature_app, monkeypatch, role):
 
 
 def signup_data(file=True):
-    data = dict(first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='Secure123', confirm_password='Secure123', preferred_contact='email', accept_terms='y')
+    data = dict(role='Student', first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='Secure123', confirm_password='Secure123', preferred_contact='email', accept_terms='y')
     if file:
         data['cor'] = (BytesIO(pdf_bytes()), 'my COR.pdf')
     return data
@@ -354,7 +363,7 @@ def test_upload_storage_error_does_not_create_account(feature_app, monkeypatch):
     monkeypatch.setattr(auth.registration, 'save_cor_document', fail)
     monkeypatch.setattr(auth.registration, 'create_user', lambda *args, **kwargs: pytest.fail('Must not create account without a file'))
     response = feature_app.test_client().post('/signup', data=signup_data())
-    assert response.status_code == 200 and b'Could not save your COR' in response.data
+    assert response.status_code == 200 and b'Could not save your verification document' in response.data
 
 
 def test_separate_manuscript_folder_and_legacy_fallback(feature_app, tmp_path):
@@ -405,9 +414,9 @@ def test_archive_without_saved_capstones(feature_app, page, monkeypatch, width):
         return projects, 2
 
     monkeypatch.setattr(pages.archive, 'get_archive_capstones', archive_results)
-    monkeypatch.setattr(pages.archive, 'get_archive_years', lambda: [2026])
-    monkeypatch.setattr(pages.archive, 'get_programs', lambda: [])
-    monkeypatch.setattr(pages.archive, 'get_specializations', lambda: [])
+    monkeypatch.setattr(pages.archive, 'get_most_requested_capstones', lambda: [])
+    monkeypatch.setattr(pages.archive, 'get_archive_filters', lambda: ([2026], [], []))
+    monkeypatch.setattr(pages.archive, 'get_approved_capstone_ids', lambda *_: [])
 
     def handle(route):
         url = urlsplit(route.request.url)
@@ -431,6 +440,72 @@ def test_archive_without_saved_capstones(feature_app, page, monkeypatch, width):
     dialog = page.get_by_role('dialog', name='Request Full Manuscript', exact=True)
     expect(dialog).to_be_visible()
     expect(dialog.locator('form')).to_have_attribute('action', '/request_manuscript/2')
+    assert not errors
+
+
+def test_archive_filters_refresh_component(feature_app, page, monkeypatch):
+    client = feature_app.test_client()
+    login(client, 1)
+    queries = []
+
+    def archive_results(**filters):
+        queries.append(filters)
+        if filters['search'] == 'missing':
+            return [], 0
+        number = 2 if filters['page'] == 2 else 1
+        return [dict(capstone_id=number, capstone_title=f'Project {number}', capstone_year=2026,
+                     program_name='BSIT', specialization_name='Web', capstone_keywords='web',
+                     semester='First')], 13
+
+    monkeypatch.setattr(pages.archive, 'get_archive_capstones', archive_results)
+    monkeypatch.setattr(pages.archive, 'get_most_requested_capstones', lambda: [])
+    monkeypatch.setattr(pages.archive, 'get_archive_filters', lambda: ([2026], [], []))
+    monkeypatch.setattr(pages.archive, 'get_approved_capstone_ids', lambda *_: [])
+    fail = False
+
+    def handle(route):
+        url = urlsplit(route.request.url)
+        if url.netloc != 'archive.test':
+            route.abort()
+            return
+        if fail and url.path == '/archive':
+            route.fulfill(status=503, body='Unavailable')
+            return
+        response = client.get(url.path + ('?' + url.query if url.query else ''))
+        route.fulfill(status=response.status_code, body=response.data, content_type=response.content_type)
+
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.route('**/*', handle)
+    page.goto('http://archive.test/archive')
+    form = page.locator('.archive-filters .filter-form').element_handle()
+    page.evaluate('window.archivePageMarker = true')
+    page.locator('#archive-search').fill('missing')
+    page.get_by_role('button', name='Apply', exact=True).click()
+    expect(page.locator('.archive-card')).to_have_count(0)
+    expect(page.locator('.archive-layout-wrapper')).not_to_have_attribute('aria-busy', 'true')
+    assert page.evaluate('window.archivePageMarker') is True
+    assert form.evaluate('el => el.isConnected')
+    assert queries[-1]['search'] == 'missing'
+    page.locator('.btn-clear').click()
+    expect(page.locator('.archive-card')).to_have_count(1)
+    expect(page.locator('#archive-search')).to_have_value('')
+    page.locator('.archive-pagination-bar a').click()
+    expect(page.locator('.archive-card')).to_have_attribute('data-id', '2')
+    page.locator('.archive-card').click()
+    expect(page.locator('#sb-title')).to_have_text('Project 2')
+    page.locator('#sb-request-link').click()
+    expect(page.get_by_role('dialog', name='Request Full Manuscript', exact=True)).to_be_visible()
+    page.get_by_role('button', name='Cancel', exact=True).click()
+    page.locator('#archive-search').fill('web')
+    page.get_by_role('button', name='Apply', exact=True).click()
+    expect(page.locator('.archive-card')).to_have_attribute('data-id', '1')
+    assert queries[-1]['page'] == 1
+    fail = True
+    page.get_by_role('button', name='Apply', exact=True).click()
+    expect(page.locator('#archive-filter-status')).to_contain_text('Could not load')
+    expect(page.locator('.archive-card')).to_have_attribute('data-id', '1')
+    assert page.evaluate('window.archivePageMarker') is True
     assert not errors
 
 
@@ -594,9 +669,9 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     projects = [dict(capstone_id=i, capstone_title=f'Project {i}', capstone_year=2026,
                      program_name='BSIT', specialization_name='Web', capstone_keywords='web', semester='First') for i in (1, 2)]
     monkeypatch.setattr(pages.archive, 'get_archive_capstones', lambda **kwargs: (projects, 2))
-    monkeypatch.setattr(pages.archive, 'get_archive_years', lambda: [2026])
-    monkeypatch.setattr(pages.archive, 'get_programs', lambda: [])
-    monkeypatch.setattr(pages.archive, 'get_specializations', lambda: [])
+    monkeypatch.setattr(pages.archive, 'get_most_requested_capstones', lambda: [])
+    monkeypatch.setattr(pages.archive, 'get_archive_filters', lambda: ([2026], [], []))
+    monkeypatch.setattr(pages.archive, 'get_approved_capstone_ids', lambda *_: [])
     with client.session_transaction() as state:
         state['role_name'] = 'Student'
     page.goto('http://features.test/archive')
@@ -635,7 +710,6 @@ def test_signup_four_phases(feature_app, page, monkeypatch, preference):
     client = feature_app.test_client()
     captured = []
     monkeypatch.setattr(auth.registration, 'create_user', lambda *args, **kwargs: (captured.append((args, kwargs)) or True, {}))
-    monkeypatch.setattr(auth.registration, 'extract_cor_fields', lambda content: {})
 
     def handle(route):
         url = urlsplit(route.request.url)
@@ -661,11 +735,13 @@ def test_signup_four_phases(feature_app, page, monkeypatch, preference):
     page.locator('[data-signup-next]').click()
     page.locator('#first_name').fill('Maria')
     page.locator('#last_name').fill('Cruz')
+    page.locator('#student_no').fill('2026-12345')
     page.locator('#username').fill('maria')
     page.locator('#password').fill('Secure123')
     page.locator('#confirm_password').fill('Secure123')
     page.locator('[data-signup-next]').click()
     page.locator('#preferred_contact').select_option(preference)
+    page.locator('#email').fill('maria@example.com')
     page.locator('#' + preference).fill('maria@example.com' if preference == 'email' else '09171234567')
     page.locator('[data-signup-next]').click()
     expect(page.locator('#signup-review')).to_contain_text('Maria Cruz')
@@ -680,5 +756,5 @@ def test_signup_four_phases(feature_app, page, monkeypatch, preference):
     assert len(captured) == 1
     assert captured[0][1]['preferred_contact'] == preference
     if preference == 'phone':
-        assert captured[0][0][4] in ('', None)
+        assert captured[0][0][4] == 'maria@example.com'
         assert captured[0][1]['phone'] == '+639171234567'

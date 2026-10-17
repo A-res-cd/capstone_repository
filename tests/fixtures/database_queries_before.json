@@ -1,0 +1,18 @@
+{
+  "navigation": {
+    "sql": "\n            SELECT\n                COALESCE((\n                    SELECT json_agg(to_jsonb(recent))\n                    FROM (\n                        SELECT r.request_id, r.request_type, r.request_status,\n                               r.decision_date, r.status_reason,\n                               r.notification_seen_at, c.capstone_title\n                        FROM request r\n                        LEFT JOIN capstone c ON c.capstone_id = r.capstone_id\n                        WHERE r.user_id = %s\n                          AND r.request_type IS DISTINCT FROM 'promotion'\n                          AND r.decision_date IS NOT NULL\n                          AND r.request_status IN ('approved', 'rejected')\n                        ORDER BY r.decision_date DESC, r.request_id DESC\n                        LIMIT %s\n                    ) recent\n                ), '[]'::json) AS notifications,\n                (SELECT COUNT(*) FROM request\n                 WHERE user_id = %s\n                   AND request_type IS DISTINCT FROM 'promotion'\n                   AND decision_date IS NOT NULL\n                   AND request_status IN ('approved', 'rejected')\n                   AND notification_seen_at IS NULL) AS unread_count,\n                COUNT(*) FILTER (\n                    WHERE %s AND request_status = 'pending'\n                      AND (request_type = 'manuscript'\n                           OR (request_type IS NULL AND capstone_id IS NOT NULL))\n                ) AS manuscript_requests,\n                COUNT(*) FILTER (\n                    WHERE %s AND request_status = 'pending'\n                      AND request_type LIKE 'verification_%%'\n                ) AS user_requests\n            FROM request\n            ",
+    "params": [
+      1,
+      6,
+      1,
+      false,
+      false
+    ]
+  },
+  "ranking": {
+    "sql": "\n            WITH counts AS (\n                SELECT capstone_id, COUNT(*) AS request_count, MAX(requested_at) AS last_requested_at\n                FROM capstone_requests\n                \n                GROUP BY capstone_id\n            )\n            SELECT c.capstone_id, c.capstone_title, c.capstone_year, c.semester, c.term,\n                   counts.request_count, counts.last_requested_at,\n                   COALESCE(team.authors, '') AS authors\n            FROM counts JOIN capstone c ON c.capstone_id = counts.capstone_id\n            LEFT JOIN LATERAL (\n                SELECT STRING_AGG(CONCAT_WS(' ', NULLIF(a.aut_first_name, ''),\n                    NULLIF(a.aut_middle_name, ''), NULLIF(a.aut_last_name, '')), ', '\n                    ORDER BY ca.author_order NULLS LAST, a.author_id) AS authors\n                FROM capauth ca JOIN author a ON a.author_id = ca.author_id\n                WHERE ca.capstone_id = c.capstone_id AND ca.role = 'Author'\n            ) team ON TRUE\n            WHERE c.is_archived = FALSE\n            ORDER BY counts.request_count DESC, counts.last_requested_at DESC, c.capstone_id ASC\n            LIMIT %s\n        ",
+    "params": [
+      5
+    ]
+  }
+}

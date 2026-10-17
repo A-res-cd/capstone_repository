@@ -55,3 +55,6 @@ backups/
 datasets/
 
 database/erd/
+
+docs/*.md
+!docs/SECURITY_REMEDIATION_ROLLOUT.md

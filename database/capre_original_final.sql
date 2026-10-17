@@ -1,3 +1,23 @@
+-- CAPRE PostgreSQL schema / ERD image reference, updated 2026-10-11.
+-- Each CREATE TABLE defines an entity; PRIMARY KEY and REFERENCES define
+-- diagram keys and relationships. Nullable foreign keys are optional links.
+-- For an image, use a crow's-foot ERD with column types and PK/FK markers;
+-- preserve these table names and draw only explicitly declared relationships.
+-- Account entities: role, user, kappa (usernames), ror (password history),
+-- slug (credential assignments), contact, login, logout, signup, password_reset.
+-- Repository entities: program, specialization, capstone, keyword, author.
+-- Junctions: capstone_keyword links capstones/keywords; capauth links
+-- capstones/authors and stores Author/Adviser roles and display order.
+-- Workflow/history: request, capstone_requests, capstone_view_history, audit.
+-- request stores manuscript access and account-verification decisions.
+-- capstone_requests logs deduplicated manuscript submissions for popularity;
+-- capstone_view_history stores each user's most recent view of each capstone.
+-- auth_rate_limit is infrastructure with no foreign-key relationships.
+-- signup_email_verifications stores short-lived pre-account email ownership
+-- proofs. It has no user foreign key because verification precedes signup.
+-- Indexes, access policies and migration bookkeeping are applied separately
+-- by scripts/migrate.py or scripts/setup_supabase.py.
+
 CREATE TABLE role (
     role_id SERIAL PRIMARY KEY,
     role_name VARCHAR(50),
@@ -10,7 +30,7 @@ CREATE TABLE "user" (
     user_first_name VARCHAR(100),
     user_middle_name VARCHAR(100),
     user_last_name VARCHAR(100),
-    university_no VARCHAR(50),
+    university_no VARCHAR(50), -- Student examples: 2017100890, 2026-12345, SUM2023-01246.
     locked_until TIMESTAMP,
     account_status VARCHAR(20) DEFAULT 'pending',
     cor_filename VARCHAR(200),
@@ -136,6 +156,7 @@ CREATE TABLE password_reset (
     is_used BOOLEAN,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     attempt_count INT DEFAULT 0,
+    verified_at TIMESTAMPTZ,
 
     CONSTRAINT fk_password_reset_contact
         FOREIGN KEY (contact_id)
@@ -258,4 +279,28 @@ CREATE TABLE capstone_view_history (
     capstone_id INTEGER NOT NULL REFERENCES capstone(capstone_id) ON DELETE CASCADE,
     viewed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, capstone_id)
+);
+
+CREATE TABLE capstone_requests (
+    id BIGSERIAL PRIMARY KEY,
+    capstone_id INTEGER NOT NULL REFERENCES capstone(capstone_id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES "user"(user_id) ON DELETE SET NULL,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE auth_rate_limit (
+    bucket_key CHAR(64) PRIMARY KEY,
+    window_start TIMESTAMPTZ NOT NULL,
+    attempts INTEGER NOT NULL
+);
+
+CREATE TABLE signup_email_verifications (
+    verification_id UUID PRIMARY KEY,
+    email VARCHAR(254) NOT NULL,
+    code_hash TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    verified_at TIMESTAMPTZ,
+    consumed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

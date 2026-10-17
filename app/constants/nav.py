@@ -53,6 +53,15 @@ def get_nav_links(role):
             "section": "Repository"
         },
 
+        {
+            "name": "Most Requested Capstones",
+            "title": "Most Requested Capstones",
+            "url": "pages.most_requested_page",
+            "icon": "bx bx-trending-up",
+            "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
+            "section": "Repository"
+        },
+
         # --- Sub-process 4.5 (Level3ViewCapstoneData): Manuscript access requests — Student only ---
         # Capstone-agnostic — lists every request the student has made,
         # across all capstones. (The per-capstone request form lives at

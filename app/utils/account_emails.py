@@ -26,6 +26,32 @@ def password_reset_email(email, username, code, expiry_minutes):
     )
 
 
+def contact_change_email(email, code=None):
+    return _message(
+        'CAPRE recovery contact change', email,
+        name='there', category='Account security', title='Recovery contact change',
+        preview='A change to your CAPRE recovery contact was requested.',
+        introduction=('Verify your new recovery destination.' if code else 'Your recovery email has changed.'),
+        code=code, expiry_minutes=15,
+        instruction=('Enter this code on your profile page.' if code else 'Contact support if you did not authorize this change.'),
+        note='Your existing recovery destination stays active until confirmation.',
+        security='Enter codes only in CAPRE. Never share them.',
+    )
+
+
+def signup_verification_email(email, code, expiry_minutes):
+    return _message(
+        'Your CAPRE signup verification code', email,
+        name='there', category='Account security', title='Verify your email',
+        preview='Confirm your email before creating your CAPRE account.',
+        introduction='Use this code to verify the email for your CAPRE signup.',
+        code=str(code), expiry_minutes=expiry_minutes,
+        instruction='Enter this code on the CAPRE email verification page, then return to your signup form.',
+        note='If you did not request this code, you can ignore this email.',
+        security='Enter the code only in CAPRE. Never share it with anyone.',
+    )
+
+
 def verification_email(recipient, decision, reason):
     approved = decision == 'approved'
     return _message(

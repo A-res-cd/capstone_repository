@@ -8,7 +8,8 @@ BEGIN
         'role', 'user', 'kappa', 'ror', 'slug', 'login', 'logout', 'signup',
         'audit', 'contact', 'password_reset', 'program', 'specialization',
         'keyword', 'capstone', 'capstone_keyword', 'author', 'capauth',
-        'request', 'capstone_view_history', 'schema_migration'
+        'request', 'capstone_view_history', 'schema_migration', 'auth_rate_limit', 'capstone_requests',
+        'signup_email_verifications'
     ] LOOP
         EXECUTE FORMAT('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', capre_table);
         EXECUTE FORMAT('REVOKE ALL ON TABLE public.%I FROM anon, authenticated', capre_table);
@@ -22,7 +23,7 @@ VALUES
         ARRAY['application/pdf', 'application/msword',
               'application/vnd.openxmlformats-officedocument.wordprocessingml.document']),
     ('capre-registration', 'capre-registration', FALSE, 5242880,
-        ARRAY['application/pdf']),
+        ARRAY['application/pdf', 'image/jpeg', 'image/png']),
     ('capre-avatars', 'capre-avatars', FALSE, 2097152,
         ARRAY['image/png'])
 ON CONFLICT (id) DO UPDATE SET

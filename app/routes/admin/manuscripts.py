@@ -4,7 +4,6 @@ from flask import abort, render_template, redirect, url_for, flash, send_file, g
 from app.db.capstones import get_capstone_details, get_capstone_authors
 from app.routes.decorators import role_required, can_view_full_manuscript, can_download_manuscript
 from app.constants.roles import ALL_ROLES, ROLE_ADMIN
-from app.utils.pdf_extractor import extract_abstract_text
 from app.utils.uploads import manuscript_mimetype, resolve_manuscript_file
 
 
@@ -64,14 +63,10 @@ def view_capstone_pdf(capstone_id):
     authors = get_capstone_authors(capstone_id) if abstract_only else []
     max_pages = 1 if abstract_only else None
     pdf_url = None
-    abstract_text = None
+    abstract_text = capstone.get('abstract_text')
     file_rel = capstone.get('capstone_file') if isinstance(capstone, dict) else None
     if file_rel and has_full_access:
         pdf_url = url_for('admin.manuscript_file', capstone_id=capstone_id)
-    elif file_rel:
-        pdf_path = resolve_manuscript_file(file_rel)
-        if pdf_path and pdf_path.lower().endswith('.pdf'):
-            abstract_text = extract_abstract_text(pdf_path)
 
     if abstract_only and not abstract_text:
         abstract_text = "Abstract is not available for this manuscript."

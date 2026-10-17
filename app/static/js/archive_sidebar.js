@@ -1,4 +1,7 @@
-document.addEventListener('DOMContentLoaded', () => {
+let archiveSidebarController;
+function initArchiveSidebar() {
+    archiveSidebarController?.abort();
+    archiveSidebarController = new AbortController();
 
     let selectedCapstoneId = null;
     const MOBILE_QUERY = '(max-width: 900px)';
@@ -118,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebarEl.classList.remove('archive-sidebar--mobile-open');
             document.body.classList.remove('archive-mobile-detail-open');
         }
-    });
+    }, {signal: archiveSidebarController.signal});
 
     const citeBtn = document.getElementById('sb-cite-btn');
     const overlay = document.getElementById('cite-modal-overlay');
@@ -206,4 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (overlay) overlay.style.display = 'none';
-});
+}
+
+document.addEventListener('DOMContentLoaded', initArchiveSidebar);
+document.addEventListener('archive:updated', initArchiveSidebar);

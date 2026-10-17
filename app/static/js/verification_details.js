@@ -73,9 +73,10 @@
             }
             fields.hidden = false;
             setDecisionState(button.dataset.verificationAction, true);
-            status.textContent = data.document_url ? `COR available (${Math.ceil(data.size_bytes / 1024)} KB). Review the preview below.`
-                : data.filename ? 'The COR file is missing or unavailable. Do not approve until the document is available.'
-                : 'No COR was uploaded for this account.';
+            const documentLabel = data.role_name === 'Faculty' ? 'Faculty ID' : 'COR';
+            status.textContent = data.document_url ? `${documentLabel} available (${Math.ceil(data.size_bytes / 1024)} KB). Review the preview below.`
+                : data.filename ? `The ${documentLabel} file is missing or unavailable. Do not approve until the document is available.`
+                : 'No verification document was uploaded for this account.';
             if (data.document_url) {
                 const url = new URL(data.document_url, location.origin);
                 if (url.origin !== location.origin) throw new Error('Invalid file link');
