@@ -1,4 +1,4 @@
--- CAPRE PostgreSQL schema / ERD image reference, updated 2026-10-11.
+-- CAPRE PostgreSQL schema / ERD image reference, updated 2026-10-17.
 -- Each CREATE TABLE defines an entity; PRIMARY KEY and REFERENCES define
 -- diagram keys and relationships. Nullable foreign keys are optional links.
 -- For an image, use a crow's-foot ERD with column types and PK/FK markers;
@@ -15,6 +15,7 @@
 -- auth_rate_limit is infrastructure with no foreign-key relationships.
 -- signup_email_verifications stores short-lived pre-account email ownership
 -- proofs. It has no user foreign key because verification precedes signup.
+-- contact_changes stores pending contact ownership checks linked to a user.
 -- Indexes, access policies and migration bookkeeping are applied separately
 -- by scripts/migrate.py or scripts/setup_supabase.py.
 
@@ -141,10 +142,27 @@ CREATE TABLE contact (
     contact_value VARCHAR(100),
     is_primary BOOLEAN,
     created_at TIMESTAMP,
+    verified_at TIMESTAMPTZ,
 
     CONSTRAINT fk_contact_user
         FOREIGN KEY (user_id)
         REFERENCES "user"(user_id)
+);
+
+CREATE TABLE contact_changes (
+    change_id UUID PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    contact_type TEXT NOT NULL CHECK (contact_type IN ('email', 'phone')),
+    destination TEXT NOT NULL,
+    code_hash TEXT NOT NULL,
+    session_hash TEXT NOT NULL,
+    password_id INTEGER NOT NULL,
+    preference TEXT NOT NULL CHECK (preference IN ('email', 'phone')),
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    delivered_at TIMESTAMPTZ,
+    consumed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE password_reset (
