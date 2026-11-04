@@ -1,7 +1,11 @@
 """Allowlisted audit descriptions; raw payloads never reach the template."""
-CATEGORIES = {'account': 'Accounts', 'capstone': 'Capstones', 'workflow': 'Requests', 'other': 'Other'}
+CATEGORIES = {'account': 'Accounts', 'capstone': 'Capstones', 'other': 'Other'}
 ACTION_GROUPS = {
     'account': {
+        'automatic_signup_decision': 'Automatically checked student eligibility',
+        'student_resubmission': 'Resubmitted student eligibility',
+        'roster_upload': 'Imported student master list',
+        'roster_correction': 'Corrected unclaimed roster identity',
         'signup': 'Registered an account', 'login': 'Signed in', 'logout': 'Signed out',
         'password_reset': 'Reset a password', 'otp_verified': 'Verified a reset code',
         'update_contact': 'Updated contact information', 'role_change': 'Changed a user role',
@@ -20,10 +24,6 @@ ACTION_GROUPS = {
         'restore_capstone': 'Restored a capstone',
         'save_capstone': 'Saved a capstone', 'unsave_capstone': 'Removed a saved capstone',
     },
-    'workflow': {
-        'manuscript_request': 'Requested manuscript access', 'review_request': 'Reviewed manuscript access',
-        'cancel_request': 'Cancelled a manuscript request',
-    },
 }
 ACTIONS = {action: label for group in ACTION_GROUPS.values() for action, label in group.items()}
 
@@ -41,7 +41,7 @@ def summarize_audit(row, roles):
         for field, caption in [('old_values', 'Previous status'), ('new_values', 'New status')]:
             value = row.get(field)
             changes.append((caption, value if value in {'active', 'pending', 'rejected', 'inactive', 'suspended'} else 'Unknown status'))
-    elif action in {'review_verification_request', 'review_promotion_request', 'review_request', 'review_capstoner'}:
+    elif action in {'review_verification_request', 'review_promotion_request', 'review_capstoner'}:
         value = row.get('new_values') or ''
         decision = value.split(' -> ', 1)[0]
         if decision in {'approved', 'rejected'}:

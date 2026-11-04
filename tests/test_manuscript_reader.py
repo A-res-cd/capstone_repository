@@ -50,7 +50,6 @@ def reader_app(monkeypatch, tmp_path):
     roles = {1: 'Student', 2: 'Faculty', 3: 'Admin', 4: 'Capstone Professor', 5: 'Student'}
     users = {uid: dict(user_id=uid, role_id=uid if uid < 5 else 1, role_name=name)
              for uid, name in roles.items()}
-    approved = {1, 5}
     record = dict(capstone_id=7, capstone_title='Private manuscript', capstone_file='uploads/private.pdf')
 
     def load_user():
@@ -73,15 +72,13 @@ def reader_app(monkeypatch, tmp_path):
         monkeypatch.setattr(module, 'get_capstone_details', lambda cid: record if cid == 7 else None)
         monkeypatch.setattr(module, 'get_capstone_authors', lambda cid: [])
     record['abstract_text'] = 'Public abstract only.'
-    monkeypatch.setattr(decorators, 'get_user_requests', lambda uid: [
-        dict(capstone_id=7, request_status='approved' if uid in approved else 'pending')])
-    app.reader_state = SimpleNamespace(users=users, approved=approved, record=record, file=folder / 'private.pdf')
+    app.reader_state = SimpleNamespace(users=users, record=record, file=folder / 'private.pdf')
     yield app
     manuscript_reader._page_count.cache_clear()
     manuscript_reader._render_page.cache_clear()
 
 
-def login(client, uid=1):
+def login(client, uid=2):
     with client.session_transaction() as state:
         # These stale session claims must never grant original-file privileges.
         state.update(user_id=uid, role_id=3, role_name='Admin')
@@ -114,11 +111,11 @@ def test_page_access_rechecked_after_revocation_and_logout(reader_app, path):
     assert client.get(path).status_code == 401
     login(client)
     assert client.get(path).status_code == 200
-    reader_app.reader_state.approved.remove(1)
+    reader_app.reader_state.users[2]['role_name'] = 'Student'
     response = client.get(path)
     assert response.status_code == 403
     assert 'no-store' in response.headers['Cache-Control']
-    reader_app.reader_state.users.pop(1)
+    reader_app.reader_state.users.pop(2)
     assert client.get(path).status_code == 401
 
 
@@ -134,7 +131,7 @@ def test_rendered_pages_are_watermarked_private_and_bounded(reader_app):
     assert b'%PDF' not in first.data and b'Confidential' not in first.data
     with Image.open(BytesIO(first.data)) as image:
         assert max(image.size) <= manuscript_reader.MAX_PAGE_DIMENSION
-    login(client, 5)
+    login(client, 4)
     assert client.get('/manuscript/pages/7/1').data != first.data
     assert client.get('/manuscript/pages/7/2').data != first.data
     for path in ['/manuscript/pages/7/0', '/manuscript/pages/7/3', '/manuscript/pages/8/1']:
@@ -173,13 +170,13 @@ def test_pdfjs_receives_only_one_watermarked_image_page(reader_app):
         assert len(pdf.pages[0].images) == 1
         assert not pdf.pages[0].extract_text()
         image_data = pdf.pages[0].images[0]['stream'].get_data()
-    login(client, 5)
+    login(client, 4)
     other = client.get('/manuscript/pages/7/1?format=pdf')
     with pdfplumber.open(BytesIO(other.data)) as pdf:
         assert pdf.pages[0].images[0]['stream'].get_data() != image_data
 
 
-@pytest.mark.parametrize('uid', [1, 2, 4])
+@pytest.mark.parametrize('uid', [2, 4])
 @pytest.mark.parametrize('path', ['/manuscript/view/7', '/repository/pdf/7'])
 def test_full_view_uses_protected_reader_for_non_admin(reader_app, uid, path):
     client = reader_app.test_client()
@@ -196,11 +193,11 @@ def test_full_view_uses_protected_reader_for_non_admin(reader_app, uid, path):
 def test_unapproved_student_keeps_abstract_only_access(reader_app):
     client = reader_app.test_client()
     login(client)
-    reader_app.reader_state.approved.clear()
+    reader_app.reader_state.users[2]['role_name'] = 'Student'
     response = client.get('/repository/pdf/7')
     assert response.status_code == 200 and b'Public abstract only.' in response.data
     assert b'data-manuscript-reader' not in response.data
-    assert client.get('/manuscript/view/7').status_code == 302
+    assert client.get('/manuscript/view/7').status_code == 403
     assert client.get('/manuscript/pages/7/1').status_code == 403
 
 
@@ -300,7 +297,7 @@ def test_reader_browser_navigation_zoom_and_revoked_access(reader_app, page, the
     page.locator('#manuscript-page').select_option('1')
     expect(canvas).to_have_attribute('aria-label', 'Manuscript page 1 of 2')
     expect(page.get_by_role('status')).to_have_text('Page 1 of 2')
-    reader_app.reader_state.approved.clear()
+    reader_app.reader_state.users[2]['role_name'] = 'Student'
     page.get_by_role('button', name='Next', exact=True).click()
     expect(page.get_by_role('status')).to_have_text('You no longer have access to this manuscript.')
     expect(canvas).to_be_hidden()

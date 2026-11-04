@@ -1,3 +1,4 @@
+from tests.roster_test_helpers import create_legacy_account
 """Revision checks use disposable databases in a locally started test cluster."""
 from contextlib import closing
 from pathlib import Path
@@ -54,7 +55,7 @@ def revision_db(empty_database, tmp_path):
     historical = tmp_path / 'historical'
     historical.mkdir()
     for path in migration_runner.migration_files():
-        if path.name != REVISION:
+        if path.name < REVISION:
             shutil.copyfile(path, historical / path.name)
     migration_runner.upgrade_database(historical)
     with closing(connect()) as conn, conn.cursor() as cursor:
@@ -67,7 +68,7 @@ def revision_db(empty_database, tmp_path):
 
 
 def upgrade():
-    assert migration_runner.upgrade_database() == [REVISION]
+    assert migration_runner.upgrade_database() == [REVISION, '20261105_remove_legacy_request.sql', '20261106_roster_auto_signup.sql']
 
 
 def test_populated_migration_preserves_records_and_tracks_checksum(revision_db):
@@ -129,10 +130,14 @@ def test_schema_matches_revised_definition(revision_db):
 def test_constraints_and_duplicate_university_numbers(revision_db):
     upgrade()
     with closing(revision_db()) as conn, conn.cursor() as cursor:
-        cursor.execute("INSERT INTO uploaded_by (file_name) VALUES ('class.csv') RETURNING upload_id, status, uploaded_at")
+        cursor.execute("""INSERT INTO uploaded_by(file_name,file_type,class_name,academic_year,semester)
+            VALUES('class.csv','student_list','Class','2026-2027','First') RETURNING upload_id,status,uploaded_at""")
         upload_id, status, timestamp = cursor.fetchone()
-        assert status == 'pending' and timestamp is not None
-        cursor.execute("INSERT INTO roster (upload_id, university_no) VALUES (%s, 'same'), (%s, 'same') RETURNING roster_id", (upload_id, upload_id))
+        assert status == 'active' and timestamp is not None
+        cursor.execute("""INSERT INTO uploaded_by(file_name,file_type,class_name,academic_year,semester)
+            VALUES('next.csv','student_list','Class','2027-2028','First') RETURNING upload_id""")
+        next_upload=cursor.fetchone()[0]
+        cursor.execute("INSERT INTO roster(upload_id,university_no,person_type,contact) VALUES(%s,'same','Student','a@example.edu'),(%s,'same','Student','a@example.edu') RETURNING roster_id",(upload_id,next_upload))
         roster_id = cursor.fetchone()[0]
         conn.commit()
         for statement in (
@@ -209,7 +214,7 @@ def test_fresh_supabase_setup_without_logout(empty_database):
 
 
 def register(connect, username):
-    result = auth.create_user('Test', '', 'Student', None, username + '@example.com', username, PASSWORD)
+    result = create_legacy_account(auth,'Test', '', 'Student', None, username + '@example.com', username, PASSWORD)
     assert result[0], result
     with closing(connect()) as conn, conn.cursor() as cursor:
         cursor.execute('''UPDATE "user" SET account_status = 'active'

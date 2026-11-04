@@ -8,7 +8,7 @@ BEGIN
         'role', 'user', 'kappa', 'ror', 'slug', 'login', 'signup', 'uploaded_by', 'roster',
         'audit', 'contact', 'password_reset', 'program', 'specialization',
         'keyword', 'capstone', 'capstone_keyword', 'author', 'capauth',
-        'request', 'capstone_view_history', 'schema_migration', 'auth_rate_limit', 'capstone_requests',
+        'capstone_view_history', 'schema_migration', 'auth_rate_limit',
         'signup_email_verifications'
     ] LOOP
         EXECUTE FORMAT('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', capre_table);

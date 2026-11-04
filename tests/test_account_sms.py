@@ -43,13 +43,13 @@ def test_notification_uses_messages_endpoint_and_default_sender(sms_app, monkeyp
         payload = parse_qs(request.data.decode())
         assert payload['apikey'] == ['private-key']
         assert payload['number'] == ['639171234567']
-        assert payload['message'] == ['Your manuscript request was approved.']
+        assert payload['message'] == ['Your account verification was approved.']
         assert 'code' not in payload
         assert 'sendername' not in payload
         return io.StringIO('[{"message_id": 123, "status": "Queued"}]')
     monkeypatch.setattr(account_sms, 'urlopen', send)
     with sms_app.app_context():
-        assert account_sms.send_sms('09171234567', 'Your manuscript request was approved.') == 123
+        assert account_sms.send_sms('09171234567', 'Your account verification was approved.') == 123
 
 
 @pytest.mark.parametrize('message', ['', '   ', None])

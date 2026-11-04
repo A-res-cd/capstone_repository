@@ -183,11 +183,6 @@ def delete_capstone(capstone_id, acting_user_id=None):
             DELETE FROM capauth WHERE capstone_id = %s
         """, (capstone_id,))
 
-        # Keep request/audit history while releasing the foreign-key reference.
-        mithrix.execute("""
-            UPDATE request SET capstone_id = NULL WHERE capstone_id = %s
-        """, (capstone_id,))
-
         mithrix.execute("""
             DELETE FROM capstone WHERE capstone_id = %s
         """, (capstone_id,))

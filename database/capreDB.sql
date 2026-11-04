@@ -101,14 +101,71 @@ CREATE TABLE IF NOT EXISTS login (
 -- =========================================
 -- SIGNUP TABLE
 -- =========================================
+CREATE TABLE IF NOT EXISTS uploaded_by (
+    upload_id SERIAL PRIMARY KEY,
+    file_name TEXT NOT NULL,
+    class_name VARCHAR(150),
+    academic_year VARCHAR(30),
+    semester VARCHAR(30),
+    status VARCHAR(30) NOT NULL DEFAULT 'active',
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    file_type VARCHAR(30) CHECK (file_type='student_list'),
+    CONSTRAINT roster_upload_status CHECK (status IN ('active','superseded')),
+    CONSTRAINT active_roster_metadata CHECK (status <> 'active' OR
+        (file_type IS NOT NULL AND file_type='student_list' AND class_name IS NOT NULL AND BTRIM(class_name)<>''
+         AND academic_year IS NOT NULL AND semester IS NOT NULL AND semester IN ('First','Second','Summer'))),
+    CONSTRAINT roster_upload_term CHECK (status <> 'active' OR
+        CASE WHEN academic_year ~ '^[0-9]{4}-[0-9]{4}$' THEN
+          SPLIT_PART(academic_year,'-',1)::int BETWEEN 1900 AND 2200
+          AND SPLIT_PART(academic_year,'-',2)::int=SPLIT_PART(academic_year,'-',1)::int+1
+        ELSE FALSE END)
+);
+
+CREATE TABLE IF NOT EXISTS roster (
+    roster_id SERIAL PRIMARY KEY,
+    upload_id INT NOT NULL REFERENCES uploaded_by(upload_id) ON DELETE RESTRICT,
+    university_no VARCHAR(50) CONSTRAINT roster_number_required CHECK (NULLIF(BTRIM(university_no), '') IS NOT NULL),
+    person_type VARCHAR(50) NOT NULL CONSTRAINT roster_student_type CHECK (person_type IN ('Student','Faculty')),
+    user_first_name VARCHAR(100),
+    user_middle_name VARCHAR(100),
+    user_last_name VARCHAR(100),
+    contact VARCHAR(254) CONSTRAINT roster_email_required CHECK (NULLIF(BTRIM(contact), '') IS NOT NULL),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS contact (
+    contact_id SERIAL PRIMARY KEY,
+    user_id INT,
+    contact_type VARCHAR(50),
+    contact_value VARCHAR(100),
+    is_primary BOOLEAN,
+    created_at TIMESTAMP,
+
+    CONSTRAINT fk_contact_user
+        FOREIGN KEY (user_id)
+        REFERENCES "user"(user_id)
+);
+
 CREATE TABLE IF NOT EXISTS signup (
     signup_id SERIAL PRIMARY KEY,
     user_id INT,
-    registration_date TIMESTAMP,
+    registration_date TIMESTAMP, -- Retained for compatibility with existing registration logic.
+    roster_id INT,
+    contact_id INT,
+    sub_person_type VARCHAR(50),
+    method VARCHAR(50),
+    status VARCHAR(30),
+    attempt_count INT NOT NULL DEFAULT 0 CONSTRAINT signup_attempt_count_nonnegative CHECK (attempt_count >= 0),
+    reason TEXT,
+    reviewed_by INT,
+    requested_at TIMESTAMPTZ,
+    decided_at TIMESTAMPTZ,
 
-    CONSTRAINT fk_signup_user
-        FOREIGN KEY (user_id)
-        REFERENCES "user"(user_id)
+    CONSTRAINT fk_signup_user FOREIGN KEY (user_id) REFERENCES "user"(user_id),
+    CONSTRAINT fk_signup_roster FOREIGN KEY (roster_id) REFERENCES roster(roster_id),
+    CONSTRAINT fk_signup_contact FOREIGN KEY (contact_id) REFERENCES contact(contact_id),
+    CONSTRAINT fk_signup_reviewer FOREIGN KEY (reviewed_by) REFERENCES "user"(user_id)
 );
 
 -- =========================================
@@ -132,18 +189,6 @@ CREATE TABLE IF NOT EXISTS audit (
 -- =========================================
 -- CONTACT TABLE
 -- =========================================
-CREATE TABLE IF NOT EXISTS contact (
-    contact_id SERIAL PRIMARY KEY,
-    user_id INT,
-    contact_type VARCHAR(50),
-    contact_value VARCHAR(100),
-    is_primary BOOLEAN,
-    created_at TIMESTAMP,
-
-    CONSTRAINT fk_contact_user
-        FOREIGN KEY (user_id)
-        REFERENCES "user"(user_id)
-);
 
 -- =========================================
 -- PASSWORD RESET TABLE
@@ -250,41 +295,71 @@ CREATE TABLE IF NOT EXISTS capauth (
 );
 
 -- =========================================
--- REQUEST TABLE
+-- Manuscript request workflow retired; no request tables in fresh setup.
 -- =========================================
-CREATE TABLE IF NOT EXISTS request (
-    request_id SERIAL PRIMARY KEY,
-    user_id INT,
-    capstone_id INT,
-    request_status VARCHAR(50),
-    request_reason TEXT,
-    request_date TIMESTAMP,
-    decision_date TIMESTAMP,
-    reviewed_by INT,
-    status_reason TEXT,
-    request_type VARCHAR(50) DEFAULT 'manuscript',
-    notification_seen_at TIMESTAMP,
 
-    target_role_id INT,
+-- Diagram-aligned student eligibility and private workflow infrastructure.
+CREATE UNIQUE INDEX user_normalized_number_unique ON "user" (NULLIF(UPPER(BTRIM(university_no)), ''));
+CREATE UNIQUE INDEX signup_pending_roster_unique ON signup(roster_id) WHERE status='pending' AND roster_id IS NOT NULL;
+CREATE UNIQUE INDEX signup_approved_roster_unique ON signup(roster_id) WHERE status='approved' AND roster_id IS NOT NULL;
+CREATE UNIQUE INDEX roster_upload_number_unique ON roster(upload_id,UPPER(BTRIM(university_no)));
+CREATE INDEX roster_matching_idx ON roster(UPPER(BTRIM(university_no)),LOWER(BTRIM(contact)),person_type,upload_id);
+CREATE INDEX uploaded_by_active_list_idx ON uploaded_by(file_type) WHERE status='active';
 
-    CONSTRAINT fk_request_user
-        FOREIGN KEY (user_id)
-        REFERENCES "user"(user_id),
+ALTER TABLE uploaded_by ENABLE ROW LEVEL SECURITY;
+ALTER TABLE roster ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON uploaded_by, roster FROM PUBLIC;
+DO $$
+DECLARE browser_role TEXT;
+BEGIN
+    FOREACH browser_role IN ARRAY ARRAY['anon','authenticated'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=browser_role) THEN
+            EXECUTE FORMAT('REVOKE ALL ON uploaded_by, roster FROM %I',browser_role);
+        END IF;
+    END LOOP;
+END $$;
 
-    CONSTRAINT fk_request_capstone
-        FOREIGN KEY (capstone_id)
-        REFERENCES capstone(capstone_id)
-        ON DELETE SET NULL,
-
-    CONSTRAINT fk_request_reviewer
-        FOREIGN KEY (reviewed_by)
-        REFERENCES "user"(user_id),
-
-    CONSTRAINT fk_request_target_role
-        FOREIGN KEY (target_role_id)
-        REFERENCES role(role_id)
+CREATE TABLE signup_decision_delivery (
+    delivery_id BIGSERIAL PRIMARY KEY,
+    signup_id INT NOT NULL UNIQUE REFERENCES signup(signup_id) ON DELETE CASCADE,
+    recipient_email VARCHAR(254) NOT NULL,
+    attempts INT NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+    available_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    delivered_at TIMESTAMPTZ
 );
+CREATE INDEX signup_delivery_pending_idx ON signup_decision_delivery(available_at,delivery_id) WHERE delivered_at IS NULL;
+ALTER TABLE signup_decision_delivery ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON signup_decision_delivery FROM PUBLIC;
+REVOKE ALL ON SEQUENCE signup_decision_delivery_delivery_id_seq FROM PUBLIC;
+DO $$
+DECLARE browser_role TEXT;
+BEGIN
+    FOREACH browser_role IN ARRAY ARRAY['anon', 'authenticated'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = browser_role) THEN
+            EXECUTE FORMAT('REVOKE ALL ON signup_decision_delivery FROM %I', browser_role);
+            EXECUTE FORMAT('REVOKE ALL ON SEQUENCE signup_decision_delivery_delivery_id_seq FROM %I', browser_role);
+        END IF;
+    END LOOP;
+END $$;
 
-CREATE INDEX IF NOT EXISTS idx_request_user_decision
-    ON request(user_id, decision_date DESC)
-    WHERE decision_date IS NOT NULL;
+-- Necessary transient infrastructure: trusted payloads, session binding and receipts.
+CREATE TABLE roster_import_stage (
+    stage_id UUID PRIMARY KEY,
+    actor_id INT NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+    session_hash CHAR(64) NOT NULL,
+    payload JSONB NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    upload_id INT UNIQUE REFERENCES uploaded_by(upload_id) ON DELETE RESTRICT
+);
+CREATE INDEX roster_stage_expiry_idx ON roster_import_stage(expires_at);
+ALTER TABLE roster_import_stage ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON roster_import_stage FROM PUBLIC;
+DO $$
+DECLARE browser_role TEXT;
+BEGIN
+    FOREACH browser_role IN ARRAY ARRAY['anon','authenticated'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname=browser_role) THEN
+            EXECUTE FORMAT('REVOKE ALL ON roster_import_stage FROM %I',browser_role);
+        END IF;
+    END LOOP;
+END $$;

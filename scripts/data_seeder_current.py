@@ -11,7 +11,7 @@ Populates the schema shown in the ERD with:
      -> slug -> contact -> signup -> audit), so seeded accounts behave
      identically to real signups and can actually log in.
   3. Sample keywords, capstones, authors/advisers, and manuscript
-     requests so the repository/archive/requests pages have real data
+     repository data for the archive
      to render against during development.
 
 Usage:
@@ -45,7 +45,6 @@ from werkzeug.security import generate_password_hash
 from config import Config
 from app.constants.roles import ROLE_ADMIN
 from app.db.keywords import set_capstone_keywords
-from app.db.capstone_requests import record_capstone_request
 
 
 BASE_DIR = ROOT
@@ -273,12 +272,6 @@ SAMPLE_CAPSTONE_PEOPLE = {
     },
 }
 
-# (requester username, capstone index, status, reason)
-SAMPLE_REQUESTS = [
-    ("mcruz", 1, "pending", "Need this for a related literature review on IoT security."),
-    ("jreyes", 2, "approved", "Researching accessibility patterns for a class project."),
-    ("agarcia", 0, "rejected", "Insufficient justification provided for full-manuscript access."),
-]
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -568,66 +561,6 @@ def seed_capstone_people(cur, capstone_ids):
     print(f"  -> authors/advisers linked for {linked} capstone(s).")
 
 
-def seed_requests(cur, capstone_ids):
-    print("Seeding sample manuscript requests...")
-    created = 0
-    for username, capstone_idx, status, reason in SAMPLE_REQUESTS:
-        user_id = get_user_id_by_username(cur, username)
-        capstone_id = capstone_ids.get(capstone_idx)
-        if not user_id or not capstone_id:
-            print(f"  !! could not resolve user '{username}' or capstone index {capstone_idx}, skipping")
-            continue
-
-        cur.execute(
-            'SELECT 1 FROM request WHERE user_id = %s AND capstone_id = %s',
-            (user_id, capstone_id),
-        )
-        if cur.fetchone():
-            print(f"  -- skipping request from {username} (already exists)")
-            continue
-
-        now = datetime.now(timezone.utc)
-
-        if status == "pending":
-            cur.execute(
-                """
-                INSERT INTO request (user_id, capstone_id, request_status, request_reason, request_date)
-                VALUES (%s, %s, 'pending', %s, %s)
-                """,
-                (user_id, capstone_id, reason, now),
-            )
-        else:
-            # approved/rejected requests are seeded as already-reviewed,
-            # reviewed_by = a current Admin account.
-            cur.execute('SELECT role_id FROM role WHERE LOWER(role_name) = %s', (ROLE_ADMIN.lower(),))
-            reviewer_role_id = cur.fetchone()
-            reviewer_id = None
-            if reviewer_role_id:
-                cur.execute('SELECT user_id FROM "user" WHERE role_id = %s LIMIT 1', (reviewer_role_id[0],))
-                reviewer_row = cur.fetchone()
-                reviewer_id = reviewer_row[0] if reviewer_row else None
-
-            cur.execute(
-                """
-                INSERT INTO request
-                    (user_id, capstone_id, request_status, request_reason,
-                     request_date, decision_date, reviewed_by, status_reason)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    user_id, capstone_id, status, reason, now, now, reviewer_id,
-                    "Approved for academic research purposes." if status == "approved"
-                    else "Did not meet manuscript access criteria.",
-                ),
-            )
-        record_capstone_request(cur, capstone_id, user_id)
-        cur.execute('INSERT INTO capstone_view_history (user_id, capstone_id, viewed_at) VALUES (%s, %s, %s) ON CONFLICT (user_id, capstone_id) DO NOTHING',
-                    (user_id, capstone_id, now))
-        created += 1
-
-    print(f"  -> {created} request(s) created, {len(SAMPLE_REQUESTS) - created} skipped.")
-
-
 # ──────────────────────────────────────────────────────────────────
 # Truncate (used by both --reseed and standalone --truncate)
 # ──────────────────────────────────────────────────────────────────
@@ -637,9 +570,7 @@ TRUNCATE_TABLES_IN_ORDER = [
     "signup_email_verifications",
     "auth_rate_limit",
     "capstone_view_history",
-    "capstone_requests",
     "audit",
-    "request",
     '"capauth"',
     '"author"',
     "capstone_keyword",
@@ -733,14 +664,12 @@ def main():
         if args.capstones_only:
             capstone_ids = seed_capstones(cur, args.count)
             seed_capstone_people(cur, capstone_ids)
-            seed_requests(cur, capstone_ids)
         elif args.users_only:
             seed_users(cur)
         else:
             seed_users(cur)
             capstone_ids = seed_capstones(cur, args.count)
             seed_capstone_people(cur, capstone_ids)
-            seed_requests(cur, capstone_ids)
 
         conn.commit()
         print("\nSeeding complete.")

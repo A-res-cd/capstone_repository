@@ -1,7 +1,6 @@
 from functools import wraps
 from flask import session, g, redirect, url_for, flash
 
-from app.db.requests import get_user_requests
 from app.utils.navigation import last_page_url
 from app.constants.roles import (
     LEGACY_ROLE_NAMES_BY_ID,
@@ -61,15 +60,8 @@ def role_required(*allowed_roles):
 
 
 def can_view_full_manuscript(capstone_id, user_id=None):
-    role_name = g.user.get("role_name") if getattr(g, "user", None) else session.get("role_name")
-    if role_name in FULL_MANUSCRIPT_ROLES:
-        return True
-
-    user_id = user_id or session.get("user_id")
-    if not user_id:
+    user = getattr(g, "user", None)
+    if not session.get("user_id") or not user:
         return False
-
-    return any(
-        r["capstone_id"] == capstone_id and r["request_status"] == "approved"
-        for r in get_user_requests(user_id)
-    )
+    role_name = user.get("role_name") or LEGACY_ROLE_NAMES_BY_ID.get(user.get("role_id"))
+    return role_name in FULL_MANUSCRIPT_ROLES

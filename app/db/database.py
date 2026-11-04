@@ -10,7 +10,6 @@ module. It's been split by domain into:
     capstones.py    — capstone CRUD, keywords, programs, corpus
     archive.py      — recycle bin + public Explore Archive
     users.py        — Manage Users (accounts, contacts, roles)
-    requests.py     — manuscript/full-view access requests
     analytics.py    — Analytics & Reports aggregate queries
 
 Every function keeps its original name and signature — nothing in
@@ -57,19 +56,9 @@ from app.db.users import (
     update_user_role, delete_user_account, set_account_status, delete_own_account,
 )
 
-from app.db.requests import (
-    request_fullview, get_all_requests, review_request,
-    get_user_requests, cancel_manuscript_request, get_requests_by_status,
-    get_requestable_capstones,
-)
 
 from app.db.analytics import (
     get_capstones_by_program, get_capstone_program_summary,
     get_capstone_trend_by_specialization, get_capstones_by_specialization,
     get_capstone_status_flags,
-)
-
-from app.db.qol import (
-    get_user_notification_summary, mark_all_notifications_read,
-    get_admin_pending_nav_counts,
 )

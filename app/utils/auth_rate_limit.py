@@ -24,8 +24,6 @@ GLOBAL_LIMITS = {
 }
 ACTION_LIMITS = {
     # Values are (shared action key, user limits, IP limits).
-    'pages.request_manuscript': ('manuscript-actions', ((5, 60), (10, 3600)), ((100, 3600),)),
-    'pages.cancel_request': ('manuscript-actions', ((5, 60), (10, 3600)), ((100, 3600),)),
     'pages.topic_similarity': ('topic-similarity', ((10, 60), (100, 3600)), ((300, 3600),)),
     'pages.update_picture': ('profile-picture', ((3, 60), (10, 3600)), ((30, 3600),)),
     'pages.update_user_contact_info': ('profile-contact', ((5, 600),), ((30, 600),)),
@@ -34,11 +32,10 @@ ACTION_LIMITS = {
     'pages.delete_own_account_route': ('profile-delete', ((3, 900),), ((15, 900),)),
     'pages.remember_capstone': ('view-history', ((60, 60),), ((300, 60),)),
     'pages.cite_capstone': ('citations', ((30, 60),), ((150, 60),)),
-    'main.read_notifications': ('notifications', ((30, 60),), ((150, 60),)),
 }
 BROWSE_ENDPOINTS = {
-    'pages.browse', 'pages.most_requested_capstones', 'pages.most_requested_page', 'pages.view_history',
-    'pages.all_requests', 'pages.request_capstone', 'pages.view_approved_manuscript',
+    'pages.browse', 'pages.view_history',
+    'pages.view_approved_manuscript',
     'pages.manuscript_file', 'pages.manuscript_pages', 'pages.manuscript_page_image',
     'pages.own_picture', 'admin.view_capstone_pdf',
 }
@@ -73,7 +70,7 @@ def consume_limit(endpoint, client_ip, limit, seconds):
 def _limited_response(retry_after):
     message = f'Too many requests. Please try again in {retry_after} seconds.'
     if (request.is_json or request.endpoint in {
-            'auth.extract_cor', 'pages.most_requested_capstones', 'pages.topic_similarity',
+            'auth.extract_cor', 'pages.topic_similarity',
             'pages.remember_capstone', 'pages.cite_capstone', 'main.read_notifications', 'pages.manuscript_pages'}
             or request.accept_mimetypes.best == 'application/json'):
         response = make_response({'error': message}, 429)

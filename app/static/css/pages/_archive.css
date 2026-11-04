@@ -1,5 +1,5 @@
 /* ============================================================
-   PAGE: Explore Archive / Admin Requests
+   PAGE: Explore Archive
    These two pages share the same list+sidebar layout, so they
    share this one stylesheet. Sidebar card styling itself lives in
    components/_sidebar-detail.css; buttons live in components/_buttons.css.
@@ -37,44 +37,6 @@ main:has(.explore-archive-section) {
     font-weight: 600;
     color: var(--text-brand);
     margin: 0 0 var(--space-sm);
-}
-
-.most-requested { flex-shrink: 0; min-width: 0; }
-.most-requested-list {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-md);
-    margin: 0;
-    padding: 2px 2px var(--space-sm);
-    list-style: none;
-    overflow-x: hidden;
-}
-.most-requested-card {
-    display: grid;
-    grid-template-columns: 40px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: var(--space-lg);
-    height: 100%;
-    padding: var(--space-lg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    background: var(--bg-card-neutral);
-    color: var(--text-dark);
-    font-size: var(--text-sm);
-    text-decoration: none;
-}
-.most-requested-card__body { display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
-.most-requested-card strong { color: var(--text-brand); font-size: var(--text-md); line-height: 1.4; }
-.most-requested-card__body span { color: var(--color-gray-dark); }
-.most-requested-rank { color: var(--text-brand); font-size: var(--text-xl); font-weight: 700; text-align: center; }
-.most-requested-count { padding: 8px 12px; border-radius: var(--radius-md); background: var(--surface-brand-soft); color: var(--text-brand-strong); font-weight: 600; white-space: nowrap; }
-.most-requested-card:hover { border-color: var(--color-primary); }
-.most-requested-card:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-
-@media (max-width: 600px) {
-    .most-requested-card { grid-template-columns: 28px minmax(0, 1fr); gap: var(--space-sm); padding: var(--space-md); }
-    .most-requested-rank { align-self: start; grid-row: span 2; }
-    .most-requested-count { grid-column: 2; justify-self: start; }
 }
 
 .archive-results-count {
@@ -316,53 +278,11 @@ main:has(.explore-archive-section) {
     font-weight: 700;
 }
 
-/* The Admin Requests page reuses .archive-card but with 4 fields
-   (Requester / Title / Date / Status) instead of the archive's 5
-   (Title / Program / Spec / Year / Term). */
-.archive-card.request-row .col-program {
-    flex: 1;
-    min-width: 0;
-    background: none;
-    color: var(--text-dark);
-    padding: 0;
-    font-size: var(--text-sm);
-    font-weight: 400;
-    white-space: normal;
-}
-
-.archive-card.request-row .col-program::after {
-    content: '';
-    margin: 0;
-}
-
 .col-title strong {
     font-family: var(--font-display);
     color: var(--text-brand);
     font-weight: 600;
 }
-
-/* ── Request status badge ── */
-/* ── Request status badge — an outlined ink stamp, not a filled pill ── */
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 9px;
-    border-radius: var(--radius-sm);
-    font-size: 9px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    flex-shrink: 0;
-    background: transparent;
-    border: 1.5px solid currentColor;
-    transform: rotate(-2deg);
-}
-
-.status-badge--pending  { color: var(--status-pending); }
-.status-badge--approved { color: var(--status-approved); }
-.status-badge--rejected { color: var(--status-rejected); }
-.status-badge--cancelled { color: var(--status-cancelled); }
 
 /* Empty state — this page's variant needs flex: 1 to fill the
    remaining column height, so it's kept local rather than reusing
@@ -465,10 +385,6 @@ main:has(.explore-archive-section) {
         max-height: 60vh;
     }
 
-    #requests-grid {
-        max-height: none;
-        overflow-y: visible;
-    }
 
     /* Metadata dots wrap onto their own line instead of getting
        squeezed into an unreadable single row */

@@ -74,6 +74,7 @@ def signup():
     if request.method == 'GET':
         session['signup_started_at'] = time.time()
         form.email.data = session.get('signup_verified_email', '')
+        form.resubmit.data = request.args.get('resubmit') == '1'
     elif not signup_form_ready(form):
         flash('Please open the signup page and complete the form before submitting.', 'danger')
         return render_template('authentication/signup.html', form=form,
@@ -130,9 +131,10 @@ def signup():
                 form.password.data,
                 cor_filename=cor_filename,
                 preferred_contact=form.preferred_contact.data, phone=form.phone.data,
-                terms_version="2026-10-03",
+                terms_version="2026-11-05-roster",
                 requested_role=form.role.data,
                 signup_verification_id=verification_id,
+                resubmit=form.resubmit.data,
             )
         finally:
             if not success:
@@ -144,7 +146,19 @@ def signup():
         if success:
             for key in ('signup_email_verification_id', 'signup_verified_email', 'signup_started_at'):
                 session.pop(key, None)
-            flash("Account created successfully! Please wait for approval.", "success")
+            decision = message.get('decision') if isinstance(message,dict) else None
+            if decision == 'approved':
+                flash('Account verified against the student master list. You can sign in now.','success')
+            elif decision == 'rejected':
+                flash('Eligibility could not be confirmed. Contact your Capstone Professor to correct the master list, then verify your email again and explicitly resubmit using your existing credentials.','warning')
+            else:
+                flash('Account created successfully! Please wait for faculty verification.','success')
+            if isinstance(message,dict) and message.get('signup_id'):
+                try:
+                    from app.db.signup_delivery import deliver_pending
+                    deliver_pending(signup_id=message['signup_id'],limit=1)
+                except Exception:
+                    logger.warning('Decision saved; notification remains queued for retry')
             return redirect(url_for("auth.signin"))
         else:
             flash(message, "danger")

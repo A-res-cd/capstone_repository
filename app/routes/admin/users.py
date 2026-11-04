@@ -192,16 +192,3 @@ def change_account_status(user_id):
         "success" if ok else "error",
     )
     return redirect(url_for("admin.manage_users"))
-
-
-@admin.route("/review-history")
-@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
-def review_history():
-    from flask import g
-    from app.db.review_history import get_review_history
-    recent = request.args.get('view') == 'recent'
-    page = 1 if recent else max(1, request.args.get('page', 1, type=int))
-    role = g.user.get('role_name') or LEGACY_ROLE_NAMES_BY_ID.get(g.user.get('role_id'))
-    rows, total, size = get_review_history(page, recent, role != ROLE_ADMIN)
-    return render_template('admin/review_history.html', reviews=rows, total=total,
-                           page=page, page_size=size, recent=recent)

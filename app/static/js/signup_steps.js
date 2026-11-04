@@ -9,6 +9,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const error = document.getElementById('signup-step-error');
     const preference = form.querySelector('[name="preferred_contact"]');
     const role = form.querySelector('[name="role"]');
+    const resubmit = form.elements.resubmit;
+    function updateRetry() {
+        const retry = role.value === 'Student' && resubmit.checked;
+        ['password', 'confirm_password'].forEach(name => {
+            form.elements[name].minLength = retry ? 1 : 8;
+            form.elements[name].maxLength = retry ? 256 : 12;
+            form.elements[name].autocomplete = retry ? 'current-password' : 'new-password';
+        });
+        form.querySelector('[data-password-checklist]').hidden = retry;
+    }
+    resubmit.addEventListener('change', updateRetry);
+    role.addEventListener('change', updateRetry);
+    updateRetry();
     const contactFields = form.querySelectorAll('[data-contact-field]');
     // Files and passwords cannot be restored after a server validation error.
     let current = 0;
@@ -91,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const confirmed = form.querySelector('[name="confirm_password"]').value;
             let message = '';
             const length = Array.from(password).length;
-            if (length < 8 || length > 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+            if (!(role.value === 'Student' && resubmit.checked) && (length < 8 || length > 12 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password))) {
                 message = 'Use 8–12 characters with uppercase, lowercase and numbers.';
             } else if (password !== confirmed) {
                 message = 'Passwords do not match.';

@@ -1,3 +1,4 @@
+from tests.roster_test_helpers import create_legacy_account
 """Original-branch audit, title-only comparison, and private COR workflow."""
 from contextlib import closing
 from datetime import date
@@ -96,12 +97,15 @@ def feature_db(isolated_database, monkeypatch):
     with closing(psycopg2.connect(**isolated_database)) as conn, conn.cursor() as cursor:
         cursor.execute(f'CREATE SCHEMA "{schema}"')
         cursor.execute(f'SET search_path TO "{schema}"')
-        cursor.execute((ROOT / 'database/capreDB.sql').read_text(encoding='utf-8'))
+        cursor.execute((ROOT / 'database/capre_original_final.sql').read_text(encoding='utf-8'))
         cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'Admin'), (4, 'Capstone Professor')")
         cursor.execute((ROOT / "migrations/20261003_account_repository_workflows.sql").read_text(encoding="utf-8"))
         cursor.execute((ROOT / "migrations/20261011_auth_security.sql").read_text(encoding="utf-8"))
         cursor.execute((ROOT / "migrations/20261011_signup_spam_prevention.sql").read_text(encoding="utf-8"))
         cursor.execute((ROOT / "migrations/20261013_contact_verification.sql").read_text(encoding="utf-8"))
+        cursor.execute((ROOT / 'migrations/20261104_roster_signup_revision.sql').read_text(encoding='utf-8').replace('public.', f'"{schema}".'))
+        cursor.execute((ROOT / 'migrations/20261105_remove_legacy_request.sql').read_text(encoding='utf-8').replace('public.', f'"{schema}".'))
+        cursor.execute((ROOT / 'migrations/20261106_roster_auto_signup.sql').read_text(encoding='utf-8'))
         conn.commit()
 
     class ClosingPool:
@@ -184,7 +188,7 @@ def test_direct_role_change_remains_admin_only(feature_app, monkeypatch, role):
 
 
 def signup_data(file=True):
-    data = dict(role='Student', first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='Secure123', confirm_password='Secure123', preferred_contact='email', accept_terms='y')
+    data = dict(student_no='001234', role='Student', first_name='Maria', middle_name='', last_name='Cruz', email='maria@example.com', username='maria', password='Secure123', confirm_password='Secure123', preferred_contact='email', accept_terms='y')
     if file:
         data['cor'] = (BytesIO(pdf_bytes()), 'my COR.pdf')
     return data
@@ -204,12 +208,18 @@ def test_signup_requires_terms_before_storage_or_account_creation(feature_app, m
 
 def test_signup_atomic_document_and_admin_access(feature_app, feature_db):
     client = feature_app.test_client()
+    import uuid
+    proof = str(uuid.uuid4())
+    with feature_db() as conn, conn.cursor() as cursor:
+        cursor.execute("INSERT INTO signup_email_verifications(verification_id,email,code_hash,expires_at,verified_at) VALUES(%s,'maria@example.com','test',CURRENT_TIMESTAMP+INTERVAL '15 minutes',CURRENT_TIMESTAMP)", (proof,))
+    with client.session_transaction() as state:
+        state['signup_email_verification_id'] = proof
     assert client.post('/signup', data=signup_data(False)).status_code == 200
     assert client.post('/signup', data=signup_data()).status_code == 302
     # Duplicate signup rolls back the user and cleans up its new file.
     assert client.post('/signup', data=signup_data()).status_code == 200
     with feature_db() as conn, conn.cursor() as cursor:
-        cursor.execute('SELECT r.request_id, u.cor_filename FROM request r JOIN "user" u ON u.user_id = r.user_id')
+        cursor.execute('SELECT r.signup_id, u.cor_filename FROM signup r JOIN "user" u ON u.user_id = r.user_id')
         ids = cursor.fetchall()
         assert len(ids) == 1
         request_id = ids[0][0]
@@ -242,17 +252,17 @@ def test_signup_atomic_document_and_admin_access(feature_app, feature_db):
     assert client.get('/manage_users/verify/999999/document').status_code == 404
     assert client.get('/audit-logs').status_code == 200
     with feature_db() as conn, conn.cursor() as cursor:
-        cursor.execute('DELETE FROM request WHERE request_id = %s', (request_id,))
+        cursor.execute('DELETE FROM signup WHERE signup_id = %s', (request_id,))
         cursor.execute('SELECT cor_filename FROM "user"')
         assert cursor.fetchone()[0] == filename  # The file belongs to the user, not one request.
     assert (folder / filename).is_file()
 
 
 def test_legacy_request_and_migration(feature_db):
-    assert auth_db.create_user('Old', '', 'Student', None, 'old@example.com', 'old_user', 'Secure123')[0]
+    assert create_legacy_account(auth_db,'Old', '', 'Student', None, 'old@example.com', 'old_user', 'Secure123')[0]
     with feature_db() as conn, conn.cursor() as cursor:
         cursor.execute((ROOT / 'migrations/20260910_verification_documents.sql').read_text())
-        cursor.execute('SELECT request_id FROM request')
+        cursor.execute('SELECT signup_id FROM signup')
         request_id = cursor.fetchone()[0]
     details = verification_documents.get_verification_details(request_id)
     assert details['filename'] is None
@@ -305,9 +315,9 @@ def test_verification_email_after_saved_decision(feature_app, feature_db, monkey
     from flask_mail import Mail
     feature_app.config['MAIL_DEFAULT_SENDER'] = 'noreply@example.com'
     Mail(feature_app)
-    assert auth_db.create_user('Maria', '', 'Cruz', None, 'maria@example.com', 'maria', 'Secure123')[0]
+    assert auth_db.create_user('Maria', '', 'Cruz', None, 'maria@example.com', 'maria', 'Secure123',requested_role='Faculty')[0]
     with feature_db() as conn, conn.cursor() as cursor:
-        cursor.execute('SELECT request_id FROM request')
+        cursor.execute('SELECT signup_id FROM signup')
         request_id = cursor.fetchone()[0]
     sent = []
 
@@ -321,7 +331,7 @@ def test_verification_email_after_saved_decision(feature_app, feature_db, monkey
     endpoint = f'/manage_users/verify/{request_id}'
     assert client.post(endpoint, data={'decision': decision, 'status_reason': 'Please check your COR.'}).status_code == 302
     with feature_db() as conn, conn.cursor() as cursor:
-        cursor.execute('SELECT request_status FROM request WHERE request_id = %s', (request_id,))
+        cursor.execute('SELECT status FROM signup WHERE signup_id = %s', (request_id,))
         assert cursor.fetchone()[0] == decision
     if fail_mail:
         with client.session_transaction() as state:
@@ -334,7 +344,7 @@ def test_verification_email_after_saved_decision(feature_app, feature_db, monkey
     client.post(endpoint, data={'decision': 'rejected' if decision == 'approved' else 'approved'})
     assert len(sent) == (0 if fail_mail else 1)
     with feature_db() as conn, conn.cursor() as cursor:
-        cursor.execute('SELECT request_status FROM request WHERE request_id = %s', (request_id,))
+        cursor.execute('SELECT status FROM signup WHERE signup_id = %s', (request_id,))
         assert cursor.fetchone()[0] == decision
 
 
@@ -387,12 +397,14 @@ def test_separate_manuscript_folder_and_legacy_fallback(feature_app, tmp_path):
         assert Path(resolve_manuscript_file('uploads/old.pdf')) == legacy / 'old.pdf'
 
 
+
+
 def test_remove_saved_capstone_migration(feature_db):
     with closing(feature_db()) as conn, conn.cursor() as cursor:
         # Fresh installations should not create the retired feature.
         cursor.execute("SELECT to_regclass('saved_capstone')")
         assert cursor.fetchone()[0] is None
-        cursor.execute((ROOT / 'migrations/20260831_qol_features.sql').read_text())
+        cursor.execute('CREATE TABLE saved_capstone (user_id INT REFERENCES "user"(user_id), capstone_id INT REFERENCES capstone(capstone_id))')
         cursor.execute("SELECT to_regclass('saved_capstone')")
         assert cursor.fetchone()[0] is not None
         migration = (ROOT / 'migrations/20260922_remove_saved_capstone.sql').read_text()
@@ -402,8 +414,8 @@ def test_remove_saved_capstone_migration(feature_db):
         assert cursor.fetchone() == (None, None)
         cursor.execute('SELECT COUNT(*) FROM role')
         assert cursor.fetchone()[0] == 4
-        cursor.execute('SELECT notification_seen_at FROM request LIMIT 1')
         cursor.execute('SELECT capstone_id FROM capstone LIMIT 1')
+
 
 
 @pytest.mark.parametrize('width', [1280, 390])
@@ -421,9 +433,7 @@ def test_archive_without_saved_capstones(feature_app, page, monkeypatch, width):
         return projects, 2
 
     monkeypatch.setattr(pages.archive, 'get_archive_capstones', archive_results)
-    monkeypatch.setattr(pages.archive, 'get_most_requested_capstones', lambda: [])
     monkeypatch.setattr(pages.archive, 'get_archive_filters', lambda: ([2026], [], []))
-    monkeypatch.setattr(pages.archive, 'get_approved_capstone_ids', lambda *_: [])
 
     def handle(route):
         url = urlsplit(route.request.url)
@@ -443,10 +453,8 @@ def test_archive_without_saved_capstones(feature_app, page, monkeypatch, width):
     expect(page.locator('.save-capstone-btn, #sb-save-btn, input[name="saved"]')).to_have_count(0)
     page.locator('.archive-card[data-id="2"]').click()
     expect(page.locator('#sb-title')).to_have_text('Project 2')
-    page.locator('#sb-request-link').click()
-    dialog = page.get_by_role('dialog', name='Request Full Manuscript', exact=True)
-    expect(dialog).to_be_visible()
-    expect(dialog.locator('form')).to_have_attribute('action', '/request_manuscript/2')
+    expect(page.locator('#sb-request-link, #manuscript-request-dialog, #sb-fullview-link')).to_have_count(0)
+    expect(page.locator('#sb-abstract-link')).to_have_attribute('href', '/repository/pdf/2')
     assert not errors
 
 
@@ -465,9 +473,7 @@ def test_archive_filters_refresh_component(feature_app, page, monkeypatch):
                      semester='First')], 13
 
     monkeypatch.setattr(pages.archive, 'get_archive_capstones', archive_results)
-    monkeypatch.setattr(pages.archive, 'get_most_requested_capstones', lambda: [])
     monkeypatch.setattr(pages.archive, 'get_archive_filters', lambda: ([2026], [], []))
-    monkeypatch.setattr(pages.archive, 'get_approved_capstone_ids', lambda *_: [])
     fail = False
 
     def handle(route):
@@ -501,9 +507,8 @@ def test_archive_filters_refresh_component(feature_app, page, monkeypatch):
     expect(page.locator('.archive-card')).to_have_attribute('data-id', '2')
     page.locator('.archive-card').click()
     expect(page.locator('#sb-title')).to_have_text('Project 2')
-    page.locator('#sb-request-link').click()
-    expect(page.get_by_role('dialog', name='Request Full Manuscript', exact=True)).to_be_visible()
-    page.get_by_role('button', name='Cancel', exact=True).click()
+    expect(page.locator('#sb-request-link, #manuscript-request-dialog, #sb-fullview-link')).to_have_count(0)
+    expect(page.locator('#sb-abstract-link')).to_have_attribute('href', '/repository/pdf/2')
     page.locator('#archive-search').fill('web')
     page.get_by_role('button', name='Apply', exact=True).click()
     expect(page.locator('.archive-card')).to_have_attribute('data-id', '1')
@@ -676,40 +681,17 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     projects = [dict(capstone_id=i, capstone_title=f'Project {i}', capstone_year=2026,
                      program_name='BSIT', specialization_name='Web', capstone_keywords='web', semester='First') for i in (1, 2)]
     monkeypatch.setattr(pages.archive, 'get_archive_capstones', lambda **kwargs: (projects, 2))
-    monkeypatch.setattr(pages.archive, 'get_most_requested_capstones', lambda: [])
     monkeypatch.setattr(pages.archive, 'get_archive_filters', lambda: ([2026], [], []))
-    monkeypatch.setattr(pages.archive, 'get_approved_capstone_ids', lambda *_: [])
     with client.session_transaction() as state:
         state['role_name'] = 'Student'
     page.goto('http://features.test/archive')
     expect(page.locator('.save-capstone-btn, #sb-save-btn, input[name="saved"]')).to_have_count(0)
     page.locator('.archive-card[data-id="2"]').click()
-    page.locator('#sb-request-link').click()
-    request_dialog = page.get_by_role('dialog', name='Request Full Manuscript', exact=True)
-    expect(request_dialog).to_be_visible()
-    expect(request_dialog.locator('#manuscript-request-project')).to_have_text('Project 2')
-    expect(request_dialog.locator('form')).to_have_attribute('action', '/request_manuscript/2')
-    reason = request_dialog.get_by_role('textbox', name='Additional explanation (optional)')
-    expect(reason).to_be_focused()
-    request_dialog.get_by_role('button', name='Submit Request').click()
-    expect(request_dialog).to_be_visible()
-    reason.fill('Reference for our capstone research.')
-    request_dialog.get_by_role('combobox', name='Request purpose', exact=False).click()
-    page.get_by_role('option', name='Research reference', exact=True).click()
-    assert request_dialog.evaluate('(el) => el.scrollWidth <= el.clientWidth')
-    page.screenshot(path=str(ROOT / '.pytest_cache' / f'request-{theme}-{width}.png'))
-    submitted = []
-
-    def capture_request(route):
-        submitted.append(route.request.post_data)
-        route.fulfill(status=200, content_type='text/html', body='Request received')
-
-    page.route('**/request_manuscript/2', capture_request)
-    request_dialog.get_by_role('button', name='Submit Request').click()
-    expect(page.locator('body')).to_have_text('Request received')
-    assert 'request_reason=Reference+for+our+capstone+research.' in submitted[0]
+    expect(page.locator('#sb-request-link, #manuscript-request-dialog, #sb-fullview-link')).to_have_count(0)
+    expect(page.locator('#sb-abstract-link')).to_have_attribute('href', '/repository/pdf/2')
     page.goto('http://features.test/signup')
     expect(page.locator('#cor')).to_be_visible()
+
 
 
 @pytest.mark.parametrize('preference', ['email', 'phone'])

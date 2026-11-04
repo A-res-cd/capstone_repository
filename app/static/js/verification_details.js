@@ -77,6 +77,10 @@
             status.textContent = data.document_url ? `${documentLabel} available (${Math.ceil(data.size_bytes / 1024)} KB). Review the preview below.`
                 : data.filename ? `The ${documentLabel} file is missing or unavailable. Do not approve until the document is available.`
                 : 'No verification document was uploaded for this account.';
+            if (data.role_name === 'Student') {
+                dialog.querySelector('[data-verification-approve]').disabled = true;
+                status.textContent += ' Student approval uses verified roster matching. Keep legacy pending records unchanged; an explicit rejection with correction guidance enables authenticated resubmission.';
+            }
             if (data.document_url) {
                 const url = new URL(data.document_url, location.origin);
                 if (url.origin !== location.origin) throw new Error('Invalid file link');

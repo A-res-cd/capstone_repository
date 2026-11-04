@@ -1,3 +1,4 @@
+from tests.roster_test_helpers import create_legacy_account
 from contextlib import closing
 from io import BytesIO
 from pathlib import Path
@@ -10,7 +11,7 @@ from PIL import Image
 from werkzeug.datastructures import FileStorage, MultiDict
 
 from tests.test_original_branch_features import isolated_database, feature_app, login
-from app.db import auth, users, capstones, analytics, profile_settings, review_history, view_history
+from app.db import auth, users, capstones, analytics, profile_settings, view_history
 from app.db.connection import _PooledConnection
 from app.routes.forms import SignupForm, ResetPasswordForm, ChangePasswordForm
 from app.services.recommender import TopicRecommender
@@ -110,7 +111,7 @@ def workflow_db(isolated_database, monkeypatch):
     with closing(psycopg2.connect(**isolated_database)) as conn, conn.cursor() as cursor:
         cursor.execute(f'CREATE SCHEMA "{schema}"')
         cursor.execute(f'SET search_path TO "{schema}"')
-        cursor.execute((ROOT / 'database/capreDB.sql').read_text(encoding='utf-8'))
+        cursor.execute((ROOT / 'database/capre_original_final.sql').read_text(encoding='utf-8'))
         cursor.execute("INSERT INTO role (role_id, role_name) VALUES (1, 'Student'), (2, 'Faculty'), (3, 'Admin'), (4, 'Capstone Professor')")
         cursor.execute("INSERT INTO program (program_name) VALUES ('BSIT')")
         cursor.execute("INSERT INTO specialization (specialization_name) VALUES ('DST'), ('NST'), ('WST')")
@@ -118,6 +119,9 @@ def workflow_db(isolated_database, monkeypatch):
         cursor.execute((ROOT / 'migrations/20261011_auth_security.sql').read_text(encoding='utf-8'))
         cursor.execute((ROOT / "migrations/20261003_remove_program_specialization.sql").read_text(encoding="utf-8"))
         cursor.execute((ROOT / "migrations/20261003_student_view_history.sql").read_text(encoding="utf-8"))
+        cursor.execute((ROOT / 'migrations/20261104_roster_signup_revision.sql').read_text(encoding='utf-8').replace('public.', f'"{schema}".'))
+        cursor.execute((ROOT / 'migrations/20261105_remove_legacy_request.sql').read_text(encoding='utf-8').replace('public.', f'"{schema}".'))
+        cursor.execute((ROOT / 'migrations/20261106_roster_auto_signup.sql').read_text(encoding='utf-8'))
         conn.commit()
 
     class Pool:
@@ -127,13 +131,13 @@ def workflow_db(isolated_database, monkeypatch):
     def connect():
         return _PooledConnection(Pool(), psycopg2.connect(**isolated_database, options=f'-c search_path={schema}'))
 
-    for module in (auth, users, capstones, analytics, profile_settings, review_history, view_history):
+    for module in (auth, users, capstones, analytics, profile_settings, view_history):
         monkeypatch.setattr(module, 'db_connect', connect)
     return connect
 
 
 def make_user(connect, name):
-    ok, error = auth.create_user(name, '', 'Test', None, name + '@example.com', name,
+    ok, error = create_legacy_account(auth,name, '', 'Test', None, name + '@example.com', name,
                                  PASSWORD, preferred_contact='phone', phone='09171234567', terms_version='2026-10-03')
     assert ok, error
     with connect() as conn, conn.cursor() as cursor:
@@ -142,13 +146,13 @@ def make_user(connect, name):
 
 
 def test_phone_only_registration(workflow_db):
-    ok, error = auth.create_user('Phone', '', 'Student', None, '', 'phone_student',
+    ok, error = create_legacy_account(auth,'Phone', '', 'Student', None, '', 'phone_student',
                                  PASSWORD, preferred_contact='phone', phone='09171234567')
     assert not ok and 'email' in error.lower()
     with workflow_db() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT contact_type, contact_value FROM contact")
         assert cursor.fetchall() == []
-        cursor.execute("SELECT COUNT(*) FROM request WHERE request_status = 'pending'")
+        cursor.execute("SELECT COUNT(*) FROM signup WHERE status = 'pending'")
         assert cursor.fetchone()[0] == 0
 
 
@@ -181,12 +185,13 @@ def test_promotion_password_lockout_and_success(workflow_db):
 def test_rejection_reason_and_history(workflow_db):
     user_id = make_user(workflow_db, 'student')
     with workflow_db() as conn, conn.cursor() as cursor:
-        cursor.execute('SELECT request_id FROM request WHERE user_id = %s', (user_id,))
+        cursor.execute('SELECT signup_id FROM signup WHERE user_id = %s', (user_id,))
         request_id = cursor.fetchone()[0]
     assert not auth.review_verification_request(request_id, 'rejected', '  ', user_id)[0]
     assert auth.review_verification_request(request_id, 'rejected', 'Upload a readable COR.', user_id)[0]
-    rows, total, _ = review_history.get_review_history(verification_only=True)
-    assert total == 1 and rows[0]['status_reason'] == 'Upload a readable COR.'
+    with workflow_db() as conn, conn.cursor() as cursor:
+        cursor.execute('SELECT reason FROM signup WHERE signup_id = %s', (request_id,))
+        assert cursor.fetchone()[0] == 'Upload a readable COR.'
     assert not auth.review_verification_request(request_id, 'approved', '', user_id)[0]
 
 
@@ -207,16 +212,6 @@ def test_bsds_mapping_and_publication_counts(workflow_db):
     assert [flags[key] for key in ('published', 'not_published', 'publication_unknown')] == [1, 1, 1]
 
 
-def test_request_purpose_is_required_and_explanation_optional(feature_app, monkeypatch):
-    from app.routes.pages import manuscripts
-    calls = []
-    monkeypatch.setattr(manuscripts, 'request_fullview', lambda *args: (calls.append(args) or True, None))
-    client = feature_app.test_client()
-    login(client, 1)
-    client.post('/request_manuscript/1', data={'request_purpose': 'forged'})
-    assert not calls
-    client.post('/request_manuscript/1', data={'request_purpose': 'Literature review'})
-    assert calls[-1] == (1, 1, 'Literature review')
 
 
 def test_profile_picture_routes_and_cleanup(feature_app, workflow_db, tmp_path):
@@ -251,17 +246,6 @@ def test_mismatched_program_specialization_rejected(feature_app, monkeypatch):
         assert form.specialization_id.errors
 
 
-def test_history_permissions(feature_app, monkeypatch):
-    calls = []
-    monkeypatch.setattr(review_history, 'get_review_history', lambda page, recent, verification_only: (calls.append(verification_only) or [], 0, 20))
-    client = feature_app.test_client()
-    login(client, 1)
-    assert client.get('/review-history').status_code == 302
-    assert not calls
-    login(client, 4)
-    assert client.get('/review-history').status_code == 200 and calls[-1] is True
-    login(client, 3)
-    assert client.get('/review-history?view=recent').status_code == 200 and calls[-1] is False
 
 
 def test_migrations_allow_line_endings_but_reject_sql_changes(workflow_db, monkeypatch, tmp_path):

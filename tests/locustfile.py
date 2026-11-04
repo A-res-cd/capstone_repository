@@ -52,14 +52,6 @@ class StudentUser(HttpUser):
         self.client.get("/archive", params={"q": random.choice(queries)})
 
     @task(1)
-    def request_manuscript(self):
-        # Adjust payload to match your admin/pages blueprint's request route
-        self.client.post("/request", data={
-            "manuscript_id": random.randint(1, 100),
-            "reason": "Reference for related literature",
-        })
-
-    @task(1)
     def logout(self):
         response = self.client.get("/signin")
         token = re.search(r'name="csrf-token" content="([^"]+)"', response.text)
@@ -84,4 +76,4 @@ class AdminUser(HttpUser):
 
     @task
     def view_requests(self):
-        self.client.get("/admin/requests")
+        self.client.get("/manage_users")

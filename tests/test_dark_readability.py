@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.mark.parametrize('stylesheet', [
     '_auth.css', '_manage-users.css', '_repository.css', '_archive.css',
-    '_analytics.css', '_user-information.css', '_all-requests.css', '_audit-logs.css',
+    '_analytics.css', '_user-information.css', '_audit-logs.css',
 ])
 def test_dark_form_text_and_placeholders(page, stylesheet):
     def assets(route):

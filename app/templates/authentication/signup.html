@@ -34,9 +34,11 @@
             </p>
             <ol class="auth-annotation__index">
                 <li><span>01</span> Browse and search the full archive</li>
-                <li><span>02</span> View abstracts freely, request full access</li>
+                <li><span>02</span> Explore the manuscript archive</li>
                 <li><span>03</span> Cite capstones in APA 7 format</li>
             </ol>
+            <p class="auth-annotation__text">Students: verified email and number must match an active master list for immediate approval. COR PDF remains required. Faculty ID and manual review remain required for faculty.</p>
+            <p><a href="{{ url_for('auth.signup',resubmit='1') }}">Resubmit a rejected student application</a></p>
         </div>
 
         {# ── Card column ── #}
@@ -108,6 +110,8 @@
                     <div class="form-row">
                         <div class="form-group">
                             {{ form.username.label }}
+                            <p>{{ form.resubmit() }} {{ form.resubmit.label }}</p>
+                            <p class="field-hint">Resubmission uses your existing credentials and a newly verified account email. Your password is not changed.</p>
                             {{ form.username(id="username", placeholder="Choose a username", autocomplete="username") }}
                             {% for error in form.username.errors %}
                                 <span class="field-error">{{ error }}</span>
@@ -118,7 +122,7 @@
                     <div class="form-group">
                         {{ form.password.label }}
                         <div class="input-with-toggle">
-                            {{ form.password(id="password", placeholder="8-12 characters", autocomplete="new-password", minlength=8, maxlength=12) }}
+                            {{ form.password(id="password", placeholder="Existing password" if form.resubmit.data else "8-12 characters", autocomplete="current-password" if form.resubmit.data else "new-password", minlength=1 if form.resubmit.data else 8, maxlength=256 if form.resubmit.data else 12) }}
                             <button type="button" class="input-toggle-btn" onclick="togglePassword('password', this)" aria-label="Show password" aria-controls="password" aria-pressed="false">
                                 <i class="bx bx-hide" aria-hidden="true"></i>
                             </button>
@@ -137,7 +141,7 @@
                     <div class="form-group">
                         {{ form.confirm_password.label }}
                         <div class="input-with-toggle">
-                            {{ form.confirm_password(id="confirm_password", autocomplete="new-password", minlength=8, maxlength=12) }}
+                            {{ form.confirm_password(id="confirm_password", autocomplete="current-password" if form.resubmit.data else "new-password", minlength=1 if form.resubmit.data else 8, maxlength=256 if form.resubmit.data else 12) }}
                             <button type="button" class="input-toggle-btn" onclick="togglePassword('confirm_password', this)" aria-label="Show password" aria-controls="confirm_password" aria-pressed="false">
                                 <i class="bx bx-hide" aria-hidden="true"></i>
                             </button>
@@ -222,7 +226,7 @@
         </button>
         <h2 id="terms-modal-title">Terms and Agreements</h2>
         <h3>Data Privacy Act of 2012 (Republic Act No. 10173)</h3>
-        <p>CAPRE processes your name, university details, Certificate of Registration, contact information, optional profile photo, and account activity to verify eligibility, manage access, provide account notices, and protect the repository. Authorized university personnel review registration documents and access requests. Contact information and registration documents are not displayed in the public archive.</p>
+        <p>CAPRE processes your name, university details, Certificate of Registration, contact information, optional profile photo, and account activity to verify eligibility, manage access, provide account notices, and protect the repository. Authorized university personnel review registration documents. Contact information and registration documents are not displayed in the public archive.</p>
         <p>You may request access to or correction of your personal information, raise an objection, or request deletion subject to applicable legal and university obligations. Contact the university's designated privacy office through its official channels. Data must be retained only as needed for these purposes and applicable retention obligations; restricted backups may remain until their scheduled expiry.</p>
         <p>Read the <a href="https://privacy.gov.ph/data-privacy-act/" target="_blank" rel="noopener noreferrer">Data Privacy Act</a>. Acceptance records the notice version and time; it does not waive your rights. Notice version: 2026-10-03.</p>
         <p>By creating a CAPRE account, you agree to the following:</p>
@@ -233,7 +237,7 @@
             <li>Keep your account credentials private and secure.</li>
             <li>Respect the intellectual property and privacy of other users.</li>
         </ul>
-        <p>CAPRE may review account information and uploaded documents before approving access.</p>
+        <p>Student applications are automatically approved or rejected by matching the student number and verified email against an active university master list. Names do not determine eligibility. COR remains required. Faculty ID and manual faculty review remain required.</p>
     </div>
 </div>
 

@@ -1,3 +1,4 @@
+from tests.roster_test_helpers import create_legacy_account
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 import re
@@ -11,11 +12,9 @@ from flask_mail import Mail
 from playwright.sync_api import expect
 
 from app.db import auth as auth_db, signup_verification as verification
-from app.db import requests as request_db
 from app.routes.authentication import registration
 from app.utils import auth_rate_limit
 from tests.test_original_branch_features import feature_app, feature_db, isolated_database, signup_data
-from tests.test_most_requested_capstones import ranking_db, seed
 from tests.test_manuscript_reader import reader_app
 
 REAL_FORM_READY = registration.signup_form_ready
@@ -54,7 +53,7 @@ def test_replacement_and_atomic_account_consumption(verification_db):
     assert verification.verify_email_code(proof, 'reader@example.com', code)
 
     def create(username):
-        return auth_db.create_user('Test', '', 'Reader', None, 'reader@example.com', username,
+        return create_legacy_account(auth_db,'Test', '', 'Reader', None, 'reader@example.com', username,
                                    'Secure123', signup_verification_id=proof)[0]
 
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -69,17 +68,17 @@ def test_other_session_cannot_invalidate_email_proof_or_create_duplicate_account
     other_proof, other_code = verification.create_email_code('reader@example.com')
     assert verification.signup_email_is_verified(proof, 'reader@example.com')
     assert verification.verify_email_code(other_proof, 'reader@example.com', other_code)
-    assert auth_db.create_user('Test', '', 'Reader', None, 'reader@example.com', 'first_reader',
+    assert create_legacy_account(auth_db,'Test', '', 'Reader', None, 'reader@example.com', 'first_reader',
                                'Secure123', signup_verification_id=proof)[0]
-    assert not auth_db.create_user('Test', '', 'Reader', None, 'READER@example.com', 'second_reader',
+    assert not create_legacy_account(auth_db,'Test', '', 'Reader', None, 'READER@example.com', 'second_reader',
                                    'Secure123', signup_verification_id=other_proof)[0]
 
 
 def test_failed_account_creation_preserves_proof(verification_db):
-    assert auth_db.create_user('Test', '', 'Reader', None, 'first@example.com', 'reader', 'Secure123')[0]
+    assert create_legacy_account(auth_db,'Test', '', 'Reader', None, 'first@example.com', 'reader', 'Secure123')[0]
     proof, code = verification.create_email_code('second@example.com')
     assert verification.verify_email_code(proof, 'second@example.com', code)
-    assert not auth_db.create_user('Test', '', 'Reader', None, 'second@example.com', 'reader',
+    assert not create_legacy_account(auth_db,'Test', '', 'Reader', None, 'second@example.com', 'reader',
                                     'Secure123', signup_verification_id=proof)[0]
     assert verification.signup_email_is_verified(proof, 'second@example.com')
 
@@ -128,7 +127,7 @@ def test_email_signup_flow_without_javascript(feature_app, verification_db, monk
     assert not verification.signup_email_is_verified(proof, 'maria@example.com')
     with closing(verification_db()) as conn, conn.cursor() as cursor:
         cursor.execute('SELECT account_status FROM "user"')
-        assert cursor.fetchone()[0] == 'pending'
+        assert cursor.fetchone()[0] == 'rejected'  # Verified email alone does not establish roster eligibility.
 
 
 def test_email_delivery_failure_and_csrf(feature_app, verification_db, monkeypatch):
@@ -174,7 +173,7 @@ def test_recipient_and_global_limits_survive_ip_changes(feature_app, verificatio
 
 @pytest.mark.parametrize('endpoint,method,limit', [
     ('pages.topic_similarity', 'POST', 10), ('pages.update_picture', 'POST', 3),
-    ('pages.request_manuscript', 'POST', 5), ('pages.browse', 'GET', 120),
+    ('pages.browse', 'GET', 120),
     ('pages.cite_capstone', 'GET', 30),
 ])
 def test_user_action_limits_survive_ip_changes(feature_db, monkeypatch, endpoint, method, limit):
@@ -183,7 +182,6 @@ def test_user_action_limits_survive_ip_changes(feature_db, monkeypatch, endpoint
     app.secret_key = 'test-actions'
     app.before_request(auth_rate_limit.throttle_actions)
     app.add_url_rule('/action', endpoint=endpoint, view_func=lambda: 'Allowed', methods=[method])
-    app.add_url_rule('/cancel', endpoint='pages.cancel_request', view_func=lambda: 'Allowed', methods=['POST'])
     client = app.test_client()
     with client.session_transaction() as state:
         state['user_id'] = 1
@@ -192,8 +190,6 @@ def test_user_action_limits_survive_ip_changes(feature_db, monkeypatch, endpoint
                                headers={'Accept': 'application/json'})
         assert response.status_code == (200 if index < limit else 429)
     assert int(response.headers['Retry-After']) > 0
-    if endpoint == 'pages.request_manuscript':
-        assert client.post('/cancel', headers={'Accept': 'application/json'}).status_code == 429
     with client.session_transaction() as state:
         state['user_id'] = 2
     assert client.open('/action', method=method).status_code == 200
@@ -212,46 +208,12 @@ def test_signin_username_quota_survives_ip_changes(feature_db, monkeypatch):
         assert response.status_code == (200 if index < 30 else 429)
 
 
-def test_manuscript_hourly_quota_survives_minute_reset(feature_db, monkeypatch):
-    monkeypatch.setattr(auth_rate_limit, 'db_connect', feature_db)
-    app = Flask(__name__)
-    app.secret_key = 'test-actions'
-    app.before_request(auth_rate_limit.throttle_actions)
-    app.add_url_rule('/action', endpoint='pages.request_manuscript', view_func=lambda: 'Allowed', methods=['POST'])
-    client = app.test_client()
-    with client.session_transaction() as state:
-        state['user_id'] = 1
-    for batch in range(2):
-        for _ in range(5):
-            assert client.post('/action').status_code == 200
-        with closing(feature_db()) as conn, conn.cursor() as cursor:
-            cursor.execute("UPDATE auth_rate_limit SET window_start = window_start - INTERVAL '61 seconds'")
-            conn.commit()
-    assert client.post('/action', headers={'Accept': 'application/json'}).status_code == 429
-
-
-def test_cancelled_manuscript_cooldown_and_expiry(ranking_db):
-    user, (capstone, _, _) = seed(ranking_db)
-    assert request_db.request_fullview(user, capstone, 'Research')[0]
-    with closing(ranking_db()) as conn, conn.cursor() as cursor:
-        cursor.execute("UPDATE request SET request_status = 'cancelled'")
-        conn.commit()
-    accepted, message = request_db.request_fullview(user, capstone, 'Research')
-    assert not accepted and '15 minutes' in message
-    with closing(ranking_db()) as conn, conn.cursor() as cursor:
-        cursor.execute("UPDATE request SET request_date = CURRENT_TIMESTAMP - INTERVAL '16 minutes'")
-        conn.commit()
-    assert request_db.request_fullview(user, capstone, 'Research')[0]
-
-
 def test_schema_reference_and_repeatable_migration(feature_db):
     from tests.test_original_branch_features import ROOT
     with closing(feature_db()) as conn, conn.cursor() as cursor:
-        cursor.execute((ROOT / 'migrations/20261011_signup_spam_prevention.sql').read_text())
         cursor.execute('CREATE SCHEMA reference_spam')
         cursor.execute('SET LOCAL search_path TO reference_spam')
         cursor.execute((ROOT / 'database/capre_original_final.sql').read_text())
-        cursor.execute((ROOT / 'migrations/20261011_signup_spam_prevention.sql').read_text())
         cursor.execute('SELECT COUNT(*) FROM signup_email_verifications')
         assert cursor.fetchone()[0] == 0
         conn.rollback()

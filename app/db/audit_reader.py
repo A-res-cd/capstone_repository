@@ -6,7 +6,7 @@ from app.utils.audit_summary import ACTION_GROUPS, summarize_audit
 
 
 def get_audit_logs(filters, page=1):
-    # Keep audit focused on meaningful account and request activity. Routine
+    # Keep audit focused on meaningful account and repository activity. Routine
     # sign-in/sign-out events belong in the dedicated authentication log.
     clauses, params = ["a.action_type NOT IN ('login', 'logout')"], []
     for name, operator in [('start', '>='), ('end', '<')]:
@@ -37,7 +37,7 @@ def get_audit_logs(filters, page=1):
             # Both reads share one snapshot, keeping totals and pages consistent.
             cursor.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
             cursor.execute('SELECT a.action_type, COUNT(*) AS total' + source + where + ' GROUP BY a.action_type', params)
-            counts = dict.fromkeys(['account', 'capstone', 'workflow', 'other'], 0)
+            counts = dict.fromkeys([*ACTION_GROUPS, 'other'], 0)
             for row in cursor.fetchall():
                 key = next((key for key, group in ACTION_GROUPS.items() if row['action_type'] in group), 'other')
                 counts[key] += row['total']

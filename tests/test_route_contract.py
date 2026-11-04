@@ -29,8 +29,8 @@ def test_retired_save_capstone_endpoint_is_not_available(route_app):
 
 @pytest.mark.parametrize("path", [
     "/repository", "/analytics", "/analytics/report.xlsx", "/audit-logs",
-    "/manage_users", "/requests", "/recyclebin", "/repository/pdf/1",
-    "/archive", "/user-info", "/my-requests", "/propose-topic", "/capstones/most-requested", "/most-requested",
+    "/manage_users", "/recyclebin", "/repository/pdf/1",
+    "/archive", "/user-info", "/propose-topic",
 ])
 def test_protected_features_still_redirect_anonymous_users(route_app, path):
     response = route_app.test_client().get(path)

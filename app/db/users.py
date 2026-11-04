@@ -273,10 +273,6 @@ def _run_delete_cascade(mithrix, user_id, acting_id):
     log_audit(mithrix, acting_id, "delete_user", "user", user_id)
 
     # Preserve shared records without retaining a reference to deleted users.
-    mithrix.execute(
-        'UPDATE "request" SET reviewed_by = NULL WHERE reviewed_by = %s',
-        (user_id,),
-    )
     mithrix.execute('UPDATE audit SET user_id = NULL WHERE user_id = %s', (user_id,))
     mithrix.execute('UPDATE signup SET reviewed_by = NULL WHERE reviewed_by = %s', (user_id,))
     mithrix.execute("""
@@ -295,7 +291,6 @@ def _run_delete_cascade(mithrix, user_id, acting_id):
     mithrix.execute('DELETE FROM login   WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM signup  WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM contact WHERE user_id = %s', (user_id,))
-    mithrix.execute('DELETE FROM "request" WHERE user_id = %s', (user_id,))
 
     # finally the user row itself
     mithrix.execute('DELETE FROM "user"  WHERE user_id = %s', (user_id,))
@@ -426,11 +421,23 @@ def set_account_status(user_id, new_status, acting_admin_id):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
+        from app.db.roster import lock_student_roster
+        lock_student_roster(mithrix)
         mithrix.execute(
-            'SELECT account_status FROM "user" WHERE user_id = %s', (user_id,)
+            'SELECT u.account_status,r.role_name FROM "user" u LEFT JOIN role r USING(role_id) WHERE u.user_id=%s', (user_id,)
         )
         row = mithrix.fetchone()
         old_status = row["account_status"] if row else None
+
+        if new_status == 'active':
+            mithrix.execute('''SELECT status,method FROM signup WHERE user_id=%s ORDER BY signup_id DESC LIMIT 1''',(user_id,))
+            latest = mithrix.fetchone()
+            if row and row['role_name']=='Student' and old_status!='active' and latest and latest['status']!='approved':
+                conn.rollback()
+                return False,'Student approval requires verified roster signup/resubmission.'
+            if latest and latest['method']=='auto' and latest['status']!='approved':
+                conn.rollback()
+                return False,'Student eligibility requires verified roster resubmission.'
 
         mithrix.execute(
             'UPDATE "user" SET account_status = %s WHERE user_id = %s',

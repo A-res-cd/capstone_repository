@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateDocumentType() {
         const faculty = role.value === 'Faculty';
         upload.accept = faculty ? '.jpg,.jpeg,.png,image/jpeg,image/png' : '.pdf,application/pdf';
-        fields.student_no.required = faculty;
+        fields.student_no.required = true;
         if (faculty) fields.student_no.pattern = '[0-9]{3,4}';
         else fields.student_no.removeAttribute('pattern');
         fields.student_no.maxLength = faculty ? 4 : 50;

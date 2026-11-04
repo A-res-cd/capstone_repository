@@ -70,7 +70,8 @@ def _slot():
 
 
 def process_document(content, extension, operation='validate'):
-    if extension not in ('.pdf', '.jpg', '.jpeg', '.png') or operation not in ('validate', 'extract', 'abstract'):
+    if not ((operation=='student_list' and extension in ('.xlsx','.docx','.pdf','.csv')) or
+            (extension in ('.pdf','.jpg','.jpeg','.png') and operation in ('validate','extract','abstract'))):
         raise ValueError('Invalid document options.')
     limits = dict(DEFAULTS)
     if has_app_context():
@@ -104,10 +105,14 @@ def process_document(content, extension, operation='validate'):
                 job = WindowsJob(process, limits['memory_mb'], limits['job_seconds'])
             process.communicate(content, timeout=limits['job_seconds'])
             output_file.seek(0)
-            output = output_file.read(limits['text_chars'] * 6 + 1)
-            if process.returncode or len(output) > limits['text_chars'] * 6:
+            output_limit=12*1024**2 if operation=='student_list' else limits['text_chars']*6
+            output = output_file.read(output_limit+1)
+            if process.returncode or len(output)>output_limit:
                 raise ValueError('Document could not be processed within the allowed budget.')
-            return json.loads(output)
+            result=json.loads(output)
+            if operation=='student_list' and result.get('error'):
+                raise ValueError(result['error'])
+            return result
         except subprocess.TimeoutExpired:
             raise DocumentTimeout('Document processing timed out. Enter details manually or try another file.')
         except OSError:

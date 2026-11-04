@@ -1,5 +1,7 @@
 def get_nav_links(role):
     links = [
+        {"name":"Student Master Lists","title":"Student Master Lists","url":"admin.roster_upload",
+         "icon":"bx bx-list-check","roles":["Admin","Capstone Professor"],"section":"Administration"},
         
         # --- Process 6.0: Generate System Analytics and Report — Admin only ---
         # Sub-processes: View Audit Logs (6.1), Generate Informational Reports (6.2),
@@ -53,42 +55,6 @@ def get_nav_links(role):
             "section": "Repository"
         },
 
-        {
-            "name": "Most Requested Capstones",
-            "title": "Most Requested Capstones",
-            "url": "pages.most_requested_page",
-            "icon": "bx bx-trending-up",
-            "roles": ["Admin", "Capstone Professor", "Faculty", "Student"],
-            "section": "Repository"
-        },
-
-        # --- Sub-process 4.5 (Level3ViewCapstoneData): Manuscript access requests — Student only ---
-        # Capstone-agnostic — lists every request the student has made,
-        # across all capstones. (The per-capstone request form lives at
-        # pages.request_capstone, which needs a capstone_id and can't be
-        # a standalone nav target — both routes render the same merged
-        # template, app/templates/global/all_requests.html.)
-        {
-            "name": "My Requests",
-            "title": "My Requests",
-            "url": "pages.all_requests",
-            "icon": "bx bx-file-blank",
-            "roles": ["Student"],
-            "section": "Repository"
-        },
-
-        # --- Sub-process 4.5 (Level3ViewCapstoneData): Request approval — Admin only ---
-        # Students submit access requests; Admin reviews and decides.
-        # Shown as an Admin nav item for managing incoming requests.
-        {
-            "name": "Requests",
-            "title": "Requests",
-            "url": "admin.view_requests",
-            "icon": "bx bx-file-blank",
-            "roles": ["Admin"],
-            "section": "Administration"
-        },
-
         # --- Data mining: content-based topic-similarity check — Student only ---
         # Not tied to an existing DFD process number yet (new feature).
         # Lets a student check a proposed title/keywords against the
@@ -128,18 +94,13 @@ def get_nav_links(role):
         # },
     ]
 
-    links.append({"name": "Review History", "title": "Review History",
-                  "url": "admin.review_history", "icon": "bx bx-history",
-                  "roles": ["Admin", "Capstone Professor"], "section": "Requests"})
     links.append({"name": "Recently Viewed", "title": "Recently Viewed",
                   "url": "pages.view_history", "icon": "bx bx-history",
                   "roles": ["Student"], "section": "Repository"})
     for link in links:
-        if link['url'] in ('admin.view_requests', 'pages.all_requests'):
-            link['section'] = 'Requests'
-        elif link['url'] == 'admin.view_archived_capstones':
+        if link['url'] == 'admin.view_archived_capstones':
             link['section'] = 'Repository'
-    order = {'Repository': 0, 'Requests': 1, 'Administration': 2, 'Account': 3}
+    order = {'Repository': 0, 'Administration': 1, 'Account': 2}
     links.sort(key=lambda link: order[link['section']])
     # Filter links by role
     filtered = [link for link in links if role in link["roles"]]
@@ -172,16 +133,11 @@ def get_nav_links(role):
 _BRANCH_MAP = [
     # Capstone detail / PDF viewer  →  parent is whichever list page makes sense
     ("/abstract/",          [("pages.browse",                   "Explore Archive")], "View Abstract"),
-    ("/manuscript/view/",   [("pages.all_requests",              "My Requests")],     "View Manuscript"),
-    # Per-capstone request form  →  nested under Explore Archive -> My Requests,
-    # since a student reaches this form by browsing the archive first.
-    ("/requests/",          [("pages.browse",                   "Explore Archive"),
-                              ("pages.all_requests",              "My Requests")],     "Request Manuscript"),
+    ("/manuscript/view/",   [("pages.browse",                   "Explore Archive")],     "View Manuscript"),
     # Admin: view/edit individual capstone  →  parent is Repository
     ("/repository/view/",   [("admin.view_capstone_repository", "Capstone Repository")], "View Capstone"),
     ("/repository/update/", [("admin.view_capstone_repository", "Capstone Repository")], "Edit Capstone"),
-    # Admin: decide on a request  →  parent is Requests
-    ("/repository/decide/", [("admin.view_requests",            "Requests")],         "Review Request"),
+
 ]
 
 
@@ -200,11 +156,6 @@ def get_breadcrumb(nav_links, path):
     For a direct nav-link page (e.g. /archive), this is a single crumb:
       [ {"name": "Explore Archive", "url": None} ]
 
-    For a branch page nested under N ancestors (e.g. /requests/5), this is
-    N + 1 crumbs, e.g.:
-      [ {"name": "Explore Archive", "url": "/archive"},
-        {"name": "My Requests",     "url": "/my-requests"},
-        {"name": "Request Manuscript", "url": None} ]
     """
     def _resolve_url(endpoint):
         parent_url = next(

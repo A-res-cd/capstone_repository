@@ -57,6 +57,8 @@ datasets/
 database/erd/
 
 docs/*.md
+!docs/REQUEST_TABLE_REMOVAL_NOTES.md
+!docs/ROSTER_AUTOMATIC_SIGNUP.md
 !docs/REVISION_NOTES.md
 !docs/SCHEMA_QUERY_AUDIT.md
 !docs/SECURITY_REMEDIATION_ROLLOUT.md

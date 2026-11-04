@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Student-list Preview | CAPRE{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static',filename='css/pages/_roster.css') }}">{% endblock %}
+{% block content %}<section class="roster-page">
+<h1>Student-list extraction preview</h1>
+{% if error %}<p role="alert">{{ error }}</p><a href="{{ url_for('admin.roster_upload') }}">Upload a document again</a>
+{% else %}
+<p>{{ preview.payload.file_name }} · {{ preview.payload.metadata.class_name }} · {{ preview.payload.metadata.academic_year }} {{ preview.payload.metadata.semester }}</p>
+<p>Validated document format: {{ preview.payload.format|upper }}. List category: student_list. Preview expires {{ preview.expires_at }}. Nothing has been imported yet.</p>
+{% if preview.payload.warnings %}<details><summary>Other table/layout messages</summary><ul>{% for warning in preview.payload.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></details>{% endif %}
+<form method="get"><label>Select intended worksheet/table<select name="candidate" required>
+<option value="">Select a table</option>{% for table in preview.candidates %}<option value="{{ table.id }}" {% if preview.selected and preview.selected.id==table.id %}selected{% endif %}>{{ table.label }}</option>{% endfor %}
+</select></label><button type="submit">Preview selected table</button></form>
+{% if preview.selected %}
+<h2>{{ preview.selected.label }}</h2>
+<p>Mapped columns: {% for field,header in preview.selected.columns.items() %}{{ header }} → {{ field }}{% if not loop.last %}; {% endif %}{% endfor %}.</p>
+<p>Estimated: added {{ preview.summary.added }}, updated {{ preview.summary.updated }}, skipped {{ preview.summary.skipped }}. Database claims and term eligibility will be checked again when you confirm.</p>
+<div class="roster-table"><table><thead><tr><th>Source</th><th>Number</th><th>First name</th><th>Middle name</th><th>Last name</th><th>Contact</th><th>Estimated result / issue</th></tr></thead><tbody>
+{% for row in rows %}<tr><td>{% for key,value in row.source.items() %}{{ key|title }} {{ value }}{% if not loop.last %}, {% endif %}{% endfor %}</td><td>{{ row.university_no[:500] }}</td><td>{{ row.first_name[:500] }}</td><td>{{ row.middle_name[:500] }}</td><td>{{ row.last_name[:500] }}</td><td>{{ row.email[:500] }}</td><td>{{ row.estimated }}{% if row.issue %}: {{ row.issue }}{% endif %}</td></tr>{% else %}<tr><td colspan="7">No data rows in this table.</td></tr>{% endfor %}
+</tbody></table></div>
+<p>Page {{ page }} of {{ pages }}. Invalid cell values longer than 500 characters are abbreviated for display and are not imported.</p>
+{% if page>1 %}<a href="{{ url_for('admin.roster_preview',token=preview.stage_id,candidate=preview.selected.id,page=page-1) }}">Previous</a>{% endif %}
+{% if page<pages %}<a href="{{ url_for('admin.roster_preview',token=preview.stage_id,candidate=preview.selected.id,page=page+1) }}">Next</a>{% endif %}
+<form method="post" action="{{ url_for('admin.roster_confirm',token=preview.stage_id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="candidate" value="{{ preview.selected.id }}">
+<button class="btn-pill btn-pill--primary" type="submit">Confirm import of this table</button>
+</form>
+{% else %}<p>Select a table before confirming. Separate tables are never silently merged.</p>{% endif %}
+{% endif %}
+</section>{% endblock %}

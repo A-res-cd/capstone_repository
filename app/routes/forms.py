@@ -14,23 +14,36 @@ class SigninForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired(message = "Username is required."), Length(max=30)])
     password = PasswordField("password", validators=[DataRequired(message = "Password is required."), Length(max=1024)])
 
+def validate_signup_password(form,field):
+    if form.resubmit.data and form.role.data=='Student':
+        if len(field.data or '')>256:
+            raise ValidationError('Existing password is too long.')
+    else:
+        validate_password(form,field)
+
 class SignupForm(FlaskForm):
+    resubmit = BooleanField('Resubmit a rejected student application using my existing username and password')
+
+    def validate_student_no(self,field):
+        from app.services.roster_import import valid_number,normalize_number
+        if self.role.data == 'Student' and not valid_number(normalize_number(field.data)):
+            raise ValidationError('Enter your student number exactly as recorded by the university.')
     website = HiddenField()
     role = SelectField("Sign up as", choices=[("Student", "Student"), ("Faculty", "Faculty")], validators=[DataRequired(message="Choose an account type.")])
     cor = FileField('Verification document', validators=[
         FileAllowed(['pdf', 'jpg', 'jpeg', 'png'], 'Upload a PDF or JPG/PNG image.'),
     ])
-    student_no = StringField("ID Number", validators=[Optional(), Length(max=50)])
+    student_no = StringField("ID Number", filters=[lambda value:(value or '').strip().upper()], validators=[DataRequired(message='Enter your university or faculty ID number.'), Length(max=50)])
     first_name = StringField("First Name", validators=[DataRequired(message = "Firt Name is required."), Length(max=50)])
     middle_name = StringField("Middle Name", validators=[Optional(), Length(max=50)])
     last_name = StringField("Last Name", validators=[DataRequired(message = "Last Name is required")])
-    email = StringField("Recovery email", validators=[DataRequired(message="Enter an email for account recovery."), Email(message="Invalid Email format."), Length(max=254)])
+    email = StringField("Recovery email", filters=[lambda value:(value or '').strip().lower()], validators=[DataRequired(message="Enter an email for account recovery."), Email(message="Invalid Email format."), Length(max=254)])
     username = StringField("Username", validators=[DataRequired(message = "Username is required."), 
                                                    Regexp(r'^[a-zA-Z0-9_]{3,30}$', 
                                                           message="Username must be 3-30 characters, letters, numbers, and underscores only.")])
     
     password = PasswordField("Password", validators=[DataRequired(message = "Password is required"), 
-                                                     validate_password])
+                                                     validate_signup_password])
     confirm_password = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password", message="Passwords do not match.")])
     preferred_contact = SelectField("Preferred contact", choices=[("", "Choose email or phone"), ("email", "Email"), ("phone", "Phone")], default="", validators=[DataRequired(message="Choose email or phone.")])
     phone = StringField("Phone number", validators=[Optional(), Length(max=30)])
@@ -51,7 +64,7 @@ class SignupForm(FlaskForm):
     )
     
 class SignupEmailForm(FlaskForm):
-    email = StringField("Email", validators=[DataRequired(), Email(), Length(max=254)])
+    email = StringField("Email", filters=[lambda value:(value or '').strip().lower()], validators=[DataRequired(), Email(), Length(max=254)])
     code = StringField("Verification code", validators=[Optional(), Regexp(r'^[0-9]{6}$', message="Enter the six-digit code.")])
 
 

@@ -81,16 +81,14 @@ def screen_account(mithrix, user_id, role_name):
     return track, None
 
 def create_verification_request(mithrix, user_id, track, fallback_email=None):
-    now = datetime.now(timezone.utc)
-
     mithrix.execute("""
-        INSERT INTO request(user_id, request_type, request_status, request_date)
-        VALUES (%s, %s, 'pending', %s)
-        RETURNING request_id
-    """, (user_id, f"verification_{track}", now))
-    request_id = mithrix.fetchone()["request_id"]
-
-    log_audit(mithrix, user_id, "verification_request", "request", request_id)
+        UPDATE signup SET status = 'pending', sub_person_type = %s,
+            requested_at = CURRENT_TIMESTAMP, decided_at = NULL,
+            reviewed_by = NULL, reason = NULL, attempt_count = attempt_count + 1
+        WHERE signup_id = (SELECT signup_id FROM signup WHERE user_id = %s
+                           ORDER BY signup_id DESC LIMIT 1)
+    """, (track, user_id))
+    log_audit(mithrix, user_id, "verification_request", "user", user_id)
 
     mithrix.execute("""
         SELECT contact_value FROM "contact"
@@ -119,6 +117,10 @@ def reapply_for_verification(user_id):
         role_row = mithrix.fetchone()
         if role_row:
             role_name = role_row["role_name"]
+
+        if role_name == 'Student':
+            conn.rollback()
+            return False, 'Use explicit rejected-student resubmission with a newly verified email.'
 
         track, error = screen_account(mithrix, user_id, role_name)
         if error:
@@ -152,22 +154,24 @@ def get_role_id(mithrix, role_name):
     row = mithrix.fetchone()
     return row["role_id"] if row else None
 
-def create_user(first_name, middle_name, last_name, university_no, email, username, password, cor_filename=None, preferred_contact="email", phone="", terms_version=None, requested_role=None, signup_verification_id=None):
+def create_user(first_name, middle_name, last_name, university_no, email, username, password, cor_filename=None, preferred_contact="email", phone="", terms_version=None, requested_role=None, signup_verification_id=None, resubmit=False):
 
     #strip and basic validation
     first_name    = first_name.strip()    if first_name    else ""
     middle_name   = middle_name.strip()   if middle_name   else ""
     last_name     = last_name.strip()     if last_name     else ""
-    university_no = (university_no or "").strip()
-    email         = email.strip()         if email         else ""
+    university_no = (university_no or "").strip().upper()
+    email         = email.strip().lower() if email else ""
     username      = username.strip()      if username      else ""
     role_name = requested_role or (detect_role(university_no) if university_no else "Student")
 
     # validation
     if not all([first_name, last_name, username, password]):
         return False, "All required fields must be filled in."
-    if password_error(password):
+    if not resubmit and password_error(password):
         return False, password_error(password)
+    if resubmit and len(password)>256:
+        return False, 'Existing password is too long.'
     try:
         phone = normalize_phone(phone)
     except ValueError as exc:
@@ -183,17 +187,32 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
 
     if role_name not in ("Student", "Faculty"):
         return False, "Choose Student or Faculty as your account type."
-    if university_no and detect_role(university_no) != role_name:
+    if role_name == 'Student':
+        from app.services.roster_import import valid_number
+        if not cor_filename:
+            return False, 'Upload your COR PDF before submitting a student application.'
+        if not valid_number(university_no):
+            return False, 'Enter your student number exactly as recorded by the university.'
+        if not signup_verification_id:
+            return False, 'Verify your email before submitting your student application.'
+    elif university_no and detect_role(university_no) != role_name:
         logger.warning(
             "University number '%s' did not match any known patterns.", university_no)
         return False, ("University number format not recognized")
 
+    if resubmit:
+        if role_name != 'Student':
+            return False, 'Use the existing faculty verification process.'
+        return _resubmit_student(first_name, middle_name, last_name, university_no, email,
+                                 username, password, cor_filename, signup_verification_id, terms_version)
     password_hash = generate_password_hash(password)
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     now = datetime.now(timezone.utc)
 
     try:
+        from app.db.roster import lock_student_roster, decide_student
+        lock_student_roster(mithrix)
         role_id = get_role_id(mithrix, role_name)
         if role_id is None:
             return False, f"Role '{role_name}' is not in the system"
@@ -204,8 +223,8 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
             mithrix.execute("SELECT 1 FROM contact WHERE contact_type = 'email' AND LOWER(contact_value) = %s LIMIT 1", (email.lower(),))
             if mithrix.fetchone():
                 conn.rollback()
-                return False, "That email is already registered."
-            if not consume_email_verification(mithrix, signup_verification_id, email):
+                return False, "An account already uses these details. Sign in, recover your account, or explicitly resubmit a rejected student application."
+            if role_name != 'Student' and not consume_email_verification(mithrix, signup_verification_id, email):
                 conn.rollback()
                 return False, "Verify your email again before creating an account."
 
@@ -251,18 +270,24 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
             mithrix.execute("""INSERT INTO contact
                 (user_id, contact_type, contact_value,
                 is_primary, created_at)
-                VALUES (%s, 'email', %s, TRUE, %s)
+                VALUES (%s, 'email', %s, TRUE, %s) RETURNING contact_id
             """, (user_id, email.lower(), now))
+            email_contact_id = mithrix.fetchone()['contact_id']
 
         # add log to sign up tble
         mithrix.execute("""
-            INSERT INTO signup (user_id, registration_date)
-            VALUES (%s, %s)
+            INSERT INTO signup (user_id, registration_date, requested_at, status, contact_id, method)
+            VALUES (%s, %s, %s, 'pending', %s, %s)
             RETURNING signup_id
-        """, (user_id, now))
+        """, (user_id, now, now, email_contact_id, 'auto' if role_name == 'Student' else 'manual'))
         signup_id = mithrix.fetchone()["signup_id"]
 
         log_audit(mithrix, user_id, "signup", "signup", signup_id)
+
+        if role_name == 'Student':
+            decision = decide_student(mithrix, user_id, signup_id, university_no, email, email_contact_id, signup_verification_id)
+            conn.commit()
+            return True, {'track': 'student', 'email': email, 'decision': decision, 'signup_id': signup_id}
 
 
         # ------ 1.2.1 creena dn clasitfy------------
@@ -290,14 +315,14 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
         elif "contact" in detail or "contact_value" in detail:
             msg = "That email is already registered."
         elif "university_no" in detail:
-            msg = "That University number is already in use."
+            msg = "An account already uses these details. Sign in, recover your account, or explicitly resubmit a rejected student application."
         else:
             msg = "A duplicate-entry error occurred."
         return False, msg
 
     except Exception as exc:
         conn.rollback()
-        logger.error("Database error: %s", exc)
+        logger.error('Account creation failed (%s)',type(exc).__name__)
         return False, "A database error occurred. Please try again."
 
     finally:
@@ -306,6 +331,49 @@ def create_user(first_name, middle_name, last_name, university_no, email, userna
 
 
 # ____________________________sign in or authentication idk_______________________
+
+def _resubmit_student(first, middle, last, number, email, username, password, cor_filename, proof, terms_version):
+    """Authenticated explicit retry; preserve identity, credentials and decision history."""
+    from app.db.roster import lock_student_roster, decide_student
+    conn = db_connect()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        lock_student_roster(cursor)
+        cursor.execute("SELECT pg_advisory_xact_lock(hashtext('signup-email'),hashtext(%s))",(email,))
+        cursor.execute('''SELECT u.user_id,u.university_no,p.password,c.contact_id FROM "user" u
+            JOIN role r USING(role_id) JOIN slug s ON s.user_id=u.user_id AND s.is_current
+            JOIN kappa k USING(username_id) JOIN ror p USING(password_id)
+            JOIN contact c ON c.user_id=u.user_id AND c.contact_type='email' AND c.is_primary
+            WHERE k.username=%s AND u.account_status='rejected' AND r.role_name='Student'
+            AND LOWER(BTRIM(c.contact_value))=%s FOR UPDATE OF u''',(username,email))
+        account = cursor.fetchone()
+        if not account or not check_password_hash(account['password'],password):
+            conn.rollback()
+            return False,'Could not resubmit. Check your existing credentials and verified email, or use account recovery.'
+        user_id = account['user_id']
+        cursor.execute('''UPDATE "user" SET account_status='pending',user_first_name=%s,user_middle_name=%s,
+            user_last_name=%s,cor_filename=%s,university_no=%s,terms_version=COALESCE(%s,terms_version),
+            terms_accepted_at=CASE WHEN %s::text IS NOT NULL THEN CURRENT_TIMESTAMP ELSE terms_accepted_at END
+            WHERE user_id=%s''',(first,middle,last,cor_filename,number,terms_version,terms_version,user_id))
+        cursor.execute('''INSERT INTO signup(user_id,registration_date,requested_at,status,method,contact_id)
+            VALUES(%s,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'pending','auto',%s) RETURNING signup_id''',(user_id,account['contact_id']))
+        signup_id = cursor.fetchone()['signup_id']
+        log_audit(cursor,user_id,'student_resubmission','signup',signup_id,
+                  old_values=account['university_no'],new_values=number)
+        decision = decide_student(cursor,user_id,signup_id,number,email,account['contact_id'],proof)
+        conn.commit()
+        return True,{'track':'student','email':email,'decision':decision,'signup_id':signup_id}
+    except psycopg2.errors.UniqueViolation:
+        conn.rollback()
+        return False,'An account already uses these details. Use sign-in/recovery or contact your verifier to correct the identity.'
+    except Exception as exc:
+        conn.rollback()
+        logger.error('Student resubmission failed (%s)',type(exc).__name__)
+        return False,'Could not resubmit. Try again later or contact your verifier.'
+    finally:
+        cursor.close()
+        conn.close()
+
 
 def sign_in(username, password, device_ip=None):
     if not isinstance(username, str) or not isinstance(password, str) or len(username) > 30 or len(password) > 1024:
@@ -655,30 +723,24 @@ def sign_out(user_id, device_ip=None):
 # ______________________________Admin CRUD Operations for Manage Capstone Repository___________________________
 
 def get_pending_verifications():
-    """
-    Pending account-verification requests (request_type starts with
-    'verification_') for the Manage Users > Pending Accounts tab.
-
-    Kept as its own query rather than reused from get_all_requests(),
-    since that one INNER JOINs on capstone — verification requests have
-    capstone_id = NULL and would silently disappear from that join.
-    """
+    """Pending account verification uses the approved signup review fields."""
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         mithrix.execute("""
-            SELECT r.request_id, r.user_id, r.request_type, r.request_status, r.request_date,
+            SELECT r.signup_id AS request_id, r.user_id, r.sub_person_type AS request_type,
+                   COALESCE(r.status, u.account_status) AS request_status,
+                   COALESCE(r.requested_at, r.registration_date) AS request_date,
                    CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
                    u.university_no,
                    r_role.role_name AS role,
                    c.contact_value AS email
-            FROM request r
+            FROM signup r
             JOIN "user" u ON u.user_id = r.user_id
             JOIN role r_role ON r_role.role_id = u.role_id
             LEFT JOIN contact c ON c.user_id = u.user_id AND c.contact_type = 'email' AND c.is_primary = TRUE
-            WHERE r.request_type LIKE 'verification_%%'
-              AND r.request_status = 'pending'
-            ORDER BY r.request_date ASC
+            WHERE COALESCE(r.status, u.account_status) = 'pending'
+            ORDER BY r.requested_at ASC
         """)
         return mithrix.fetchall()
     except Exception as exc:
@@ -695,11 +757,10 @@ def get_verification_request_recipient(request_id):
             cursor.execute('''
                 SELECT CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
                        c.contact_value AS email
-                FROM request r JOIN "user" u ON u.user_id = r.user_id
+                FROM signup r JOIN "user" u ON u.user_id = r.user_id
                 LEFT JOIN contact c ON c.user_id = u.user_id
                     AND c.contact_type = 'email' AND c.is_primary = TRUE
-                WHERE r.request_id = %s AND r.request_type LIKE 'verification_%%'
-                    AND r.request_status = 'pending'
+                WHERE r.signup_id = %s AND COALESCE(r.status, u.account_status) = 'pending'
                 ORDER BY c.contact_id LIMIT 1
             ''', (request_id,))
             return cursor.fetchone()
@@ -711,15 +772,7 @@ def get_verification_request_recipient(request_id):
 
 
 def review_verification_request(request_id, decision, status_reason, reviewed_by):
-    """
-    Approve/reject an account-verification request. Unlike review_request()
-    (used for manuscript-access requests), this also flips the underlying
-    user's account_status — that's the step that was previously missing
-    entirely, leaving approved users stuck on 'pending' forever with no
-    way to sign in.
-
-    decision: 'approved' or 'rejected'
-    """
+    """Review a pending signup and update account status atomically."""
     status_reason = (status_reason or '').strip()
     if decision not in ('approved', 'rejected'):
         return False, "Invalid decision."
@@ -730,26 +783,33 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
     now = datetime.now(timezone.utc)
 
     try:
+        from app.db.roster import lock_student_roster
+        lock_student_roster(mithrix)
         mithrix.execute("""
-            SELECT user_id, request_type FROM request
-            WHERE request_id = %s AND request_type LIKE 'verification_%%'
-              AND request_status = 'pending'
-            FOR UPDATE
+            SELECT s.user_id,r.role_name FROM signup s JOIN "user" u ON u.user_id = s.user_id
+            LEFT JOIN role r ON r.role_id=u.role_id
+            WHERE s.signup_id = %s AND COALESCE(s.status, u.account_status) = 'pending'
+              AND NOT EXISTS (SELECT 1 FROM signup auto WHERE auto.user_id=s.user_id AND auto.method='auto')
+            FOR UPDATE OF s,u
         """, (request_id,))
         row = mithrix.fetchone()
         if not row:
             conn.rollback()
             return False, "Verification request not found."
 
+        if decision=='approved' and row['role_name']=='Student':
+            conn.rollback()
+            return False,'Student approval requires verified roster signup/resubmission. Existing pending applications remain unchanged.'
+
         user_id = row["user_id"]
 
         mithrix.execute("""
-            UPDATE request SET
-                request_status = %s,
-                status_reason = %s,
+            UPDATE signup SET
+                status = %s,
+                reason = %s,
                 reviewed_by = %s,
-                decision_date = %s
-            WHERE request_id = %s
+                decided_at = %s
+            WHERE signup_id = %s
         """, (decision, status_reason, reviewed_by, now, request_id))
 
         new_account_status = "active" if decision == "approved" else "rejected"
@@ -758,7 +818,7 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
             WHERE user_id = %s
         """, (new_account_status, user_id))
 
-        log_audit(mithrix, reviewed_by, "review_verification_request", "request", request_id,
+        log_audit(mithrix, reviewed_by, "review_verification_request", "signup", request_id,
                    new_values=f"{decision} -> account_status={new_account_status}")
 
         conn.commit()

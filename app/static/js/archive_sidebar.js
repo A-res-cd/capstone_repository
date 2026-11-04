@@ -1,4 +1,4 @@
-let archiveSidebarController;
+var archiveSidebarController;
 function initArchiveSidebar() {
     archiveSidebarController?.abort();
     archiveSidebarController = new AbortController();
@@ -9,24 +9,6 @@ function initArchiveSidebar() {
     const sidebarEl = document.querySelector('.archive-sidebar');
     const sidebarCard = document.getElementById('sidebar-card');
     const sidebarEmpty = document.getElementById('sidebar-empty');
-    const requestLink = document.getElementById('sb-request-link');
-    const requestDialog = document.getElementById('manuscript-request-dialog');
-    const requestForm = document.getElementById('manuscript-request-form');
-
-    if (requestLink && requestDialog && requestForm) {
-        requestLink.addEventListener('click', (event) => {
-            event.preventDefault();
-            requestForm.reset();
-            requestForm.action = requestLink.dataset.submitUrl;
-            document.getElementById('manuscript-request-project').textContent =
-                document.getElementById('sb-title').textContent;
-            requestDialog.showModal();
-        });
-        requestDialog.querySelectorAll('[data-request-close]').forEach((button) => {
-            button.addEventListener('click', () => requestDialog.close());
-        });
-    }
-
     document.querySelectorAll('.archive-card').forEach(card => {
         card.addEventListener('click', () => {
             const id = card.dataset.id;
@@ -74,29 +56,15 @@ function initArchiveSidebar() {
                     keepalive: true,
                 }).catch(() => {});
             }
-            const isApproved = card.dataset.approved === 'true';
 
             const abstractLink = document.getElementById('sb-abstract-link');
             if (abstractLink) {
                 abstractLink.href = abstractLink.dataset.baseUrl.slice(0, -1) + id;
-                abstractLink.style.display = isApproved ? 'none' : '';
-            }
-
-            const fullviewLink = document.getElementById('sb-fullview-link');
-            if (fullviewLink) {
-                fullviewLink.href = fullviewLink.dataset.baseUrl.slice(0, -1) + id;
-                fullviewLink.style.display = isApproved ? '' : 'none';
-            }
-
-            if (requestLink) {
-                requestLink.href = requestLink.dataset.baseUrl.slice(0, -1) + id;
-                requestLink.dataset.submitUrl = requestLink.dataset.submitBaseUrl.slice(0, -1) + id;
-                requestLink.style.display = isApproved ? 'none' : '';
             }
 
             // On mobile, the sidebar becomes a full-screen overlay instead
             // of an inline block sitting below the list — tapping a card
-            // opens it immediately (details + abstract/request buttons all
+            // opens it immediately (details + abstract buttons all
             // visible right away, no extra scrolling/tapping needed to
             // reach them), with a close button to get back to the list.
             if (isMobile() && sidebarEl) {

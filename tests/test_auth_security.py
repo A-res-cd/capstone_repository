@@ -1,3 +1,4 @@
+from tests.roster_test_helpers import create_legacy_account
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -19,7 +20,7 @@ NEW_PASSWORD = 'NewSecure123'
 
 
 def account(connect, username='student'):
-    assert auth_db.create_user('Test', '', 'Student', None, username + '@example.com', username, PASSWORD)[0]
+    assert create_legacy_account(auth_db,'Test', '', 'Student', None, username + '@example.com', username, PASSWORD)[0]
     with connect() as conn, conn.cursor() as cursor:
         cursor.execute("SELECT user_id, contact_id FROM contact WHERE contact_value = %s", (username + '@example.com',))
         user_id, contact_id = cursor.fetchone()
@@ -110,7 +111,7 @@ def test_sessions_revoke_after_password_change_or_status_change(feature_db, monk
     CSRFProtect(app)
     app.register_blueprint(auth)
     app.add_url_rule('/', endpoint='main.home', view_func=lambda: 'Home')
-    app.add_url_rule('/browse', endpoint='pages.all_requests', view_func=lambda: 'Browse')
+    app.add_url_rule('/browse', endpoint='pages.browse', view_func=lambda: 'Browse')
     app.before_request(auth_utils.load_current_user)
 
     @app.route('/protected')
@@ -217,7 +218,7 @@ def test_signup_without_javascript(feature_app, browser, monkeypatch):
         expect(page.locator('[data-signup-step]:visible')).to_have_count(4)
         expect(page.locator('#terms-modal')).to_be_visible()
         page.locator('#cor').set_input_files(dict(name='cor.pdf', mimeType='application/pdf', buffer=pdf_bytes()))
-        for name, value in dict(first_name='Test', last_name='Student', username='student',
+        for name, value in dict(student_no='001234', first_name='Test', last_name='Student', username='student',
                                 password=NEW_PASSWORD, confirm_password=NEW_PASSWORD,
                                 email='student@example.com').items():
             page.locator('#' + name).fill(value)

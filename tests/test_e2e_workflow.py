@@ -107,14 +107,14 @@ def test_signup_validation(page: Page, browser, live_server, revision_db):
         form.route(re.compile(r'^https://'), lambda route: route.abort())
         form.goto(f'{live_server}/signup')
         form.locator('#cor').set_input_files(dict(name='cor.pdf', mimeType='application/pdf', buffer=pdf_bytes()))
-        for name, value in dict(student_no='INVALID123', first_name='New', last_name='Student',
+        for name, value in dict(student_no='INVALID!123', first_name='New', last_name='Student',
                                 username='newuser', password=PASSWORD, confirm_password=PASSWORD,
                                 email='newuser@example.com').items():
             form.locator('#' + name).fill(value)
         form.locator('#preferred_contact').select_option('email')
         form.locator('#accept_terms').check()
         form.locator('#signup-submit').click()
-        expect(form.get_by_text('University number format not recognized', exact=True)).to_be_visible()
+        expect(form.get_by_text('Enter your student number exactly as recorded by the university.', exact=True)).to_be_visible()
     with closing(revision_db()) as conn, conn.cursor() as cursor:
         cursor.execute("SELECT COUNT(*) FROM contact WHERE contact_value = 'newuser@example.com'")
         assert cursor.fetchone()[0] == 0

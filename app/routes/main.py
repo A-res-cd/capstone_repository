@@ -1,9 +1,5 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, g, jsonify
+from flask import Blueprint, render_template, request, url_for, session, g
 from app.constants.nav import get_nav_links, get_role_meta, resolve_title, get_breadcrumb
-from app.db.qol import (
-    get_page_nav_summary,
-    mark_all_notifications_read,
-)
 
 main = Blueprint("main", __name__)
 
@@ -29,9 +25,6 @@ def inject_global_template_vars():
             "current_path": request.path,
             "breadcrumb": [],
             "nav_collapsed": session.get("nav_collapsed", False),
-            "notifications": [],
-            "notification_unread_count": 0,
-            "nav_pending_counts": {},
         }
 
     nav_links, nav_sections = get_nav_links(role)
@@ -50,9 +43,6 @@ def inject_global_template_vars():
 
     page_title = resolve_title(nav_sections, nav_links, request.path)
     breadcrumb = get_breadcrumb(nav_links, request.path)
-    notifications, notification_unread_count, nav_pending_counts = get_page_nav_summary(
-        session.get("user_id"), is_admin=role == "Admin"
-    )
 
     return {
         "nav_links":    nav_links,
@@ -83,9 +73,6 @@ def inject_global_template_vars():
         # branch nested anywhere underneath it (not just a direct child).
         "breadcrumb_endpoints": [c["endpoint"] for c in breadcrumb if c.get("endpoint")],
         "nav_collapsed": session.get("nav_collapsed", False),
-        "notifications": notifications,
-        "notification_unread_count": notification_unread_count,
-        "nav_pending_counts": nav_pending_counts,
     }
 
 
@@ -101,14 +88,4 @@ def toggle_nav():
     burger menu again."""
     data = request.get_json(silent=True) or {}
     session["nav_collapsed"] = bool(data.get("collapsed"))
-    return "", 204
-
-
-@main.route("/notifications/read", methods=["POST"])
-def read_notifications():
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "Authentication required."}), 401
-    if not mark_all_notifications_read(user_id):
-        return jsonify({"error": "Could not update notifications."}), 500
     return "", 204

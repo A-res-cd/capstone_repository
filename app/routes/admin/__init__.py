@@ -9,7 +9,7 @@ from . import diagnostics
 from . import analytics
 from . import reports
 from . import users
-from . import requests
 from . import repository
 from . import manuscripts
 from . import archive
+from . import roster

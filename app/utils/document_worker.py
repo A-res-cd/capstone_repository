@@ -56,6 +56,18 @@ def main():
     content = sys.stdin.buffer.read(byte_limit + 1)
     if not content or len(content) > byte_limit:
         raise ValueError('Invalid file size.')
+    if operation=='student_list':
+        spec=importlib.util.spec_from_file_location('student_documents',Path(__file__).resolve().parents[1]/'services'/'student_documents.py')
+        adapter=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(adapter)
+        try:
+            if extension=='.pdf':
+                validate(content,extension,limits,abstract=True)
+            result=adapter.extract_document(content,extension)
+        except ValueError as exc:
+            result={'error':str(exc)}
+        print(json.dumps(result))
+        return
     validate(content, extension, limits, abstract=(operation == 'abstract'))
     result = {}
     if operation == 'abstract':

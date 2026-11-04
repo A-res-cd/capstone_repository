@@ -34,11 +34,11 @@ def signin():
             session["log_in_id"]  = user.get("log_in_id")
 
             if user["role_id"] == 3:    # Admin
-                return redirect(url_for("admin.view_requests"))
+                return redirect(url_for("admin.view_capstone_repository"))
             elif user["role_id"] == 4:  # Capstone Professor
                 return redirect(url_for("admin.view_capstone_repository"))
             elif user["role_id"] == 1:  # Student
-                return redirect(url_for("pages.all_requests"))
+                return redirect(url_for("pages.browse"))
             elif user["role_id"] == 2:  # Faculty
                 return redirect(url_for("pages.browse"))
             return redirect(url_for("pages.browse"))

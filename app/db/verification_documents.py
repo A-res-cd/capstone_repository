@@ -6,7 +6,7 @@ from app.db.connection import db_connect
 def get_verification_details(request_id):
     with db_connect() as conn, conn.cursor(cursor_factory=RealDictCursor) as cursor:
         cursor.execute('''
-            SELECT r.request_id, r.user_id, r.request_status, r.request_date,
+            SELECT r.signup_id AS request_id, r.user_id, r.status AS request_status, r.requested_at AS request_date,
                    CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
                    u.university_no, role.role_name, u.account_status,
                    (SELECT k.username FROM slug sl JOIN kappa k ON k.username_id = sl.username_id
@@ -14,9 +14,9 @@ def get_verification_details(request_id):
                    (SELECT c.contact_value FROM contact c WHERE c.user_id = u.user_id
                     AND c.contact_type = 'email' AND c.is_primary = TRUE ORDER BY c.contact_id LIMIT 1) AS email,
                    u.cor_filename AS filename
-            FROM request r JOIN "user" u ON u.user_id = r.user_id
+            FROM signup r JOIN "user" u ON u.user_id = r.user_id
             JOIN role ON role.role_id = u.role_id
-            WHERE r.request_id = %s AND r.request_type LIKE 'verification_%%'
+            WHERE r.signup_id = %s
         ''', (request_id,))
         return cursor.fetchone()
 
@@ -24,8 +24,8 @@ def get_verification_details(request_id):
 def get_verification_document(request_id):
     with db_connect() as conn, conn.cursor(cursor_factory=RealDictCursor) as cursor:
         cursor.execute('''SELECT u.cor_filename AS filename
-            FROM "user" u JOIN request r ON r.user_id = u.user_id
-            WHERE r.request_id = %s AND r.request_type LIKE 'verification_%%'
+            FROM "user" u JOIN signup r ON r.user_id = u.user_id
+            WHERE r.signup_id = %s
               AND u.cor_filename IS NOT NULL
         ''', (request_id,))
         return cursor.fetchone()
