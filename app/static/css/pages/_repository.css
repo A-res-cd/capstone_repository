@@ -802,14 +802,23 @@ body.repo-modal-open {
     opacity: 0.8;
 }
 
-/* ── Status checkboxes (Utilized / Presented / Copyright Registered) ── */
+/* Certification choices use the modal's paper surfaces and accent. */
+.certification-status {
+    padding: var(--space-md);
+    border: var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--surface-paper);
+}
+.certification-status legend { color: var(--text-brand); font-weight: 600; padding: 0 6px; }
+.certification-status > .helper-text { margin: 0 0 var(--space-md); }
+.form-step-dot[hidden], [data-certificate][hidden] { display: none; }
 .status-checkbox-row {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-lg);
 }
 
-.status-checkbox {
+.capstone-form .status-checkbox {
     display: inline-flex;
     align-items: center;
     gap: var(--space-sm);
@@ -817,12 +826,26 @@ body.repo-modal-open {
     font-weight: 600;
     color: var(--text-dark);
     cursor: pointer;
+    flex: 1 1 220px;
+    padding: 14px 16px;
+    margin: 0;
+    border: var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-card-neutral);
 }
+.status-checkbox span { display: inline-flex; align-items: center; gap: var(--space-sm); }
+.status-checkbox:has(input:checked) { border-color: var(--color-accent); background: var(--surface-selected); }
+.status-checkbox:focus-within { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
 
-.status-checkbox input[type="checkbox"] {
-    width: 15px;
-    height: 15px;
-    accent-color: var(--color-primary);
+.capstone-form .status-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-height: 0;
+    flex: 0 0 18px;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    accent-color: var(--color-accent);
     cursor: pointer;
 }
 

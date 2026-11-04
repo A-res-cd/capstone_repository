@@ -18,6 +18,9 @@ def test_signup_scroll_and_live_password_checks(feature_app, page, width, height
         if url.path == '/signup/extract-cor':
             route.fulfill(json={})
             return
+        if url.path == '/signup/verify-email':
+            route.fulfill(json={'verified': True, 'email': 'student@example.edu'})
+            return
         response = client.get(url.path)
         route.fulfill(status=response.status_code, body=response.data, content_type=response.content_type)
 
@@ -29,6 +32,8 @@ def test_signup_scroll_and_live_password_checks(feature_app, page, width, height
     if width > 900:
         sizes = page.locator('#signup-form').evaluate('el => [el.scrollHeight, el.clientHeight]')
         assert sizes[0] <= sizes[1] + 1, sizes
+    expect(page.locator('#signup-form')).to_have_attribute('data-email-verified', 'true')
+    page.locator('[data-signup-next]').click()
     page.locator('#cor').set_input_files(dict(name='cor.pdf', mimeType='application/pdf', buffer=pdf_bytes()))
     expect(page.locator('#cor')).to_have_attribute('data-extracting', 'false')
     page.locator('[data-signup-next]').click()

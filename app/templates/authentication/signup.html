@@ -48,22 +48,47 @@
 
                 <div class="auth-form-card__header">
                     <h2>Create Account</h2>
-                    <p>Fill in your details to register</p>
+                    <p>Verify your email, then complete a few short steps.</p>
                 </div>
 
                 <form id="signup-form" action="{{ url_for('auth.signup') }}" method="POST" enctype="multipart/form-data" class="auth-form" novalidate>
                     {{ form.hidden_tag() }}
+                    {{ form.resubmit(hidden=true) }}
                     {% if request.method == 'POST' %}
                     <p role="alert">Please correct the errors below, reselect your verification file, and re-enter your password. Your other details have been kept.</p>
                     {% endif %}
                     <ol class="signup-progress" aria-label="Registration steps" hidden>
-                        <li><button type="button" data-step-label class="is-active" aria-current="step">1. Upload COR</button></li>
-                        <li><button type="button" data-step-label disabled>2. Account details</button></li>
-                        <li><button type="button" data-step-label disabled>3. Preferred contact</button></li>
-                        <li><button type="button" data-step-label disabled>4. Review &amp; agreement</button></li>
+                        <li><button type="button" data-step-label class="is-active" aria-current="step">1. Email</button></li>
+                        <li><button type="button" data-step-label disabled>2. Document</button></li>
+                        <li><button type="button" data-step-label disabled>3. Account</button></li>
+                        <li><button type="button" data-step-label disabled>4. Contact</button></li>
+                        <li><button type="button" data-step-label disabled>5. Review</button></li>
                     </ol>
+                    <p class="signup-step-caption" id="signup-step-caption" aria-live="polite"></p>
+                    <section data-signup-step aria-label="Verify email">
+                        <h3 class="signup-step-title">Start with your email</h3>
+                        <p class="helper-text">Students: use the email on your university masterlist. Faculty: use your university email.</p>
+                        <div class="form-group">
+                            {{ form.email.label }}
+                            {{ form.email(id="email", type="email", placeholder="your@email.com", autocomplete="email", required=true) }}
+                            {% for error in form.email.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+                        </div>
+                        <div class="signup-email-verification" data-verification-url="{{ url_for('auth.verify_signup_email') }}">
+                            <button type="button" class="btn-auth-secondary" id="signup-send-code">Send verification code</button>
+                            <div id="signup-code-entry" class="form-group" hidden>
+                                <label for="signup-email-code">Verification code</label>
+                                <div class="signup-code-row">
+                                    <input type="text" id="signup-email-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit code" aria-describedby="signup-email-status">
+                                    <button type="button" class="btn-auth-secondary" id="signup-verify-code">Verify code</button>
+                                </div>
+                                <p class="helper-text">Code expires in 15 minutes. Sending a new code replaces the old one.</p>
+                            </div>
+                            <p id="signup-email-status" role="status" aria-live="polite"></p>
+                            <button type="button" class="signup-change-email" id="signup-change-email" hidden>Use a different email</button>
+                        </div>
+                    </section>
                     <section data-signup-step aria-label="Upload COR">
-
+                    <h3 class="signup-step-title">Upload your verification document</h3>
                     <div class="form-group cor-upload-group">
                         {{ form.role.label }}
                         {{ form.role(id='role') }}
@@ -77,6 +102,7 @@
 
                     </section>
                     <section data-signup-step aria-label="Your details">
+                    <h3 class="signup-step-title">Your account details</h3>
                     <div id="cor-extraction" class="cor-extraction">
                         <div class="form-group">
                             {{ form.student_no.label }}
@@ -110,8 +136,6 @@
                     <div class="form-row">
                         <div class="form-group">
                             {{ form.username.label }}
-                            <p>{{ form.resubmit() }} {{ form.resubmit.label }}</p>
-                            <p class="field-hint">Resubmission uses your existing credentials and a newly verified account email. Your password is not changed.</p>
                             {{ form.username(id="username", placeholder="Choose a username", autocomplete="username") }}
                             {% for error in form.username.errors %}
                                 <span class="field-error">{{ error }}</span>
@@ -151,17 +175,12 @@
                     </div>
                     </section>
                     <section data-signup-step aria-label="Preferred contact">
+                        <h3 class="signup-step-title">How should we contact you?</h3>
+                        <p class="helper-text">Your verified email is saved. Add a phone number if you prefer phone updates.</p>
                         <div class="form-group">
                             {{ form.preferred_contact.label }}
                             {{ form.preferred_contact(id="preferred_contact", required=true) }}
                             {% for error in form.preferred_contact.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
-                        </div>
-                        <div class="form-group" data-contact-field="email">
-                            {{ form.email.label }}
-                            {{ form.email(id="email", type="email", placeholder="your@email.com", autocomplete="email", required=true) }}
-                            <p class="helper-text">Required for password recovery, even if you prefer phone contact.</p>
-                            <p class="helper-text"><a href="{{ url_for('auth.verify_signup_email') }}" target="_blank" rel="noopener">Verify email (opens a new tab)</a> before submitting. Verify the same email entered here, then return to this form. Codes expire after 15 minutes.</p>
-                            {% for error in form.email.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
                         </div>
                         <div class="form-group" data-contact-field="phone">
                             {{ form.phone.label }}
@@ -172,16 +191,14 @@
                     <section data-signup-step aria-label="Review and agreement">
                         <h3>Double-check your details</h3>
                         <dl class="signup-review" id="signup-review"></dl>
-                        <p class="helper-text">Use Back or an earlier phase above to make corrections before submitting.</p>
+                        <p class="helper-text">Use Back to make any corrections before submitting.</p>
                     <div class="form-group signup-terms">
                         <div class="signup-terms__choice">
-                            <label class="signup-terms__label">
-                                {{ form.accept_terms(id="accept_terms") }}
-                                <span>I accept the</span>
-                            </label>
-                            <button type="button" class="signup-terms__link" id="termsLink" aria-controls="terms-modal">
-                                Terms and Agreements
-                            </button>
+                            {{ form.accept_terms(id="accept_terms", aria_labelledby="terms-accept-label termsLink") }}
+                            <span class="signup-terms__copy">
+                                <label for="accept_terms" id="terms-accept-label">I accept the</label>
+                                <button type="button" class="signup-terms__link" id="termsLink" aria-controls="terms-modal">Terms and Agreements</button>
+                            </span>
                         </div>
                         {% for error in form.accept_terms.errors %}
                             <span class="field-error">{{ error }}</span>
@@ -192,13 +209,10 @@
                     <div class="signup-actions" hidden>
                         <button type="button" class="btn-auth-secondary" data-signup-back hidden>Back</button>
                         <button type="button" class="btn-auth-primary" data-signup-next>Continue</button>
+                        <button type="submit" class="btn-auth-primary" id="signup-submit" hidden>Create account</button>
                     </div>
                 </form>
 
-                <button type="submit" form="signup-form" class="btn-auth-primary" id="signup-submit">
-                    <i class="bx bx-user-plus"></i>
-                    Create Account
-                </button>
 
                 <div class="auth-form-card__footer">
                     <p>Already have an account?
@@ -244,6 +258,7 @@
 {% endblock %}
 
 {% block extra_js %}
+        <script src="{{ url_for('static', filename='js/signup_verification.js') }}"></script>
         <script src="{{ url_for('static', filename='js/signup_cor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/signup_steps.js') }}"></script>
 <script src="{{ url_for('static', filename='js/password_validity.js') }}"></script>

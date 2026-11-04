@@ -176,6 +176,10 @@
                         <span class="form-step-dot__label">Capstone Details</span>
                     </div>
                     <div class="form-step-dot__line"></div>
+                    <div class="form-step-dot" data-step-dot="certificates" hidden>
+                        <span class="form-step-dot__num">2</span>
+                        <span class="form-step-dot__label">Certification Details</span>
+                    </div>
                     <div class="form-step-dot" data-step-dot="2">
                         <span class="form-step-dot__num">2</span>
                         <span class="form-step-dot__label">Authors</span>
@@ -280,22 +284,17 @@
                     </div>
                 </div>
 
-                <fieldset class="form-group form-group--full">
-                    <legend>Status</legend>
+                <fieldset class="form-group form-group--full certification-status">
+                    <legend>Certification status</legend>
+                    <p class="helper-text">Select any that apply. Add the supporting certificate in the next step.</p>
                     <div class="status-checkbox-row">
-                        <label class="checkbox-label"><input type="checkbox" id="is_published" name="is_published" {% if form.is_published.data %}checked{% endif %}> Published</label>
-                        <span class="helper-text" id="publication-review-note"></span>
                         <label class="status-checkbox">
-                            <input type="checkbox" id="is_utilized" name="is_utilized">
-                            <span>Utilized</span>
+                            {{ form.is_utilized() }}
+                            <span><i class="bx bx-check-shield" aria-hidden="true"></i> Utilized</span>
                         </label>
                         <label class="status-checkbox">
-                            <input type="checkbox" id="is_presented" name="is_presented">
-                            <span>Presented</span>
-                        </label>
-                        <label class="status-checkbox">
-                            <input type="checkbox" id="is_copyright_registered" name="is_copyright_registered">
-                            <span>Copyright Registered</span>
+                            {{ form.is_copyright_registered() }}
+                            <span><i class="bx bx-copyright" aria-hidden="true"></i> Copyright Registered</span>
                         </label>
                     </div>
                 </fieldset>
@@ -314,6 +313,43 @@
 
                 </div>
                 {# ── end Step 1 ── #}
+
+                <div class="form-step form-step--hidden" data-step="certificates">
+                    <fieldset class="form-group form-group--full people-section" data-certificate="utilization" hidden disabled>
+                        <legend>Utilization certificate</legend>
+                        <div class="form-group">
+                            {{ form.utilization_date.label }}
+                            {{ form.utilization_date() }}
+                        </div>
+                        <div class="form-group">
+                            {{ form.utilization_file.label }}
+                            {{ form.utilization_file(accept='.pdf,.doc,.docx') }}
+                            <p class="helper-text" data-existing-certificate="utilization_file"></p>
+                        </div>
+                    </fieldset>
+                    <fieldset class="form-group form-group--full people-section" data-certificate="copyright" hidden disabled>
+                        <legend>Copyright registration certificate</legend>
+                        <div class="form-row">
+                            <div class="form-group">
+                                {{ form.copyright_cert_num.label }}
+                                {{ form.copyright_cert_num(maxlength=100) }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.copyright_cert_date.label }}
+                                {{ form.copyright_cert_date() }}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            {{ form.copyright_cert_file.label }}
+                            {{ form.copyright_cert_file(accept='.pdf,.doc,.docx') }}
+                            <p class="helper-text" data-existing-certificate="copyright_cert_file"></p>
+                        </div>
+                    </fieldset>
+                    <div class="form-actions">
+                        <button type="button" class="btn-pill btn-pill--ghost" id="btn-certificate-back"><i class="bx bx-left-arrow-alt"></i> Back</button>
+                        <button type="button" class="btn-pill btn-pill--primary" id="btn-certificate-next">Next: Authors <i class="bx bx-right-arrow-alt"></i></button>
+                    </div>
+                </div>
 
                 {# ══════════════════════════════════════════════
                    STEP 2 — Authors & Adviser

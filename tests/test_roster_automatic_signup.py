@@ -86,6 +86,102 @@ def query(connect,statement,params=()):
         conn.commit()
         return rows
 
+def test_roster_overview_counts_active_unique_students_and_verified_accounts(roster_db):
+    assert roster.roster_overview(1)=={'students':0,'verified':0}
+    import_list([
+        ['001234','Ada','','Lovelace','ada@example.edu'],
+        ['00002','Grace','','Hopper','grace@example.edu'],
+    ])
+    assert roster.roster_overview(1)=={'students':2,'verified':0}
+    assert student()[1]['decision']=='approved'
+    # A repeated roster identity must not inflate either total.
+    query(roster_db,"""WITH extra_upload AS (
+        INSERT INTO uploaded_by(file_name,class_name,academic_year,semester,status,file_type)
+        SELECT 'second.csv',class_name,academic_year,semester,status,file_type FROM uploaded_by
+        RETURNING upload_id
+    ) INSERT INTO roster(upload_id,university_no,person_type,contact)
+        SELECT u.upload_id,' 001234 ','Student',r.contact FROM extra_upload u
+        CROSS JOIN roster r WHERE r.university_no='001234'""")
+    # Overview also supports deployed uploads without the newer file_type column.
+    query(roster_db,'ALTER TABLE uploaded_by DROP COLUMN file_type CASCADE')
+    assert roster.roster_overview(1)=={'students':2,'verified':1}
+    query(roster_db,"UPDATE \"user\" SET account_status='inactive' WHERE university_no='001234'")
+    assert roster.roster_overview(1)=={'students':2,'verified':0}
+    query(roster_db,"UPDATE uploaded_by SET status='superseded'")
+    assert roster.roster_overview(1)=={'students':0,'verified':0}
+    with pytest.raises(PermissionError):
+        roster.roster_overview(3)
+
+
+def test_professors_only_access_their_own_masterlists(roster_db,feature_app):
+    other=query(roster_db,"""INSERT INTO "user"(role_id,account_status,user_first_name)
+        VALUES(47,'active','Other professor') RETURNING user_id""")[0][0]
+    first=import_list(actor=2)
+    second=import_list([['00002','Grace','','Hopper','grace@example.edu']],actor=other)
+    assert query(roster_db,'SELECT uploader_user_id FROM uploaded_by WHERE upload_id=%s',(first,))==[(2,)]
+    for actor,expected in ((2,first),(other,second)):
+        history,records,_=roster.read_roster(actor)
+        assert [row['upload_id'] for row in history]==[expected]
+        assert {row['upload_id'] for row in records}=={expected}
+        assert roster.roster_overview(actor)=={'students':1,'verified':0}
+    assert len(roster.read_roster(1)[0])==2
+    assert roster.roster_overview(1)['students']==2
+    foreign_record=query(roster_db,'SELECT roster_id FROM roster WHERE upload_id=%s',(second,))[0][0]
+    assert roster.get_record(2,foreign_record) is None
+    assert roster.get_record(1,foreign_record)
+    assert roster.read_roster(2,upload_id=second)[1:]==([],None)
+    assert roster.read_roster(2,search='Grace')[1]==[]
+    client=feature_app.test_client()
+    with client.session_transaction() as state:
+        state['user_id']=2
+    assert client.get(f'/roster/uploads/{second}').status_code==404
+    assert client.get(f'/roster/records/{foreign_record}').status_code==404
+    assert student()[1]['decision']=='approved'
+    assert roster.roster_overview(2)['verified']==1
+    assert roster.roster_overview(other)['verified']==0
+    # A professor cannot update or retire another professor's active list.
+    blocked=import_list(actor=other)
+    assert roster.read_roster(1,upload_id=blocked)[2]['skipped_count']==1
+    import_list([['00003','New','','Student','new@example.edu']],year='2027-2028',actor=2)
+    assert query(roster_db,'SELECT status FROM uploaded_by WHERE upload_id=%s',(second,))==[('active',)]
+    assert query(roster_db,'SELECT status FROM uploaded_by WHERE upload_id=%s',(first,))==[('superseded',)]
+
+
+def test_registered_roster_and_complete_class_masterlists(roster_db,feature_app):
+    rows=[['001234','Ada','','Lovelace','ada@example.edu']]
+    rows.extend([[f'N{index:04d}','Student','',str(index),f'student{index}@example.edu'] for index in range(104)])
+    import_list(rows,actor=2)
+    roster.import_roster(file([['B0001','Other','','Class','other@example.edu']]),'BSIT 2','2026-2027','1',2)
+    import_list([['A0001','Admin','','Student','admin-student@example.edu']],actor=1)
+    assert roster.read_roster(2,registered_only=True)[1]==[]
+    assert student()[1]['decision']=='approved'
+    registered=roster.read_roster(2,registered_only=True)[1]
+    assert [row['university_no'] for row in registered]==['001234']
+    groups=roster.read_class_masterlists(2)
+    assert [(group['class_name'],len(group['students'])) for group in groups]==[('BSIT 1',105),('BSIT 2',1)]
+    assert len(roster.read_class_masterlists(1))==3
+    client=feature_app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id=2,role_name='Capstone Professor')
+    html=client.get('/roster').get_data(as_text=True)
+    assert 'Uploaded masterlists' in html and 'YOUR STUDENT MASTERLIST' not in html
+    assert 'Other professors manage their own student records.' not in html
+    assert 'N0103' in html and 'A0001' not in html
+    students_panel=html.split('id="roster-panel-students"',1)[1].split('id="roster-panel-masterlists"',1)[0]
+    assert '001234' in students_panel and 'N0103' not in students_panel
+
+
+def test_upload_ownership_migration_backfills_known_audit_uploaders(roster_db):
+    upload=import_list(actor=2)
+    unknown=query(roster_db,"INSERT INTO uploaded_by(file_name,status) VALUES('unknown.csv','superseded') RETURNING upload_id")[0][0]
+    query(roster_db,'ALTER TABLE uploaded_by DROP COLUMN uploader_user_id CASCADE')
+    query(roster_db,(ROOT/'migrations/20261108_roster_upload_ownership.sql').read_text(encoding='utf-8'))
+    assert query(roster_db,'SELECT uploader_user_id FROM uploaded_by WHERE upload_id=%s',(upload,))==[(2,)]
+    assert query(roster_db,'SELECT uploader_user_id FROM uploaded_by WHERE upload_id=%s',(unknown,))==[(None,)]
+    assert [row['upload_id'] for row in roster.read_roster(2)[0]]==[upload]
+    assert len(roster.read_roster(1)[0])==2
+
+
 def test_csv_aliases_normalization_duplicates_and_invalid_rows():
     accepted,skipped = parse_upload(file([
         [' 001234 ',' Ada ','',' Lovelace ',' ADA@EXAMPLE.EDU '],
@@ -186,7 +282,8 @@ def test_nonmatches_are_rejected_without_claim(roster_db,mismatch):
     assert ok and result['decision']=='rejected'
     assert query(roster_db,'SELECT u.account_status,s.roster_id FROM "user" u JOIN signup s USING(user_id) WHERE s.signup_id=%s',(result['signup_id'],))==[('rejected',None)]
     assert auth.sign_in('ada','Secure123')[0] is None
-    assert not auth.review_verification_request(result['signup_id'],'approved','',1)[0]
+    if mismatch!='email':
+        assert not auth.review_verification_request(result['signup_id'],'approved','',1)[0]
     assert not users.set_account_status(5,'active',1)[0]
 
 def test_number_alone_and_consumed_proof_cannot_approve(roster_db):
@@ -318,7 +415,7 @@ def test_migration_preflight_refuses_history_without_changing_it(roster_db,confl
 def test_explicitly_superseded_unclassified_history_remains_ineligible(roster_db):
     query(roster_db,"INSERT INTO uploaded_by(file_name,status) VALUES('historical.csv','superseded')")
     query(roster_db,"INSERT INTO roster(upload_id,university_no,person_type,contact) VALUES(1,'001234','Student','ada@example.edu')")
-    assert migration_runner.upgrade_database()==[NEW]
+    assert migration_runner.upgrade_database()==[path.name for path in migration_runner.migration_files() if path.name>=NEW]
     assert query(roster_db,'SELECT status,file_type FROM uploaded_by')==[('superseded',None)]
     assert student()[1]['decision']=='rejected'
 

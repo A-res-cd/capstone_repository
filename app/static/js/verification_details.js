@@ -63,6 +63,7 @@
                 username: 'Username', email: 'Primary email', university_no: 'University number', role_name: 'Role',
                 account_status: 'Account status', request_status: 'Verification status',
                 request_date: 'Requested at (UTC)', filename: 'COR filename',
+                verification_reason: 'Previous verification result',
             };
             for (const [key, label] of Object.entries(labels)) {
                 const term = document.createElement('dt');
@@ -78,8 +79,8 @@
                 : data.filename ? `The ${documentLabel} file is missing or unavailable. Do not approve until the document is available.`
                 : 'No verification document was uploaded for this account.';
             if (data.role_name === 'Student') {
-                dialog.querySelector('[data-verification-approve]').disabled = true;
-                status.textContent += ' Student approval uses verified roster matching. Keep legacy pending records unchanged; an explicit rejection with correction guidance enables authenticated resubmission.';
+                dialog.querySelector('[data-verification-approve]').disabled = !data.manual_student_review || !data.document_url;
+                status.textContent += ' Review the COR and account email. Manual approval requires a unique active masterlist match and verified email ownership.';
             }
             if (data.document_url) {
                 const url = new URL(data.document_url, location.origin);

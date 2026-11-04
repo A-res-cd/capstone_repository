@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const extracted = await response.json();
             if (requestId !== extraction) return;
+            if (response.status === 403) document.dispatchEvent(new Event('signup:email-required'));
             if (!response.ok) throw new Error(extracted.error || 'Could not read this document.');
 
             Object.entries(fields).forEach(([key, field]) => {

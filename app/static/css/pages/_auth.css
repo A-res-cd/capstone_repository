@@ -362,24 +362,32 @@ main:has(.auth-shell) {
 
 .input-toggle-btn:hover { color: var(--text-brand); }
 
-.signup-terms__label {
-    display: flex;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-}
-
 .signup-terms__choice {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+    padding: 14px 16px;
+    border: var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--surface-paper);
+    color: var(--text-dark);
+    font-size: var(--text-sm);
+    line-height: 1.6;
 }
 
-.signup-terms__label input[type="checkbox"] {
-    width: auto;
-    accent-color: var(--color-primary);
+.signup-terms__choice:has(input:checked) { border-color: var(--color-accent); }
+.signup-terms__copy label { display: inline; font: inherit; font-weight: 500; cursor: pointer; }
+
+.signup-terms__choice input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-height: 0;
+    padding: 0;
+    margin: 2px 0 0;
+    box-shadow: none;
+    accent-color: var(--color-accent);
+    cursor: pointer;
 }
 
 .signup-terms__link {
@@ -388,9 +396,11 @@ main:has(.auth-shell) {
     background: none;
     color: var(--text-brand);
     font: inherit;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     text-decoration: underline;
+    text-underline-offset: 3px;
+    text-align: left;
 }
 
 .signup-terms__link:hover,
@@ -650,6 +660,40 @@ main:has(.auth-shell) {
 .signup-progress button:disabled { opacity: .5; cursor: default; }
 .signup-progress button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .signup-progress .is-active { border-color: var(--color-primary); color: var(--text-brand); font-weight: 700; }
+.signup-progress .is-complete { border-color: var(--color-accent); }
+.signup-progress { margin: 0; gap: .25rem; }
+.signup-step-caption { margin: 0; color: var(--color-gray-dark); font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; }
+.signup-step-title { margin: 0 0 12px; color: var(--text-brand); font-size: var(--text-lg); }
+[data-signup-step] { display: flex; flex-direction: column; gap: 16px; }
+[data-signup-step] > .helper-text { margin: 0; line-height: 1.6; }
+.signup-email-verification { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: var(--border-light); border-radius: var(--radius-md); background: var(--surface-paper); }
+.signup-email-verification .btn-auth-secondary { padding: 12px 16px; border: 1px solid var(--color-primary-soft); border-radius: var(--radius-pill); background: transparent; color: var(--text-brand); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.signup-email-verification .btn-auth-secondary:hover { background: var(--hover-tint); }
+.signup-email-verification button:disabled { opacity: .6; cursor: wait; }
+.signup-code-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.signup-code-row input { min-width: 0; flex: 1; min-height: 48px; letter-spacing: .12em; }
+.signup-code-row input::placeholder { letter-spacing: normal; }
+.signup-code-row button { flex-shrink: 0; min-height: 48px; }
+.signup-email-verification > .btn-auth-secondary { min-height: 48px; }
+#signup-email-status { margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--text-brand); }
+.signup-change-email { align-self: flex-start; border: 0; padding: 0; background: transparent; color: var(--text-brand); font: inherit; font-size: var(--text-sm); text-decoration: underline; cursor: pointer; }
+.auth-shell--signup .auth-annotation__index { display: none; }
+.signup-email-verification [hidden] { display: none !important; }
+@media (min-width: 901px) and (max-height: 760px) {
+    #signup-form { gap: 10px; }
+    [data-signup-step] { gap: 10px; }
+    .signup-step-title { margin-bottom: 4px; }
+    .signup-email-verification { padding: 12px; gap: 10px; }
+}
+@media (max-width: 480px) {
+    .signup-progress button { font-size: .7rem; padding: .5rem .1rem; }
+    .signup-code-row { flex-direction: column; align-items: stretch; }
+    .signup-review { grid-template-columns: minmax(0,1fr); gap: 4px; }
+    .signup-review dd { margin: 0 0 12px; }
+}
+@media (max-width: 900px) {
+    .auth-shell--signup .auth-annotation { display: none; }
+}
 .signup-review { display: grid; grid-template-columns: auto 1fr; gap: .5rem 1rem; margin: 1rem 0; }
 .signup-review dt { font-weight: 600; }
 .signup-review dd { margin: 0; overflow-wrap: anywhere; }

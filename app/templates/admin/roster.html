@@ -2,46 +2,93 @@
 {% block title %}Student Master Lists | CAPRE{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{{ url_for('static',filename='css/pages/_roster.css') }}">{% endblock %}
 {% block content %}
-<section class="roster-page">
+<section class="roster-page roster-masterlist">
 <header class="roster-header">
+<div class="roster-emblem" aria-hidden="true">{{ current_user.initials }}</div>
+<div class="roster-header-label">{{ role_meta.label if role_meta else session.get('role_name', '') }}</div>
 <div>
-<h1>Student Master Lists</h1>
+<h1>{{ current_user.display_name }}</h1>
 <p>Student numbers and verified email must match an active list. COR remains required. Names do not determine eligibility.</p>
 </div>
-<div class="roster-template-actions"><a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.roster_template',file_type='xlsx') }}"><i class="bx bx-download" aria-hidden="true"></i> XLSX template</a><a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.roster_template',file_type='csv') }}"><i class="bx bx-download" aria-hidden="true"></i> CSV template</a></div>
 </header>
-<section class="roster-panel" aria-labelledby="roster-upload-title">
-<h2 id="roster-upload-title"><i class="bx bx-cloud-upload" aria-hidden="true"></i> Import student list</h2>
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}<ul class="flash-list" role="status">{% for category,message in messages %}<li class="flash-{{ category }}">{{ message }}</li>{% endfor %}</ul>{% endif %}
+{% endwith %}
+<div class="roster-layout">
+<div class="roster-content">
+{% set import_active = upload or update_upload or request.method == 'POST' %}
+<div class="roster-tabs" role="tablist" aria-label="Student masterlist sections">
+<button type="button" id="roster-tab-students" class="roster-tab" role="tab" aria-controls="roster-panel-students" aria-selected="{{ 'false' if import_active else 'true' }}" tabindex="{{ '-1' if import_active else '0' }}"><i class="bx bx-group" aria-hidden="true"></i> Student roster</button>
+<button type="button" id="roster-tab-masterlists" class="roster-tab" role="tab" aria-controls="roster-panel-masterlists" aria-selected="false" tabindex="-1"><i class="bx bx-list-ul" aria-hidden="true"></i> Uploaded masterlists</button>
+<button type="button" id="roster-tab-import" class="roster-tab" role="tab" aria-controls="roster-panel-import" aria-selected="{{ 'true' if import_active else 'false' }}" tabindex="{{ '0' if import_active else '-1' }}"><i class="bx bx-cloud-upload" aria-hidden="true"></i> Import list</button>
+<button type="button" id="roster-tab-history" class="roster-tab" role="tab" aria-controls="roster-panel-history" aria-selected="false" tabindex="-1"><i class="bx bx-history" aria-hidden="true"></i> Upload history</button>
+</div>
+<div class="roster-tab-content">
+<div id="roster-panel-import" role="tabpanel" aria-labelledby="roster-tab-import" tabindex="0"{% if not import_active %} hidden{% endif %}>
+<section class="roster-panel roster-upload" aria-labelledby="roster-upload-title">
+<h2 id="roster-upload-title"><i class="bx bx-cloud-upload" aria-hidden="true"></i> {{ 'Update masterlist' if update_upload else 'Import student list' }}</h2>
+{% if update_upload %}<p>Update {{ update_upload.class_name }} in place. Add or correct unregistered students; existing students absent from the new file are kept. Registered identities remain protected. Rejected students must resubmit after a correction.</p>{% endif %}
 <form method="post" action="{{ url_for('admin.roster_upload') }}" enctype="multipart/form-data" class="roster-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% if update_upload %}<input type="hidden" name="update_upload_id" value="{{ update_upload.upload_id }}">{% endif %}
 <label class="roster-file">Student-list document (XLSX, DOCX, text-based PDF or CSV; up to 5 MiB)<input name="master_list" type="file" accept=".csv,.xlsx,.docx,.pdf" required></label>
-<label>Class<input name="class_name" maxlength="150" required></label>
-<label>Academic year<input name="academic_year" placeholder="2026-2027" pattern="[0-9]{4}-[0-9]{4}" required></label>
-<label>Semester<select name="semester" required><option value="1">First</option><option value="2">Second</option><option value="3">Summer</option></select></label>
+<label>Class<input name="class_name" maxlength="150" value="{{ update_upload.class_name if update_upload else '' }}" {% if update_upload %}readonly{% endif %} required></label>
+<label>Academic year<input name="academic_year" placeholder="2026-2027" pattern="[0-9]{4}-[0-9]{4}" value="{{ update_upload.academic_year if update_upload else '' }}" {% if update_upload %}readonly{% endif %} required></label>
+<label>Semester<select name="semester" required>{% for value,label in [('1','First'),('2','Second'),('3','Summer')] %}<option value="{{ value }}" {% if update_upload and update_upload.semester == label %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
 <button type="submit" class="btn-pill btn-pill--primary">Extract and preview</button>
 </form>
 <p>Keep identifiers as text, including leading zeros. Required headers: university_num (or university_no), user_first_name, user_last_name, contact (email). user_middle_name is optional. Select a worksheet/table in preview, then confirm. Scanned PDFs and legacy XLS/DOC are unsupported. Up to 10,000 rows and 40 columns; no names or addresses are invented.</p>
 </section>
 {% if upload %}
-<section class="roster-panel" aria-label="Import result">
+<section class="roster-panel roster-result" aria-label="Import result">
 <h2>Import #{{ upload.upload_id }} — {{ upload.academic_year }} {{ upload.semester }}</h2>
 <p>{{ upload.result.message }} Added {{ upload.added_count }}, updated {{ upload.updated_count }}, skipped {{ upload.skipped_count }}. Status: {{ upload.status }}.</p>
 {% if upload.result.skipped_rows %}<details open><summary>Skipped rows</summary><ul>{% for row in upload.result.skipped_rows %}<li>{% if row.source %}{% for key,value in row.source.items() %}{{ key|title }} {{ value }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}Row {{ row.row }}{% endif %}: {{ row.reason }}</li>{% endfor %}</ul></details>{% endif %}
 </section>
 {% endif %}
-<section class="roster-panel" aria-labelledby="roster-search-title">
-<h2 id="roster-search-title"><i class="bx bx-group" aria-hidden="true"></i> Roster search</h2>
-<form method="get" class="roster-search"><label>Number, email or name<input name="search" maxlength="100" value="{{ request.args.get('search','') }}"></label><button type="submit" class="btn-pill btn-pill--primary">Search</button></form>
-<p>Showing at most 100 matching rows. Open a record for details.</p>
-<div class="roster-table"><table><thead><tr><th>Number</th><th>Name</th><th>Email</th><th>Term</th><th>Status</th></tr></thead><tbody>
-{% for row in records %}<tr><td><a href="{{ url_for('admin.roster_record',roster_id=row.roster_id) }}">{{ row.university_no }}</a></td><td>{{ row.user_first_name }} {{ row.user_middle_name or '' }} {{ row.user_last_name }}</td><td>{{ row.contact }}</td><td>{{ row.academic_year }} {{ row.semester }}</td><td>{{ row.status }}</td></tr>{% else %}<tr><td colspan="5">No matching roster records.</td></tr>{% endfor %}
+</div>
+<section id="roster-panel-students" class="roster-panel roster-students" role="tabpanel" aria-labelledby="roster-tab-students" tabindex="0"{% if import_active %} hidden{% endif %}>
+<form method="get" class="roster-search"><label>Find a student<input name="search" maxlength="100" placeholder="Name, university ID or email" value="{{ request.args.get('search','') }}"></label><button type="submit" class="btn-pill btn-pill--ghost">Apply filters</button></form>
+<p>{{ records|length }} registered student{{ 's' if records|length != 1 else '' }} shown (up to 100 matching records).</p>
+<div class="roster-table"><table><thead><tr><th>Number</th><th>Name</th><th>Email</th><th>Class</th><th>Term</th><th>Registration</th></tr></thead><tbody>
+{% for row in records %}<tr><td><a href="{{ url_for('admin.roster_record',roster_id=row.roster_id) }}">{{ row.university_no }}</a></td><td>{{ row.user_first_name }} {{ row.user_middle_name or '' }} {{ row.user_last_name }}</td><td>{{ row.contact }}</td><td>{{ row.class_name }}</td><td>{{ row.academic_year }} {{ row.semester }}</td><td>{{ row.registration_status }}</td></tr>{% else %}<tr><td colspan="6">No registered students match your search.</td></tr>{% endfor %}
 </tbody></table></div>
 </section>
-<section class="roster-panel" aria-labelledby="roster-history-title">
+<section id="roster-panel-masterlists" class="roster-panel" role="tabpanel" aria-labelledby="roster-tab-masterlists" tabindex="0" hidden>
+{% for group in class_masterlists %}
+<details class="roster-class-group" {% if loop.first %}open{% endif %}>
+<summary>{{ group.class_name }} <span>{{ group.academic_year or 'No academic year' }} · {{ group.semester or 'No semester' }} · {{ group.students|length }} student{{ 's' if group.students|length != 1 else '' }}{% if session.get('role_name') == 'Admin' and group.uploader %} · {{ group.uploader }}{% endif %}</span></summary>
+<div class="roster-table"><table><thead><tr><th>Number</th><th>Name</th><th>Email</th><th>List eligibility</th><th>Registration</th></tr></thead><tbody>
+{% for row in group.students %}<tr><td><a href="{{ url_for('admin.roster_record',roster_id=row.roster_id) }}">{{ row.university_no }}</a></td><td>{{ row.user_first_name }} {{ row.user_middle_name or '' }} {{ row.user_last_name }}</td><td>{{ row.contact }}</td><td>{{ 'Eligible' if row.status == 'active' else 'Superseded' }}</td><td>{{ row.registration_status }}</td></tr>{% endfor %}
+</tbody></table></div>
+</details>
+{% else %}<p>No uploaded masterlists yet.</p>{% endfor %}
+</section>
+<section id="roster-panel-history" class="roster-panel roster-history" role="tabpanel" aria-labelledby="roster-tab-history" tabindex="0" hidden>
 <h2 id="roster-history-title"><i class="bx bx-history" aria-hidden="true"></i> Recent upload history</h2><p>Most recent 100 imports; result URLs remain available for older imports.</p>
-<div class="roster-table"><table><thead><tr><th>Import</th><th>Term / class</th><th>Uploader</th><th>Status</th><th>Added / updated / skipped</th></tr></thead><tbody>
-{% for row in history %}<tr><td><a href="{{ url_for('admin.roster_result',upload_id=row.upload_id) }}">{{ row.file_name }}</a></td><td>{{ row.academic_year }} {{ row.semester }} / {{ row.class_name }}</td><td>{{ row.uploader or 'Historical uploader' }}</td><td>{{ row.status }}</td><td>{{ row.added_count }} / {{ row.updated_count }} / {{ row.skipped_count }}</td></tr>{% else %}<tr><td colspan="5">No imports.</td></tr>{% endfor %}
+<div class="roster-table"><table><thead><tr><th>Import</th><th>Term / class</th><th>Uploader</th><th>Status</th><th>Added / updated / skipped</th><th>Manage</th></tr></thead><tbody>
+{% for row in history %}<tr><td><a href="{{ url_for('admin.roster_result',upload_id=row.upload_id) }}">{{ row.file_name }}</a></td><td>{{ row.academic_year }} {{ row.semester }} / {{ row.class_name }}</td><td>{{ row.uploader or 'Historical uploader' }}</td><td>{{ row.status }}</td><td>{{ row.added_count }} / {{ row.updated_count }} / {{ row.skipped_count }}</td><td>{% if row.status == 'active' %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.roster_upload',update_upload_id=row.upload_id) }}">Update masterlist</a>{% endif %}</td></tr>{% else %}<tr><td colspan="6">No imports.</td></tr>{% endfor %}
 </tbody></table></div>
 </section>
+</div>
+</div>
+<aside class="roster-summary" aria-label="Masterlist overview and resources">
+<section aria-labelledby="roster-overview-title">
+<h2 id="roster-overview-title">Roster overview</h2>
+<dl class="roster-metrics">
+<div><dd>{{ overview.students }}</dd><dt>Students in masterlist</dt></div>
+<div><dd>{{ overview.verified }}</dd><dt>Verified registered students</dt></div>
+</dl>
+<p>Unique students in active masterlists. Verified students have approved registration and an active student account. Totals include students hidden by search.</p>
 </section>
+<section aria-labelledby="roster-eligibility-title">
+<h2 id="roster-eligibility-title">Registration &amp; eligibility</h2>
+<p>Students must match an active masterlist by student number and verified email. A Certificate of Registration is still required.</p>
+</section>
+</aside>
+</div>
+</section>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static',filename='js/roster_tabs.js') }}"></script>
 {% endblock %}

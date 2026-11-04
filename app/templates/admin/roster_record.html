@@ -2,5 +2,5 @@
 {% block title %}Roster Record | CAPRE{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{{ url_for('static',filename='css/pages/_roster.css') }}">{% endblock %}
 {% block content %}<section class="roster-page"><h1>Roster record #{{ record.roster_id }}</h1>
-<dl>{% for key in ['university_no','person_type','user_first_name','user_middle_name','user_last_name','contact','class_name','academic_year','semester','status','created_at','updated_at'] %}<dt>{{ key|replace('_',' ')|title }}</dt><dd>{{ record[key] or '—' }}</dd>{% endfor %}</dl>
+<dl>{% for key in ['university_no','person_type','user_first_name','user_middle_name','user_last_name','contact','class_name','academic_year','semester','status','registration_status','registration_reason','created_at','updated_at'] %}<dt>{{ 'List eligibility' if key == 'status' else key|replace('_',' ')|title }}</dt><dd>{{ ('Eligible' if record.status == 'active' else 'Superseded') if key == 'status' else record[key] or '—' }}</dd>{% endfor %}</dl>
 <a href="{{ url_for('admin.roster_result',upload_id=record.upload_id) }}">Original import and result</a></section>{% endblock %}

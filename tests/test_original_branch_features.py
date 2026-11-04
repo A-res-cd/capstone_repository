@@ -141,7 +141,8 @@ def feature_app(monkeypatch, tmp_path):
 
     @app.context_processor
     def context():
-        return dict(hide_header=True, hide_nav=True)
+        return dict(hide_header=True, hide_nav=True, role_meta=None,
+                    current_user={'initials': 'T', 'display_name': 'Test user', 'avatar_filename': None})
 
     monkeypatch.setattr(pages.history, 'record_capstone_view', lambda *args: True)
     # Existing workflow tests isolate email ownership and bot checks; dedicated
@@ -358,9 +359,9 @@ def test_registration_path_guards_and_missing_files(feature_app, monkeypatch):
             assert resolve_cor_file(filename) is None
     client = feature_app.test_client()
     login(client)
-    monkeypatch.setattr(admin.users, 'get_verification_document', lambda _: {'filename': '../COR.pdf'})
+    monkeypatch.setattr(admin.users, 'get_verification_document', lambda *args: {'filename': '../COR.pdf'})
     assert client.get('/manage_users/verify/1/document').status_code == 404
-    monkeypatch.setattr(admin.users, 'get_verification_details', lambda _: {'filename': 'missing.pdf'})
+    monkeypatch.setattr(admin.users, 'get_verification_details', lambda *args: {'filename': 'missing.pdf'})
     response = client.get('/manage_users/verify/1/details')
     assert response.json['document_url'] is None and response.json['size_bytes'] is None
 
@@ -533,12 +534,17 @@ def test_password_icons_without_internet(feature_app, page, path):
         if url.netloc != 'offline.test':
             route.abort()
             return
+        if url.path == '/signup/verify-email':
+            route.fulfill(json={'verified': True, 'email': 'student@example.edu'})
+            return
         response = client.get(url.path)
         route.fulfill(status=response.status_code, body=response.data, content_type=response.content_type)
 
     page.route('**/*', handle)
     page.goto('http://offline.test' + path)
     if path == '/signup':
+        expect(page.locator('#signup-form')).to_have_attribute('data-email-verified', 'true')
+        page.locator('[data-signup-next]').click()
         page.locator('#cor').set_input_files(dict(name='cor.pdf', mimeType='application/pdf', buffer=pdf_bytes()))
         expect(page.locator('#cor')).to_have_attribute('data-extracting', 'false')
         page.locator('[data-signup-next]').click()
@@ -569,8 +575,8 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     monkeypatch.setattr(admin.audit, 'get_audit_logs', lambda *args: dict(events=[summarize_audit(event, {})], counts=dict(account=1, capstone=0, workflow=0, other=0), total=1, page=1, pages=1))
     monkeypatch.setattr(admin.users, 'get_users', lambda **kwargs: ([dict(user_id=2, full_name='Maria Cruz', university_no='2026-002', email='maria@example.com', role='Student', role_id=1, account_status='active')], 1))
     monkeypatch.setattr(admin.users, 'get_all_roles', lambda: [(1, 'Student'), (3, 'Admin'), (4, 'Faculty')])
-    monkeypatch.setattr(admin.users, 'get_pending_verifications', lambda: [dict(request_id=1, full_name='Maria Cruz', role='Student', email='maria@example.com', university_no=None)])
-    monkeypatch.setattr(admin.users, 'get_verification_details', lambda request_id: dict(request_id=1, full_name='<img src=x onerror=alert(1)>', filename='COR.pdf', size_bytes=500))
+    monkeypatch.setattr(admin.users, 'get_pending_verifications', lambda *args: [dict(request_id=1, full_name='Maria Cruz', role='Student', email='maria@example.com', university_no=None)])
+    monkeypatch.setattr(admin.users, 'get_verification_details', lambda *args: dict(request_id=1, full_name='<img src=x onerror=alert(1)>', filename='COR.pdf', size_bytes=500))
     folder = Path(feature_app.config['UPLOAD_REGISTRATION_FOLDER'])
     folder.mkdir()
     (folder / 'COR.pdf').write_bytes(pdf_bytes())
@@ -695,7 +701,7 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
 
 
 @pytest.mark.parametrize('preference', ['email', 'phone'])
-def test_signup_four_phases(feature_app, page, monkeypatch, preference):
+def test_signup_five_phases(feature_app, page, monkeypatch, preference):
     client = feature_app.test_client()
     captured = []
     monkeypatch.setattr(auth.registration, 'create_user', lambda *args, **kwargs: (captured.append((args, kwargs)) or True, {}))
@@ -708,6 +714,9 @@ def test_signup_four_phases(feature_app, page, monkeypatch, preference):
         if url.path == '/signup/extract-cor':
             route.fulfill(json={})
             return
+        if url.path == '/signup/verify-email':
+            route.fulfill(json={'verified': True, 'email': 'maria@example.com'})
+            return
         response = client.open(url.path, method=route.request.method,
                                data=route.request.post_data_buffer,
                                content_type=route.request.headers.get('content-type'))
@@ -717,6 +726,8 @@ def test_signup_four_phases(feature_app, page, monkeypatch, preference):
     page.route('**/*', handle)
     page.goto('http://offline.test/signup')
     expect(page.locator('[data-signup-step]:visible')).to_have_count(1)
+    expect(page.locator('#signup-form')).to_have_attribute('data-email-verified', 'true')
+    page.locator('[data-signup-next]').click()
     page.locator('[data-signup-next]').click()
     expect(page.locator('#signup-step-error')).to_contain_text('Upload')
     page.locator('#cor').set_input_files(dict(name='cor.pdf', mimeType='application/pdf', buffer=pdf_bytes()))
@@ -730,8 +741,8 @@ def test_signup_four_phases(feature_app, page, monkeypatch, preference):
     page.locator('#confirm_password').fill('Secure123')
     page.locator('[data-signup-next]').click()
     page.locator('#preferred_contact').select_option(preference)
-    page.locator('#email').fill('maria@example.com')
-    page.locator('#' + preference).fill('maria@example.com' if preference == 'email' else '09171234567')
+    if preference == 'phone':
+        page.locator('#phone').fill('09171234567')
     page.locator('[data-signup-next]').click()
     expect(page.locator('#signup-review')).to_contain_text('Maria Cruz')
     expect(page.locator('#signup-review')).not_to_contain_text('Secure123')

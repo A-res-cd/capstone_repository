@@ -65,30 +65,39 @@ document.addEventListener('DOMContentLoaded', () => {
         steps.forEach((step, i) => { step.hidden = i !== current; });
         labels.forEach((label, i) => {
             label.classList.toggle('is-active', i === current);
+            label.classList.toggle('is-complete', i < current);
             label.disabled = i > furthest;
             if (i === current) label.setAttribute('aria-current', 'step');
             else label.removeAttribute('aria-current');
         });
         back.hidden = current === 0;
-        next.hidden = current === steps.length - 1;
+        next.hidden = current === steps.length - 1 || (current === 0 && form.dataset.emailVerified !== 'true');
         submit.hidden = current !== steps.length - 1;
         error.hidden = true;
+        document.getElementById('signup-step-caption').textContent = `Step ${index + 1} of ${steps.length}`;
+        next.textContent = index === 0 ? 'Continue to document' : index === steps.length - 2 ? 'Review account' : 'Continue';
+        form.closest('.auth-form-card').scrollTop = 0;
         updateReview();
         Array.from(steps[current].querySelectorAll('input, select')).find(input => !input.disabled && !input.closest('[hidden]'))?.focus();
     }
 
     function validateStep(index) {
-        if (index === 0 && document.getElementById('cor').dataset.extracting === 'true') {
+        if (index === 0 && form.dataset.emailVerified !== 'true') {
+            error.textContent = 'Verify your email to continue.';
+            error.hidden = false;
+            return false;
+        }
+        if (index === 1 && document.getElementById('cor').dataset.extracting === 'true') {
             error.textContent = 'Please wait while we read your COR.';
             error.hidden = false;
             return false;
         }
-        if (index === 2 && !['email', 'phone'].includes(preference.value)) {
+        if (index === 3 && !['email', 'phone'].includes(preference.value)) {
             error.textContent = 'Choose email or phone to continue.';
             error.hidden = false;
             return false;
         }
-        if (index === 0 && !document.getElementById('cor').files.length) {
+        if (index === 1 && !document.getElementById('cor').files.length) {
             error.textContent = role.value === 'Faculty' ? 'Upload a JPG or PNG faculty ID.' : 'Upload your COR PDF to continue.';
             error.hidden = false;
             return false;
@@ -99,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             }
         }
-        if (index === 1) {
+        if (index === 2) {
             const password = document.getElementById('password').value;
             const confirmed = form.querySelector('[name="confirm_password"]').value;
             let message = '';
@@ -128,6 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     back.addEventListener('click', () => show(current - 1));
     next.addEventListener('click', () => { if (validateStep(current)) show(current + 1); });
+    document.addEventListener('signup:email-verified', () => show(1));
+    document.addEventListener('signup:email-required', () => show(0));
     form.addEventListener('submit', event => {
         event.preventDefault();
         if (submitting) return;

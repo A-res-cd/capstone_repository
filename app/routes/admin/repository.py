@@ -11,6 +11,7 @@ from app.db.capstones import (
     get_used_keyword,
     create_capstone_project,
     get_capstone_details,
+    get_capstone_certificates,
     update_capstone_record,
     set_capstone_people,
     get_capstone_people,
@@ -122,6 +123,29 @@ def _save_file(file_obj):
     return save_manuscript_upload(file_obj)
 
 
+def _certificate_uploads(form, saved_files, existing=None):
+    existing = existing or {}
+    certificates = {}
+    for kind, enabled, file_name, date_name in (
+        ('copyright', form.is_copyright_registered.data, 'copyright_cert_file', 'copyright_cert_date'),
+        ('utilization', form.is_utilized.data, 'utilization_file', 'utilization_date'),
+    ):
+        if not enabled:
+            continue
+        path = existing.get(file_name)
+        upload = getattr(form, file_name).data
+        if upload and upload.filename:
+            filename, error = _save_file(upload)
+            if error:
+                raise ValueError(error)
+            path = stored_manuscript_path(filename)
+            saved_files.append(path)
+        certificates[kind] = {'file': path, 'date': getattr(form, date_name).data}
+        if kind == 'copyright':
+            certificates[kind]['number'] = form.copyright_cert_num.data.strip()
+    return certificates
+
+
 @admin.route("/repository")
 @role_required(ROLE_FACULTY, ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def view_capstone_repository():
@@ -171,7 +195,7 @@ def view_capstone_repository():
 
 
 @admin.route("/repository/<int:capstone_id>/people")
-@role_required(ROLE_ADMIN)
+@role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def get_capstone_people_json(capstone_id):
     """Feeds the Edit-panel wizard's Authors/Adviser step — capstone
     people were previously only fetchable server-side, so editing an
@@ -181,7 +205,7 @@ def get_capstone_people_json(capstone_id):
     authors = [
         {"first": r["aut_first_name"], "middle": r["aut_middle_name"] or "", "last": r["aut_last_name"]}
         for r in rows if r["role"] == "Author"
-    ][:4]
+    ][:5]
 
     adviser_row = next((r for r in rows if r["role"] == "Adviser"), None)
     adviser = (
@@ -189,7 +213,11 @@ def get_capstone_people_json(capstone_id):
         if adviser_row else {"first": "", "middle": "", "last": ""}
     )
 
-    return jsonify({"success": True, "authors": authors, "adviser": adviser})
+    certificates = get_capstone_certificates(capstone_id)
+    for name in ('copyright_cert_date', 'utilization_date'):
+        if certificates.get(name):
+            certificates[name] = certificates[name].isoformat()
+    return jsonify({"success": True, "authors": authors, "adviser": adviser, "certificates": certificates})
 
 
 @admin.route("/repository/create", methods=["GET", "POST"])
@@ -220,6 +248,7 @@ def admin_create_capstone():
         return _rerender()
 
     filename = None
+    certificate_files = []
     success = False
     try:
         file = form.capstone_file.data
@@ -235,28 +264,36 @@ def admin_create_capstone():
 
         file_path = stored_manuscript_path(filename)
         authors, adviser = _people_for_db(form)
+        certificates = _certificate_uploads(form, certificate_files)
         success, message = create_capstone_project(
             None, form.specialization_id.data, form.program_id.data,
             form.capstone_title.data, form.capstone_year.data,
             file_path, form.semester.data,
             acting_user_id=session.get("user_id"),
             is_utilized=form.is_utilized.data,
-            is_presented=form.is_presented.data,
-            is_published=form.is_published.data,
             abstract_text=_abstract_for_manuscript(file_path),
             is_copyright_registered=form.is_copyright_registered.data,
             capstone_keywords=form.capstone_keywords.data,
             authors=authors, adviser=adviser,
+            certificates=certificates,
         )
         if success:
             flash("Capstone created successfully!", "success")
             return redirect(url_for("admin.view_capstone_repository"))
         flash(message, "danger")
 
+    except ValueError as exc:
+        flash(str(exc), 'danger')
     except Exception as exc:
         logger.error("admin_create_capstone error: %s", exc)
         flash("An error occurred while processing your request.", "danger")
     finally:
+        if not success:
+            for path in certificate_files:
+                try:
+                    remove_manuscript_file(path)
+                except OSError:
+                    logger.exception('Could not clean up certificate upload')
         if filename and not success:
             try:
                 remove_manuscript_file(stored_manuscript_path(filename))
@@ -278,6 +315,8 @@ def update_capstone(capstone_id):
 
     form = UpdateCapstoneForm()
     _populate_capstone_choices(form)
+    existing_certificates = get_capstone_certificates(capstone_id)
+    form.existing_certificates = existing_certificates
 
     def _rerender():
         capstones, _ = get_all_capstones()
@@ -295,6 +334,8 @@ def update_capstone(capstone_id):
         flash(_first_form_error(form), "danger")
         return _rerender()
 
+    saved_files = []
+    success = False
     try:
         new_keywords = (form.capstone_keywords.data or "").strip()
 
@@ -307,6 +348,9 @@ def update_capstone(capstone_id):
                 flash(err, "danger")
                 return _rerender()
             file_path = stored_manuscript_path(filename)
+            saved_files.append(file_path)
+
+        certificates = _certificate_uploads(form, saved_files, existing_certificates)
 
         # Update capstone record
         success, message = update_capstone_record(
@@ -316,10 +360,11 @@ def update_capstone(capstone_id):
             acting_user_id=session.get("user_id"),
             capstone_keywords=new_keywords,
             is_utilized=form.is_utilized.data,
-            is_presented=form.is_presented.data,
-            is_published=form.is_published.data,
+            is_presented=capstone['is_presented'],
+            is_published=capstone['is_published'],
             abstract_text=_abstract_for_manuscript(file_path) if file and getattr(file, "filename", "") else None,
-            is_copyright_registered=form.is_copyright_registered.data)
+            is_copyright_registered=form.is_copyright_registered.data,
+            certificates=certificates)
 
         if not success:
             flash(f"Error updating capstone: {message}", "danger")
@@ -336,8 +381,17 @@ def update_capstone(capstone_id):
             flash("Capstone updated successfully!", "success")
         return redirect(url_for("admin.view_capstone_repository"))
 
+    except ValueError as exc:
+        flash(str(exc), 'danger')
     except Exception as e:
         logger.error("update_capstone_route error: %s", e)
         flash("Something went wrong updating this capstone. Please try again.", "danger")
+    finally:
+        if not success:
+            for path in saved_files:
+                try:
+                    remove_manuscript_file(path)
+                except OSError:
+                    logger.exception('Could not clean up unsuccessful capstone update')
 
     return _rerender()

@@ -58,8 +58,8 @@ def document(kind,rows=None,tables=1):
         output.write(data)
     return output.getvalue()
 
-def stage(kind='xlsx',actor=1,binding=BINDING,**kwargs):
-    return roster_stage.create_stage(FileStorage(stream=BytesIO(document(kind,**kwargs)),filename='students.'+kind),'BSIT 1','2026-2027','1',actor,binding)
+def stage(kind='xlsx',actor=1,binding=BINDING,update_upload_id=None,**kwargs):
+    return roster_stage.create_stage(FileStorage(stream=BytesIO(document(kind,**kwargs)),filename='students.'+kind),'BSIT 1','2026-2027','1',actor,binding,update_upload_id)
 
 @pytest.mark.parametrize('kind',['xlsx','docx','pdf'])
 def test_format_mapping_source_and_leading_zero(kind):
@@ -113,7 +113,7 @@ def test_private_staging_selection_and_idempotence(roster_db):
         results=list(pool.map(lambda _:roster_stage.confirm(token,1,BINDING,'1'),range(2)))
     assert results[0]==results[1]
     assert query(roster_db,'SELECT COUNT(*) FROM uploaded_by')==[(1,)]
-    assert query(roster_db,'SELECT payload FROM roster_import_stage')==[({},)]
+    assert query(roster_db,'SELECT payload FROM roster_import_stage')==[({'confirmed_result':results[0]},)]
 
 def test_staging_owner_session_expiry_and_cleanup(roster_db):
     token=stage()
@@ -129,13 +129,13 @@ def test_staging_owner_session_expiry_and_cleanup(roster_db):
     assert query(roster_db,'SELECT COUNT(*) FROM uploaded_by')==[(0,)]
 
 def test_confirmation_rechecks_claim_and_rolls_back(roster_db,monkeypatch):
-    import_list()
-    token=stage(rows=[list(HEADERS),['001234','Changed','','Name','ada@example.edu']])
+    upload=import_list()
+    token=stage(update_upload_id=upload,rows=[list(HEADERS),['001234','Changed','','Name','ada@example.edu']])
     assert roster_stage.preview(token,1,BINDING)['summary']['updated']==1
     assert student()[0]
     result=roster_stage.confirm(token,1,BINDING)
     assert result['updated']==0 and result['skipped']==1
-    token=stage(rows=[list(HEADERS),['009999',*ROW[1:]]])
+    token=stage(update_upload_id=upload,rows=[list(HEADERS),['009999',*ROW[1:]]])
     original=roster.log_audit
     monkeypatch.setattr(roster,'log_audit',lambda *a,**k: (_ for _ in ()).throw(RuntimeError('audit unavailable')))
     with pytest.raises(RuntimeError):
@@ -145,13 +145,59 @@ def test_confirmation_rechecks_claim_and_rolls_back(roster_db,monkeypatch):
     monkeypatch.setattr(roster,'log_audit',original)
     assert roster_stage.confirm(token,1,BINDING)['added']==1
 
+def test_masterlist_update_reuses_class_list_and_corrects_rejected_email(roster_db,feature_app):
+    upload=import_list([
+        ROW,
+        ['00002','Grace','','Hopper','grace@example.edu'],
+    ])
+    before=roster.read_roster(1)[1]
+    assert all(row['registration_status']=='Not registered' and row['status']=='active' for row in before)
+    client=feature_app.test_client()
+    with client.session_transaction() as state:
+        state['user_id']=1
+    page=client.get(f'/roster?update_upload_id={upload}')
+    assert page.status_code==200 and b'name="update_upload_id"' in page.data and b'Update masterlist' in page.data
+    duplicate=client.post('/roster',data={'master_list':(BytesIO(document('xlsx')),'students.xlsx'),
+        'class_name':'BSIT 1','academic_year':'2026-2027','semester':'1'})
+    assert b'already has an active masterlist' in duplicate.data
+    ok,result=student(email='correct@example.edu')
+    assert ok and result['decision']=='rejected'
+    reason=query(roster_db,'SELECT reason FROM signup ORDER BY signup_id DESC LIMIT 1')[0][0]
+    assert 'Verified email does not match' in reason
+    assert 'Rejected' in next(row for row in roster.read_roster(1)[1] if row['university_no']=='001234')['registration_status']
+    with pytest.raises(ValueError,match='already has an active masterlist'):
+        stage()
+    token=stage(update_upload_id=upload,rows=[list(HEADERS),['001234','Ada','','Lovelace','correct@example.edu']])
+    assert roster_stage.preview(token,1,BINDING)['summary']['updated']==1
+    update=roster_stage.confirm(token,1,BINDING)
+    assert update['upload_id']==upload and update['updated']==1
+    assert query(roster_db,'SELECT COUNT(*) FROM uploaded_by')==[(1,)]
+    assert query(roster_db,'SELECT COUNT(*) FROM roster')==[(2,)]
+    assert student(email='correct@example.edu',resubmit=True)[1]['decision']=='approved'
+    assert next(row for row in roster.read_roster(1)[1] if row['university_no']=='001234')['registration_status']=='Verified registered'
+    protected=stage(update_upload_id=upload,rows=[list(HEADERS),['001234','Changed','','Name','different@example.edu']])
+    assert roster_stage.confirm(protected,1,BINDING)['skipped']==1
+    assert roster_stage.confirm(token,1,BINDING)==update
+    with pytest.raises(ValueError,match='allowed to update'):
+        stage(actor=2,update_upload_id=upload)
+
+
+def test_duplicate_class_previews_are_rechecked_at_confirmation(roster_db):
+    first=stage()
+    second=stage()
+    roster_stage.confirm(first,1,BINDING)
+    with pytest.raises(ValueError,match='already has an active masterlist'):
+        roster_stage.confirm(second,1,BINDING)
+    assert query(roster_db,'SELECT COUNT(*) FROM uploaded_by')==[(1,)]
+
+
 def test_confirmation_rechecks_term_and_diagram_columns(roster_db):
     token=stage()
     import_list(year='2027-2028')
     with pytest.raises(ValueError,match='Older-term'):
         roster_stage.confirm(token,1,BINDING)
     columns=query(roster_db,"SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='uploaded_by' ORDER BY ordinal_position")
-    assert [r[0] for r in columns]==['upload_id','file_name','class_name','academic_year','semester','status','uploaded_at','file_type']
+    assert [r[0] for r in columns]==['upload_id','file_name','class_name','academic_year','semester','status','uploaded_at','file_type','uploader_user_id']
     assert query(roster_db,"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='user' AND column_name='roster_id'")==[(0,)]
 
 @pytest.mark.parametrize('kind',['docx','pdf'])
@@ -217,7 +263,7 @@ def test_fresh_schema_executes_and_preserves_diagram(roster_db,schema_file):
         cursor.execute('CREATE SCHEMA fresh_check; SET LOCAL search_path TO fresh_check')
         cursor.execute((ROOT/'database'/schema_file).read_text(encoding='utf-8'))
         cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='fresh_check' AND table_name='uploaded_by' ORDER BY ordinal_position")
-        assert [r[0] for r in cursor.fetchall()]==['upload_id','file_name','class_name','academic_year','semester','status','uploaded_at','file_type']
+        assert [r[0] for r in cursor.fetchall()]==['upload_id','uploader_user_id','file_name','class_name','academic_year','semester','status','uploaded_at','file_type']
         cursor.execute("SELECT relrowsecurity FROM pg_class WHERE oid='roster_import_stage'::regclass")
         assert cursor.fetchone()==(True,)
         cursor.execute("SELECT relrowsecurity FROM pg_class WHERE oid IN ('roster'::regclass,'uploaded_by'::regclass)")

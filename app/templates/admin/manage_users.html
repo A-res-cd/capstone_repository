@@ -56,8 +56,8 @@
     ══════════════════════════════════════════════════════ #}
     <div class="mu-panel {% if is_admin %}mu-panel--hidden{% endif %}" id="panel-pending" data-tab-panel>
         <div class="mu-panel-header">
-            <h3><i class="bx bx-user-check" aria-hidden="true"></i> Pending Account Verifications</h3>
-            <p>New sign-ups waiting for approval before they can sign in.</p>
+            <h3><i class="bx bx-user-check" aria-hidden="true"></i> Account Verifications</h3>
+            <p>Review pending applications and students who failed automatic verification but match your active masterlist by student number.</p>
         </div>
 
         {% if pending_verifications %}
@@ -67,6 +67,7 @@
                 <div class="record-card__avatar">{{ pv.full_name[:1] }}</div>
                 <div class="record-card__body">
                     <p class="record-card__title">{{ pv.full_name }}</p>
+                    {% if pv.role == 'Student' and pv.verification_reason %}<p class="helper-text">{{ pv.verification_reason }}</p>{% endif %}
                     <div class="record-card__meta">
                         <span class="record-card__meta-item"><i class="bx bx-id-card" aria-hidden="true"></i>{{ pv.university_no }}</span>
                         <span class="record-card__meta-item"><i class="bx bx-envelope" aria-hidden="true"></i>{{ pv.email or '—' }}</span>

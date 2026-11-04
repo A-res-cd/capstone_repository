@@ -23,12 +23,18 @@ def roster_access(view):
 @roster_access
 def roster_upload():
     binding=session.setdefault('roster_import_binding',secrets.token_urlsafe(32))
+    update_id=request.values.get('update_upload_id',type=int)
+    update_upload=roster.read_roster(session['user_id'],upload_id=update_id)[2] if update_id is not None else None
+    if update_id is not None and (not update_upload or update_upload['status']!='active'):
+        abort(404)
     if request.method == 'POST':
         upload = request.files.get('master_list')
         try:
             if not upload or not upload.filename:
                 raise ValueError('Choose a student master-list file.')
-            token=roster_stage.create_stage(upload,request.form.get('class_name'),request.form.get('academic_year'),request.form.get('semester'),session['user_id'],binding)
+            if request.form.get('update_upload_id') and update_id is None:
+                raise ValueError('Invalid masterlist update target.')
+            token=roster_stage.create_stage(upload,request.form.get('class_name'),request.form.get('academic_year'),request.form.get('semester'),session['user_id'],binding,update_id)
         except PermissionError:
             abort(403)
         except ValueError as exc:
@@ -38,8 +44,10 @@ def roster_upload():
             flash('Import failed; no roster changes saved. Try again later.','danger')
         else:
             return redirect(url_for('admin.roster_preview',token=token))
-    history,records,_ = roster.read_roster(session['user_id'],request.args.get('search',''))
-    return render_template('admin/roster.html',history=history,records=records,upload=None)
+    history,records,_ = roster.read_roster(session['user_id'],request.args.get('search',''),registered_only=True)
+    return render_template('admin/roster.html',history=history,records=records,upload=None,
+                           overview=roster.roster_overview(session['user_id']),update_upload=update_upload,
+                           class_masterlists=roster.read_class_masterlists(session['user_id']))
 
 @admin.route('/roster/preview/<uuid:token>')
 @roster_access
@@ -81,10 +89,12 @@ def roster_confirm(token):
 @admin.route('/roster/uploads/<int:upload_id>')
 @roster_access
 def roster_result(upload_id):
-    history,records,upload = roster.read_roster(session['user_id'],request.args.get('search',''),upload_id)
+    history,records,upload = roster.read_roster(session['user_id'],request.args.get('search',''),upload_id,registered_only=True)
     if not upload:
         abort(404)
-    return render_template('admin/roster.html',history=history,records=records,upload=upload)
+    return render_template('admin/roster.html',history=history,records=records,upload=upload,
+                           overview=roster.roster_overview(session['user_id']),
+                           class_masterlists=roster.read_class_masterlists(session['user_id']))
 
 @admin.route('/roster/template/<file_type>')
 @roster_access

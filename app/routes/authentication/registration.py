@@ -28,6 +28,14 @@ def signup_form_ready(form):
 @auth.route("/signup/verify-email", methods=["GET", "POST"])
 def verify_signup_email():
     form = SignupEmailForm()
+    inline = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if inline and request.method == 'GET':
+        email = session.get('signup_verified_email', '')
+        try:
+            verified = signup_email_is_verified(session.get('signup_email_verification_id'), email)
+        except psycopg2.Error:
+            return jsonify(error='Email verification is temporarily unavailable.'), 503
+        return jsonify(verified=verified, email=email if verified else '')
     if request.method == 'POST' and request.form.get('action') == 'send':
         form.code.raw_data = []
         form.code.data = ''
@@ -42,20 +50,28 @@ def verify_signup_email():
                 mail.send(signup_verification_email(email, code, EXPIRY_MINUTES))
             except (SMTPException, OSError, AssertionError, psycopg2.Error):
                 logger.exception('Signup verification email could not be delivered')
+                if inline:
+                    return jsonify(error='Could not send your code. Please try again later.'), 503
                 flash('Could not send your verification code. Please try again later.', 'danger')
             else:
                 session['signup_email_verification_id'] = verification_id
+                if inline:
+                    return jsonify(sent=True, message='Code sent. Check your inbox and spam folder.')
                 flash('Code sent. Check your inbox and spam folder. It expires in 15 minutes.', 'success')
         elif action == 'verify':
             try:
                 verified = bool(form.code.data) and verify_email_code(session.get('signup_email_verification_id'), email, form.code.data)
             except psycopg2.Error:
                 logger.exception('Signup email verification unavailable')
+                if inline:
+                    return jsonify(error='Email verification is temporarily unavailable.'), 503
                 flash('Email verification is temporarily unavailable. Please try again later.', 'danger')
                 return render_template('authentication/verify_signup_email.html', form=form,
                                        hide_nav=True, hide_header=True), 503
             if verified:
                 session['signup_verified_email'] = email
+                if inline:
+                    return jsonify(verified=True, email=email)
                 flash('Email verified. Return to your signup tab and finish creating your account.', 'success')
             else:
                 form.code.errors.append('Invalid or expired code. After five incorrect attempts, request a new code.')
@@ -63,6 +79,9 @@ def verify_signup_email():
             form.code.errors.append('Choose Send code or Verify email.')
     elif request.method == 'GET':
         form.email.data = session.get('signup_verified_email', '')
+    if inline:
+        message = next((error for errors in form.errors.values() for error in errors), 'Request a code, then enter it to verify your email.')
+        return jsonify(error=message), 400
     return render_template('authentication/verify_signup_email.html', form=form,
                            hide_nav=True, hide_header=True)
 

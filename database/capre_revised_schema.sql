@@ -108,6 +108,7 @@ CREATE TABLE login (
 -- upload_id represents an imported roster file, not the application user who uploaded it.
 CREATE TABLE uploaded_by (
     upload_id SERIAL PRIMARY KEY,
+    uploader_user_id INT REFERENCES "user"(user_id) ON DELETE SET NULL,
     file_name TEXT NOT NULL,
     class_name VARCHAR(150),
     academic_year VARCHAR(30),
@@ -125,6 +126,8 @@ CREATE TABLE uploaded_by (
           AND SPLIT_PART(academic_year,'-',2)::int=SPLIT_PART(academic_year,'-',1)::int+1
         ELSE FALSE END)
 );
+
+CREATE INDEX uploaded_by_uploader_idx ON uploaded_by(uploader_user_id,uploaded_at DESC,upload_id DESC);
 
 CREATE TABLE roster (
     roster_id SERIAL PRIMARY KEY,
@@ -388,9 +391,10 @@ CREATE TABLE roster_import_stage (
     session_hash CHAR(64) NOT NULL,
     payload JSONB NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
-    upload_id INT UNIQUE REFERENCES uploaded_by(upload_id) ON DELETE RESTRICT
+    upload_id INT REFERENCES uploaded_by(upload_id) ON DELETE RESTRICT
 );
 CREATE INDEX roster_stage_expiry_idx ON roster_import_stage(expires_at);
+CREATE INDEX roster_import_stage_upload_idx ON roster_import_stage(upload_id) WHERE upload_id IS NOT NULL;
 ALTER TABLE roster_import_stage ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON roster_import_stage FROM PUBLIC;
 DO $$

@@ -722,26 +722,32 @@ def sign_out(user_id, device_ip=None):
         conn.close()
 # ______________________________Admin CRUD Operations for Manage Capstone Repository___________________________
 
-def get_pending_verifications():
+def get_pending_verifications(reviewed_by=None):
     """Pending account verification uses the approved signup review fields."""
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
-        mithrix.execute("""
+        from app.db.verification_documents import STUDENT_REVIEW_SQL,reviewer_owner
+        owner=reviewer_owner(mithrix,reviewed_by) if reviewed_by is not None else None
+        student_scope=STUDENT_REVIEW_SQL if owner is not None else STUDENT_REVIEW_SQL.replace('AND (%s::int IS NULL OR master.uploader_user_id=%s)','')
+        if owner is None:
+            student_scope=f"({student_scope}) OR COALESCE(r.status,u.account_status)='pending'"
+        mithrix.execute(f"""
             SELECT r.signup_id AS request_id, r.user_id, r.sub_person_type AS request_type,
                    COALESCE(r.status, u.account_status) AS request_status,
                    COALESCE(r.requested_at, r.registration_date) AS request_date,
                    CONCAT_WS(' ', u.user_first_name, u.user_middle_name, u.user_last_name) AS full_name,
                    u.university_no,
                    r_role.role_name AS role,
-                   c.contact_value AS email
+                   c.contact_value AS email,r.reason AS verification_reason
             FROM signup r
             JOIN "user" u ON u.user_id = r.user_id
             JOIN role r_role ON r_role.role_id = u.role_id
             LEFT JOIN contact c ON c.user_id = u.user_id AND c.contact_type = 'email' AND c.is_primary = TRUE
-            WHERE COALESCE(r.status, u.account_status) = 'pending'
+            WHERE (r_role.role_name<>'Student' AND COALESCE(r.status,u.account_status)='pending')
+                OR (r_role.role_name='Student' AND ({student_scope}))
             ORDER BY r.requested_at ASC
-        """)
+        """,(owner,owner) if owner is not None else ())
         return mithrix.fetchall()
     except Exception as exc:
         logger.error("Database error: %s", exc)
@@ -760,7 +766,7 @@ def get_verification_request_recipient(request_id):
                 FROM signup r JOIN "user" u ON u.user_id = r.user_id
                 LEFT JOIN contact c ON c.user_id = u.user_id
                     AND c.contact_type = 'email' AND c.is_primary = TRUE
-                WHERE r.signup_id = %s AND COALESCE(r.status, u.account_status) = 'pending'
+                WHERE r.signup_id = %s AND COALESCE(r.status, u.account_status) IN ('pending','rejected')
                 ORDER BY c.contact_id LIMIT 1
             ''', (request_id,))
             return cursor.fetchone()
@@ -784,12 +790,17 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
 
     try:
         from app.db.roster import lock_student_roster
+        from app.db.verification_documents import reviewer_owner
         lock_student_roster(mithrix)
+        owner=reviewer_owner(mithrix,reviewed_by)
         mithrix.execute("""
-            SELECT s.user_id,r.role_name FROM signup s JOIN "user" u ON u.user_id = s.user_id
+            SELECT s.user_id,COALESCE(s.status,u.account_status) AS status,s.method,s.reason,s.contact_id,r.role_name,u.university_no,u.cor_filename
+            FROM signup s JOIN "user" u ON u.user_id = s.user_id
             LEFT JOIN role r ON r.role_id=u.role_id
-            WHERE s.signup_id = %s AND COALESCE(s.status, u.account_status) = 'pending'
-              AND NOT EXISTS (SELECT 1 FROM signup auto WHERE auto.user_id=s.user_id AND auto.method='auto')
+            WHERE s.signup_id = %s AND COALESCE(s.status, u.account_status) IN ('pending','rejected')
+              AND u.account_status IN ('pending','rejected')
+              AND NOT EXISTS (SELECT 1 FROM signup newer WHERE newer.user_id=s.user_id AND newer.signup_id>s.signup_id)
+              AND NOT EXISTS (SELECT 1 FROM signup approved WHERE approved.user_id=s.user_id AND approved.status='approved')
             FOR UPDATE OF s,u
         """, (request_id,))
         row = mithrix.fetchone()
@@ -797,9 +808,42 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
             conn.rollback()
             return False, "Verification request not found."
 
-        if decision=='approved' and row['role_name']=='Student':
+        roster_id=None
+        if row['role_name']=='Student':
+            if row['status']=='rejected' and row['method']!='auto':
+                conn.rollback()
+                return False,'This application has already been manually reviewed.'
+            mithrix.execute('''SELECT matched.roster_id,master.uploader_user_id FROM roster matched
+                JOIN uploaded_by master USING(upload_id) WHERE matched.person_type='Student' AND master.status='active'
+                AND UPPER(BTRIM(matched.university_no))=UPPER(BTRIM(%s)) ORDER BY matched.roster_id
+                FOR UPDATE OF matched,master''',(row['university_no'],))
+            matches=mithrix.fetchall()
+            owned=[match for match in matches if owner is None or match['uploader_user_id']==owner]
+            if not owned and (owner is not None or decision=='approved'):
+                conn.rollback()
+                return False,'Student number does not match an active masterlist you manage.'
+            if decision=='approved':
+                if len(matches)!=1 or not row['cor_filename']:
+                    conn.rollback()
+                    return False,'Approval requires a COR and one unique active masterlist match.'
+                mithrix.execute('''SELECT 1 FROM contact c
+                    WHERE c.contact_id=%s AND c.user_id=%s AND c.contact_type='email'
+                    AND (EXISTS (SELECT 1 FROM signup_email_verifications proof
+                        WHERE proof.email=LOWER(BTRIM(c.contact_value)) AND proof.verified_at IS NOT NULL AND proof.consumed_at IS NOT NULL)
+                        OR EXISTS (SELECT 1 FROM audit evidence WHERE evidence.user_id=c.user_id
+                            AND evidence.action_type='automatic_signup_decision' AND evidence.affected_table='signup'
+                            AND evidence.affected_record_id=%s)) LIMIT 1''',(row['contact_id'],row['user_id'],request_id))
+                if not mithrix.fetchone():
+                    conn.rollback()
+                    return False,'Student must verify their email and resubmit before approval.'
+                roster_id=matches[0]['roster_id']
+                mithrix.execute("SELECT 1 FROM signup WHERE roster_id=%s AND signup_id<>%s AND status IN ('pending','approved')",(roster_id,request_id))
+                if mithrix.fetchone():
+                    conn.rollback()
+                    return False,'This masterlist identity is already claimed or reserved.'
+        elif row['status']!='pending':
             conn.rollback()
-            return False,'Student approval requires verified roster signup/resubmission. Existing pending applications remain unchanged.'
+            return False,'Verification request not found.'
 
         user_id = row["user_id"]
 
@@ -808,9 +852,11 @@ def review_verification_request(request_id, decision, status_reason, reviewed_by
                 status = %s,
                 reason = %s,
                 reviewed_by = %s,
-                decided_at = %s
+                decided_at = %s,
+                method = CASE WHEN %s THEN 'manual' ELSE method END,
+                roster_id = COALESCE(%s,roster_id)
             WHERE signup_id = %s
-        """, (decision, status_reason, reviewed_by, now, request_id))
+        """, (decision, status_reason, reviewed_by, now,row['role_name']=='Student',roster_id,request_id))
 
         new_account_status = "active" if decision == "approved" else "rejected"
         mithrix.execute("""

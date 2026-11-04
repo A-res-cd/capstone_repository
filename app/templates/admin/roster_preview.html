@@ -3,6 +3,7 @@
 {% block extra_css %}<link rel="stylesheet" href="{{ url_for('static',filename='css/pages/_roster.css') }}">{% endblock %}
 {% block content %}<section class="roster-page">
 <h1>Student-list extraction preview</h1>
+{% if preview and preview.payload.get('update_upload_id') %}<p>Updating the existing class masterlist in place. Students absent from this file are kept; no additional class list is created.</p>{% endif %}
 {% if error %}<p role="alert">{{ error }}</p><a href="{{ url_for('admin.roster_upload') }}">Upload a document again</a>
 {% else %}
 <p>{{ preview.payload.file_name }} · {{ preview.payload.metadata.class_name }} · {{ preview.payload.metadata.academic_year }} {{ preview.payload.metadata.semester }}</p>

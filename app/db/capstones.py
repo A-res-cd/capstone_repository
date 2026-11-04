@@ -17,7 +17,7 @@ def create_capstone_project(keyword_id, specialization_id, program_id,
                             capstone_title, capstone_year, capstone_file,
                             semester, term=None, acting_user_id=None,
                             is_utilized=False, is_presented=False, is_copyright_registered=False, is_published=False, abstract_text=None,
-                            capstone_keywords=None, authors=None, adviser=None):
+                            capstone_keywords=None, authors=None, adviser=None, certificates=None):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -32,6 +32,8 @@ def create_capstone_project(keyword_id, specialization_id, program_id,
               capstone_year, capstone_file, semester, term,
               is_utilized, is_presented, is_copyright_registered, is_published, abstract_text))
         capstone_id = mithrix.fetchone()[0]
+        if certificates is not None:
+            _set_capstone_certificates(mithrix, capstone_id, certificates)
         if capstone_keywords is not None:
             set_capstone_keywords(mithrix, capstone_id, capstone_keywords)
         elif keyword_id is not None:
@@ -150,6 +152,43 @@ def update_keyword(capstone_id, capstone_keywords):
         mithrix.close()
         conn.close()
 
+def get_capstone_certificates(capstone_id):
+    conn = db_connect()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        cursor.execute('''SELECT cr.copyright_cert_num, cr.copyright_cert_date, cr.copyright_cert_file,
+            ut.utilization_date, ut.utilization_file
+            FROM capstone c LEFT JOIN copyright cr USING(copyright_cert_id)
+            LEFT JOIN utilization ut USING(utilization_cert_id) WHERE c.capstone_id=%s''', (capstone_id,))
+        return dict(cursor.fetchone() or {})
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def _set_capstone_certificates(cursor, capstone_id, certificates):
+    cursor.execute('SELECT copyright_cert_id, utilization_cert_id FROM capstone WHERE capstone_id=%s FOR UPDATE', (capstone_id,))
+    copyright_id, utilization_id = cursor.fetchone()
+    copyright = certificates.get('copyright')
+    if copyright:
+        values = (copyright['number'], copyright['date'], copyright['file'])
+        if copyright_id:
+            cursor.execute('UPDATE copyright SET copyright_cert_num=%s, copyright_cert_date=%s, copyright_cert_file=%s WHERE copyright_cert_id=%s', (*values, copyright_id))
+        else:
+            cursor.execute('INSERT INTO copyright(copyright_cert_num,copyright_cert_date,copyright_cert_file) VALUES (%s,%s,%s) RETURNING copyright_cert_id', values)
+            copyright_id = cursor.fetchone()[0]
+    utilization = certificates.get('utilization')
+    if utilization:
+        values = (utilization['file'], utilization['date'])
+        if utilization_id:
+            cursor.execute('UPDATE utilization SET utilization_file=%s, utilization_date=%s WHERE utilization_cert_id=%s', (*values, utilization_id))
+        else:
+            cursor.execute('INSERT INTO utilization(utilization_file,utilization_date) VALUES (%s,%s) RETURNING utilization_cert_id', values)
+            utilization_id = cursor.fetchone()[0]
+    cursor.execute('UPDATE capstone SET copyright_cert_id=%s, utilization_cert_id=%s WHERE capstone_id=%s',
+                   (copyright_id, utilization_id, capstone_id))
+
+
 def get_capstone_details(capstone_id):
     conn = db_connect()
     mithrix = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -179,7 +218,7 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
                            capstone_title, capstone_year, capstone_file,
                            semester, term=None, acting_user_id=None,
                            is_utilized=False, is_presented=False, is_copyright_registered=False, is_published=False, abstract_text=None,
-                           capstone_keywords=None):
+                           capstone_keywords=None, certificates=None):
     conn = db_connect()
     mithrix = conn.cursor()
     try:
@@ -201,6 +240,9 @@ def update_capstone_record(capstone_id, keyword_id, specialization_id, program_i
         """, (specialization_id, program_id, capstone_title,
               capstone_year, capstone_file, semester, term,
               is_utilized, is_presented, is_copyright_registered, is_published, abstract_text, capstone_id))
+
+        if certificates is not None:
+            _set_capstone_certificates(mithrix, capstone_id, certificates)
 
         if capstone_keywords is not None:
             set_capstone_keywords(mithrix, capstone_id, capstone_keywords)

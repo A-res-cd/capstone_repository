@@ -51,7 +51,7 @@ def _send_verification_email(recipient, decision, status_reason):
 @admin.route('/manage_users/verify/<int:request_id>/details')
 @role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def verification_details(request_id):
-    details = get_verification_details(request_id)
+    details = get_verification_details(request_id,session['user_id'])
     if not details:
         abort(404)
     path = resolve_cor_file(details['filename'])
@@ -65,7 +65,7 @@ def verification_details(request_id):
 @admin.route('/manage_users/verify/<int:request_id>/document')
 @role_required(ROLE_ADMIN, ROLE_CAPSTONE_PROFESSOR)
 def verification_document(request_id):
-    document = get_verification_document(request_id)
+    document = get_verification_document(request_id,session['user_id'])
     if not document:
         abort(404)
     path = resolve_cor_file(document['filename'])
@@ -102,7 +102,7 @@ def manage_users():
     total_pages = max(1, (total + page_size - 1) // page_size)
 
     roles = get_all_roles()
-    pending_verifications = get_pending_verifications()
+    pending_verifications = get_pending_verifications(session['user_id'])
     return render_template(
         "admin/manage_users.html",
         users=users,
@@ -132,6 +132,12 @@ def decide_verification(request_id):
         flash('Enter a rejection message of 1–2000 characters.', 'danger')
         return redirect(url_for("admin.manage_users"))
 
+    details=get_verification_details(request_id,reviewed_by)
+    if not details:
+        abort(404)
+    if decision=='approved' and details['role_name']=='Student' and not resolve_cor_file(details['filename']):
+        flash('Review requires an available COR file before student approval.', 'danger')
+        return redirect(url_for('admin.manage_users'))
     recipient = get_verification_request_recipient(request_id)
     ok, err = review_verification_request(request_id, decision, status_reason, reviewed_by)
     if ok:

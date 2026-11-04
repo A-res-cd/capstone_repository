@@ -18,10 +18,11 @@ def binding_hash(binding):
         raise PermissionError('Open the upload page in your current session.')
     return sha256(binding.encode()).hexdigest()
 
-def create_stage(upload,class_name,academic_year,semester,actor_id,binding):
+def create_stage(upload,class_name,academic_year,semester,actor_id,binding,update_upload_id=None):
     roster.check_actor(actor_id)
     hashed=binding_hash(binding)
     metadata=roster.validate_metadata(class_name,academic_year,semester)
+    roster.prepare_masterlist(actor_id,metadata,update_upload_id)
     extension=Path(upload.filename or '').suffix.lower()
     if extension not in ('.xlsx','.docx','.pdf','.csv'):
         raise ValueError('Use XLSX, DOCX, text-based PDF or CSV; legacy XLS/DOC are unsupported.')
@@ -29,7 +30,7 @@ def create_stage(upload,class_name,academic_year,semester,actor_id,binding):
     if not content or len(content)>MAX_BYTES:
         raise ValueError('Choose a nonempty document up to 5 MiB.')
     extracted=process_document(content,extension,operation='student_list')
-    payload={'metadata':metadata,'file_name':Path(upload.filename).name,**extracted}
+    payload={'metadata':metadata,'file_name':Path(upload.filename).name,'update_upload_id':update_upload_id,**extracted}
     token=str(uuid4())
     with closing(db_connect()) as conn,conn.cursor() as cursor:
         roster.require_actor(cursor,actor_id)
@@ -73,7 +74,7 @@ def preview(token,actor_id,binding,candidate_id=None):
         selected=select_candidate(stage,candidate_id)
         rows,skipped,display=normalize_candidate(selected)
         roster.lock_student_roster(cursor)
-        _,updates,_,summary=roster.plan_import(cursor,rows,skipped,stage['payload']['metadata'])
+        _,updates,_,summary=roster.plan_import(cursor,rows,skipped,stage['payload']['metadata'],actor_id,stage['payload'].get('update_upload_id'))
         reasons={str(row['source']):row['reason'] for row in summary['skipped_rows']}
         updated={str(row['source']) for _,row in updates}
         for row in display:
@@ -88,12 +89,13 @@ def confirm(token,actor_id,binding,candidate_id=None):
             roster.lock_student_roster(cursor)
             stage=load_stage(cursor,token,actor_id,binding,lock=True)
             if stage['upload_id']:
-                return roster.import_result(cursor,stage['upload_id'])['result']
+                return stage['payload'].get('confirmed_result') or roster.import_result(cursor,stage['upload_id'])['result']
             selected=select_candidate(stage,candidate_id)
             rows,skipped,_=normalize_candidate(selected)
             payload=stage['payload']
-            result=roster.apply_import(cursor,rows,skipped,payload['metadata'],payload['file_name'],actor_id,payload['format'])
-            cursor.execute("UPDATE roster_import_stage SET upload_id=%s,payload='{}'::jsonb WHERE stage_id=%s",(result['upload_id'],token))
+            roster.prepare_masterlist(actor_id,payload['metadata'],payload.get('update_upload_id'))
+            result=roster.apply_import(cursor,rows,skipped,payload['metadata'],payload['file_name'],actor_id,payload['format'],payload.get('update_upload_id'))
+            cursor.execute("UPDATE roster_import_stage SET upload_id=%s,payload=%s::jsonb WHERE stage_id=%s",(result['upload_id'],Json({'confirmed_result':result}),token))
             conn.commit()
             return result
         except Exception:

@@ -6,7 +6,7 @@ from flask import request
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import (
     StringField, PasswordField, HiddenField, IntegerField, SelectField,
-    BooleanField, FieldList, FormField,
+    BooleanField, FieldList, FormField, DateField,
 )
 from wtforms.validators import DataRequired, Email, Length, Regexp, EqualTo, Optional, NumberRange
 
@@ -176,12 +176,36 @@ class CreateCapstoneForm(FlaskForm):
         ]
     )
 
-    is_published = BooleanField("Published")
     is_utilized = BooleanField("Utilized")
-    is_presented = BooleanField("Presented")
     is_copyright_registered = BooleanField(
         "Copyright Registered"
     )
+
+    copyright_cert_num = StringField('Certificate number', validators=[Optional(), Length(max=100)])
+    copyright_cert_date = DateField('Registration date', validators=[Optional()])
+    copyright_cert_file = FileField('Copyright certificate', validators=[FileAllowed(['pdf', 'doc', 'docx'])])
+    utilization_date = DateField('Utilization date', validators=[Optional()])
+    utilization_file = FileField('Utilization certificate', validators=[FileAllowed(['pdf', 'doc', 'docx'])])
+
+    def validate(self, extra_validators=None):
+        valid = super().validate(extra_validators=extra_validators)
+        existing = getattr(self, 'existing_certificates', {})
+        for enabled, fields, file_name in (
+            (self.is_utilized.data, ('utilization_date',), 'utilization_file'),
+            (self.is_copyright_registered.data, ('copyright_cert_num', 'copyright_cert_date'), 'copyright_cert_file'),
+        ):
+            if not enabled:
+                continue
+            for name in fields:
+                field = getattr(self, name)
+                if not field.data or isinstance(field.data, str) and not field.data.strip():
+                    field.errors.append('This certificate detail is required.')
+                    valid = False
+            field = getattr(self, file_name)
+            if not getattr(field.data, 'filename', '') and not existing.get(file_name):
+                field.errors.append('Upload the certificate file.')
+                valid = False
+        return valid
 
     ## Authors
     authors = FieldList(

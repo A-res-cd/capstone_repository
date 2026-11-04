@@ -147,7 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!preserveCreateDraft) {
             resetForm();
             loadProgramSpecializations();
-            document.getElementById('publication-review-note').textContent = '';
             document.getElementById('form-heading').textContent = 'New Capstone';
             document.getElementById('form-subheading').textContent = 'Fill in the details to add a capstone to the archive.';
             document.getElementById('btn-submit-label').textContent = 'Submit Capstone';
@@ -177,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const semester = btn.dataset.semester;
         const file = btn.dataset.file;
         const utilized = btn.dataset.utilized === 'true';
-        const presented = btn.dataset.presented === 'true';
         const copyrightRegistered = btn.dataset.copyright === 'true';
 
         document.getElementById('field-capstone-id').value = id;
@@ -185,10 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('capstone_keywords').value = keywords;
         document.getElementById('capstone_year').value = year;
         document.getElementById('is_utilized').checked = utilized;
-        document.getElementById('is_published').checked = btn.dataset.published === 'true';
-        document.getElementById('publication-review-note').textContent = btn.dataset.published === 'unknown' ? 'Publication status not reviewed. Confirm before saving.' : '';
-        document.getElementById('is_presented').checked = presented;
         document.getElementById('is_copyright_registered').checked = copyrightRegistered;
+        syncCertificateSteps();
 
         // select dropdowns
         setSelect('program_id', program);
@@ -213,7 +209,13 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch(`/repository/${id}/people`)
             .then(r => r.json())
             .then(data => {
+                if (document.getElementById('field-capstone-id').value !== String(id)) return;
                 if (!data.success) return;
+                existingCertificates = data.certificates || {};
+                ['copyright_cert_num', 'copyright_cert_date', 'utilization_date'].forEach(name => {
+                    setField(name, existingCertificates[name] || '');
+                });
+                syncCertificateSteps();
                 fillAuthors(data.authors || []);
                 if (data.adviser) {
                     setField('adviser-first_name', data.adviser.first || '');
@@ -238,24 +240,59 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('capstone-form').reset();
         setAuthorCount(1);
         document.getElementById('field-capstone-id').value = '';
+        existingCertificates = {};
+        syncCertificateSteps();
         setField('extracted-filename', '');
         setDisplay('keyword-chips', 'none');
         setDisplay('extract-status', 'none');
         goToStep(1);
     }
 
-    // ── Two-step wizard: Capstone Details → Authors ─────────
+    // Certificates add a middle step only when a certification status is selected.
     const formSteps = document.querySelectorAll('.form-step');
     const stepDots = document.querySelectorAll('[data-step-dot]');
+    let existingCertificates = {};
+    const needsCertificates = () => document.getElementById('is_utilized').checked
+        || document.getElementById('is_copyright_registered').checked;
+    const stepSequence = () => needsCertificates() ? ['1', 'certificates', '2'] : ['1', '2'];
+
+    function syncCertificateSteps() {
+        const needed = needsCertificates();
+        document.querySelector('[data-step-dot="certificates"]').hidden = !needed;
+        document.querySelector('[data-step-dot="2"] .form-step-dot__num').textContent = needed ? '3' : '2';
+        document.getElementById('btn-step-next').firstChild.textContent = needed ? 'Next: Certification Details ' : 'Next: Authors ';
+        [['utilization', 'is_utilized'], ['copyright', 'is_copyright_registered']].forEach(([kind, flag]) => {
+            const group = document.querySelector(`[data-certificate="${kind}"]`);
+            const enabled = document.getElementById(flag).checked;
+            group.hidden = !enabled;
+            group.disabled = !enabled;
+            group.querySelectorAll('input').forEach(input => {
+                input.required = enabled && (input.type !== 'file' || !existingCertificates[input.name]);
+            });
+            const note = group.querySelector('[data-existing-certificate]');
+            note.textContent = existingCertificates[note.dataset.existingCertificate]
+                ? 'Certificate on file. Leave the upload blank to keep it, or choose a replacement.'
+                : 'PDF, DOC or DOCX certificate required.';
+        });
+    }
+    ['is_utilized', 'is_copyright_registered'].forEach(id => {
+        document.getElementById(id).addEventListener('change', syncCertificateSteps);
+    });
+    document.getElementById('capstone-form').addEventListener('reset', () => {
+        queueMicrotask(() => { syncCertificateSteps(); goToStep(1); });
+    });
+    syncCertificateSteps();
 
     function goToStep(stepNum) {
         formSteps.forEach(step => {
             step.classList.toggle('form-step--hidden', step.dataset.step != stepNum);
         });
         stepDots.forEach(dot => {
-            const n = Number(dot.dataset.stepDot);
-            dot.classList.toggle('form-step-dot--active', n === stepNum);
-            dot.classList.toggle('form-step-dot--done', n < stepNum);
+            const sequence = stepSequence();
+            const index = sequence.indexOf(dot.dataset.stepDot);
+            const current = sequence.indexOf(String(stepNum));
+            dot.classList.toggle('form-step-dot--active', index === current);
+            dot.classList.toggle('form-step-dot--done', index >= 0 && index < current);
         });
         panelForm.scrollTop = 0;
     }
@@ -273,9 +310,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('btn-step-next').addEventListener('click', () => {
-        if (validateStep1()) goToStep(2);
+        if (validateStep1()) goToStep(needsCertificates() ? 'certificates' : 2);
     });
-    document.getElementById('btn-step-back').addEventListener('click', () => goToStep(1));
+    document.getElementById('btn-step-back').addEventListener('click', () => goToStep(needsCertificates() ? 'certificates' : 1));
+    document.getElementById('btn-certificate-back').addEventListener('click', () => goToStep(1));
+    document.getElementById('btn-certificate-next').addEventListener('click', () => {
+        const fields = document.querySelector('[data-step="certificates"]').querySelectorAll('input');
+        for (const field of fields) {
+            if (!field.reportValidity()) return;
+        }
+        goToStep(2);
+    });
+    document.getElementById('capstone-form').addEventListener('submit', event => {
+        for (const step of stepSequence()) {
+            const fields = document.querySelector(`[data-step="${step}"]`).querySelectorAll('input, select');
+            for (const field of fields) {
+                if (!field.checkValidity()) {
+                    event.preventDefault();
+                    goToStep(step);
+                    field.reportValidity();
+                    return;
+                }
+            }
+        }
+    });
 
     function setText(id, value) {
         const el = document.getElementById(id);
