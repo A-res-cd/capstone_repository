@@ -2,7 +2,7 @@
 Authentication & account lifecycle: sign up, sign in/out, role
 detection & verification, password reset/OTP, and pending-verification
 review. Everything that touches the user, kappa, ror, slug, login,
-logout, signup, or password_reset tables lives here.
+audit, signup, or password_reset tables lives here.
 """
 import re
 import logging
@@ -632,22 +632,13 @@ def change_own_password(user_id, current_password, new_password):
 def sign_out(user_id, device_ip=None):
     conn = db_connect()
     mithrix = conn.cursor()
-    now = datetime.now(timezone.utc)
 
     try:
-        # write to logOut table
-        mithrix.execute("""
-            INSERT INTO logOut (user_id, log_out_time, logout_device_ip)
-            VALUES (%s, %s, %s)
-            RETURNING log_out_id
-        """, (user_id, now, device_ip))
-        log_out_id = mithrix.fetchone()[0]
-
         log_audit(
             mithrix, user_id,
-            "logout", "logOut", log_out_id,
+            "logout", "user", user_id,
             old_values=None,
-            new_values=str(log_out_id)
+            new_values=device_ip
         )
 
         conn.commit()

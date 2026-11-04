@@ -262,13 +262,20 @@ def test_legacy_request_and_migration(feature_db):
 def test_audit_filters_and_safe_details(feature_db, feature_app):
     with feature_db() as conn, conn.cursor() as cursor:
         cursor.execute('''INSERT INTO audit (action_type, affected_record_id, new_values, action_timestamp)
-            SELECT 'login', n, 'SECRET_TOKEN', '2026-09-10'::timestamp FROM generate_series(1, 27) n''')
+            SELECT 'signup', n, 'SECRET_TOKEN', '2026-09-10'::timestamp FROM generate_series(1, 27) n''')
         cursor.execute("INSERT INTO audit (action_type, affected_record_id, action_timestamp) VALUES ('unknown', 99, '2026-09-11')")
+        cursor.execute("INSERT INTO audit (action_type, action_timestamp) VALUES ('login', '2026-09-10'), ('logout', '2026-09-10')")
+    # Check committed visibility on another connection before testing reader filters.
+    with feature_db() as conn, conn.cursor() as cursor:
+        cursor.execute('SELECT COUNT(*) FROM audit')
+        assert cursor.fetchone()[0] == 30
     result = audit_reader.get_audit_logs({'start': date(2026, 9, 10), 'end': date(2026, 9, 11)}, 99)
     assert result['total'] == 27 and result['page'] == 2 and len(result['events']) == 2
     assert result['counts']['account'] == 27
     assert 'SECRET_TOKEN' not in str(result)
     assert result['events'][0]['actor'] == 'Unknown / deleted user'
+    assert audit_reader.get_audit_logs({'action': 'login'})['total'] == 0
+    assert audit_reader.get_audit_logs({'action': 'logout'})['total'] == 0
     assert audit_reader.get_audit_logs({'category': 'other'})['total'] == 1
     assert audit_reader.get_audit_logs({'q': "%' OR 1=1 --"})['total'] == 0
     client = feature_app.test_client()

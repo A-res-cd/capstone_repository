@@ -29,7 +29,7 @@ def initialize(conn):
             """)
             if cursor.fetchone()[0]:
                 raise RuntimeError('Project already has tables. Use a new empty CAPRE project.')
-            cursor.execute((ROOT / 'database/capre_original_final.sql').read_text(encoding='utf-8'))
+            cursor.execute((ROOT / 'database/capre_revised_schema.sql').read_text(encoding='utf-8'))
             cursor.execute(MIGRATION_TABLE_SQL)
             # Final schema folds in column changes; replay migrations for indexes
             # and store checksums so future upgrades do not repeat old migrations.

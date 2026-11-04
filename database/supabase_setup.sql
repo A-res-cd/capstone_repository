@@ -5,7 +5,7 @@ DECLARE
     capre_table TEXT;
 BEGIN
     FOREACH capre_table IN ARRAY ARRAY[
-        'role', 'user', 'kappa', 'ror', 'slug', 'login', 'logout', 'signup',
+        'role', 'user', 'kappa', 'ror', 'slug', 'login', 'signup', 'uploaded_by', 'roster',
         'audit', 'contact', 'password_reset', 'program', 'specialization',
         'keyword', 'capstone', 'capstone_keyword', 'author', 'capauth',
         'request', 'capstone_view_history', 'schema_migration', 'auth_rate_limit', 'capstone_requests',

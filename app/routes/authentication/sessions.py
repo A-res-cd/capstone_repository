@@ -1,6 +1,6 @@
 """Authentication sessions routes and local helpers."""
 from . import auth
-from flask import flash, render_template, request, redirect, url_for, session
+from flask import current_app, flash, render_template, request, redirect, url_for, session
 import psycopg2.extras
 from app.db.connection import db_connect
 from app.db.auth import sign_in, sign_out
@@ -51,11 +51,14 @@ def signin():
 @auth.route("/logout", methods=["POST"])
 def logout():
     user_id = session.get("user_id")
+    session.clear()
     if user_id:
         device_ip = request.remote_addr
-        sign_out(user_id, device_ip=device_ip)
+        try:
+            sign_out(user_id, device_ip=device_ip)
+        except psycopg2.Error:
+            current_app.logger.exception("Could not record logout audit")
 
-    session.clear()
     flash("You have been logged out.", "success")
     return redirect(url_for("auth.signin"))
 
@@ -68,7 +71,12 @@ def get_current_user(user_id):
     conn = db_connect()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("""
-        SELECT u.user_id, u.first_name, u.middle_name, u.last_name, u.email, u.role_id, r.role_name, u.locked_until
+        SELECT u.user_id, u.user_first_name AS first_name,
+               u.user_middle_name AS middle_name, u.user_last_name AS last_name,
+               (SELECT c.contact_value FROM contact c
+                WHERE c.user_id = u.user_id AND c.contact_type = 'email'
+                ORDER BY c.is_primary DESC NULLS LAST, c.contact_id LIMIT 1) AS email,
+               u.role_id, r.role_name, u.locked_until
         FROM "user" u
         JOIN role r ON u.role_id = r.role_id
         WHERE u.user_id = %s

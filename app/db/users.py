@@ -278,6 +278,11 @@ def _run_delete_cascade(mithrix, user_id, acting_id):
         (user_id,),
     )
     mithrix.execute('UPDATE audit SET user_id = NULL WHERE user_id = %s', (user_id,))
+    mithrix.execute('UPDATE signup SET reviewed_by = NULL WHERE reviewed_by = %s', (user_id,))
+    mithrix.execute("""
+        UPDATE signup SET contact_id = NULL
+        WHERE contact_id IN (SELECT contact_id FROM contact WHERE user_id = %s)
+    """, (user_id,))
 
     # Remove private reset and authentication data before their parent rows.
     mithrix.execute("""
@@ -288,7 +293,6 @@ def _run_delete_cascade(mithrix, user_id, acting_id):
     """, (user_id,))
     mithrix.execute('DELETE FROM slug WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM login   WHERE user_id = %s', (user_id,))
-    mithrix.execute('DELETE FROM logOut  WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM signup  WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM contact WHERE user_id = %s', (user_id,))
     mithrix.execute('DELETE FROM "request" WHERE user_id = %s', (user_id,))

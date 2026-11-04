@@ -57,4 +57,6 @@ datasets/
 database/erd/
 
 docs/*.md
+!docs/REVISION_NOTES.md
+!docs/SCHEMA_QUERY_AUDIT.md
 !docs/SECURITY_REMEDIATION_ROLLOUT.md

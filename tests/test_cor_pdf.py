@@ -1,24 +1,30 @@
 from io import BytesIO
-from pathlib import Path
 
 import pdfplumber
 import pytest
+from PIL import Image, ImageDraw, ImageFont
 
-from app.utils.cor_extractor import extract_cor_fields
-
-
-SAMPLE_COR = (
-    Path(__file__).parents[1]
-    / "app"
-    / "static"
-    / "uploads"
-    / "registration"
-    / "Sapin_Aaries_M._3e7f3448731c472d93c9912b893e73ac.pdf"
-)
+from app.utils.cor_extractor import configure_tesseract, extract_cor_fields
 
 
-def test_sample_cor_pdf_is_readable_and_image_based():
-    content = SAMPLE_COR.read_bytes()
+@pytest.fixture(scope='module')
+def sample_cor_pdf():
+    """Synthetic scanned COR: one image, no text layer or personal uploads."""
+    with Image.new('RGB', (1600, 1000), 'white') as image:
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.load_default(size=38)
+        for y, text in ((60, 'CERTIFICATE OF REGISTRATION'),
+                        (240, 'Registration No: 1234567'),
+                        (400, 'Name: DOE, ALEX M.'),
+                        (560, 'Student No: SUM2026-12345')):
+            draw.text((100, y), text, fill='black', font=font)
+        output = BytesIO()
+        image.save(output, format='PDF', resolution=150)
+    return output.getvalue()
+
+
+def test_sample_cor_pdf_is_readable_and_image_based(sample_cor_pdf):
+    content = sample_cor_pdf
 
     with pdfplumber.open(BytesIO(content)) as pdf:
         assert len(pdf.pages) == 1
@@ -26,13 +32,18 @@ def test_sample_cor_pdf_is_readable_and_image_based():
         assert not (pdf.pages[0].extract_text() or "").strip()
 
 
-def test_sample_cor_extracts_expected_fields_when_ocr_is_available():
-    fields = extract_cor_fields(SAMPLE_COR.read_bytes())
-    if fields["warning"]:
-        pytest.skip(fields["warning"])
+def test_sample_cor_extracts_expected_fields_when_ocr_is_available(sample_cor_pdf):
+    pytesseract = pytest.importorskip('pytesseract')
+    configure_tesseract()
+    try:
+        pytesseract.get_tesseract_version()
+    except pytesseract.TesseractNotFoundError:
+        pytest.skip('Tesseract OCR is not installed')
+    fields = extract_cor_fields(sample_cor_pdf)
+    assert not fields['warning'], fields['warning']
 
-    assert fields["registration_no"] == "5361807"
-    assert fields["student_no"] == "SUM2023-01246"
-    assert fields["first_name"] == "Aaries"
+    assert fields["registration_no"] == "1234567"
+    assert fields["student_no"] == "SUM2026-12345"
+    assert fields["first_name"] == "Alex"
     assert fields["middle_name"] == "M"
-    assert fields["last_name"] == "Sapin"
+    assert fields["last_name"] == "Doe"

@@ -1,0 +1,43 @@
+CAPRE schema revision — implementation, 2026-11-04
+Post-migration audit: the user has now applied the revision. Read-only inspection confirms the live schema matches the revised definition and logout is absent. See [SCHEMA_QUERY_AUDIT.md](SCHEMA_QUERY_AUDIT.md) for query repairs, migration checksum restoration, failure diagnoses and current regression results. Earlier preparation/test results below describe the initial implementation.
+Baseline: database/capre_original_final.sql (unchanged). Target: database/capre_revised_schema.sql. Existing installations upgrade through migrations/20261104_roster_signup_revision.sql.
+Changes implemented in code and SQL; subsequently applied to the configured database by the user
+- Add uploaded_by (upload metadata) and roster (imported university identity records).
+- Add roster.upload_id -> uploaded_by.upload_id.
+- Extend signup with roster_id, contact_id, sub_person_type, method, status, attempt_count, reason, reviewed_by, requested_at, and decided_at.
+- Keep signup.user_id -> user.user_id; add foreign keys for roster, contact, and reviewer. Index all four signup foreign keys, roster.upload_id, university_no, lower(contact), and signup(status, requested_at DESC).
+- Preserve signup.registration_date because app/db/auth.py currently inserts it.
+- Remove logout from fresh setup and the secondary capreDB.sql schema. The revision archives every existing public.logout row into audit before DROP TABLE IF EXISTS public.logout RESTRICT. Preserve unrelated tables.
+- uploaded_by requires file_name; status defaults to pending and uploaded_at to CURRENT_TIMESTAMP. roster requires an upload (ON DELETE RESTRICT), with timestamp defaults. signup.attempt_count is nonnegative, NOT NULL, default 0; other added signup fields remain nullable, with no fabricated historical values.
+- New roster/upload tables enable row-level security and revoke browser-role access, matching existing server-only authentication storage. No uploading-administrator relationship is added.
+Assumptions to verify before production
+1. uploaded_by denotes import metadata. Attribution to an uploading administrator requires a separately approved relationship.
+2. sub_person_type, method, status, reason, and decided_at follow the supplied revised schema; their workflow semantics still require product decisions.
+3. Existing registration continues writing signup(user_id, registration_date); new optional links are not populated by this change. Future roster verification must decide which contact and roster row to link.
+4. roster rows may be duplicated across uploaded files; no uniqueness policy is assumed.
+5. Statuses and person_type values are left extensible rather than introducing guessed CHECK enumerations.
+6. This is additive and does not implement roster-based verification or revised signup approval workflow in Flask.
+7. The archive's capre_original_final.sql is a baseline; later migrations already modify it. Inspect production schema and run migration tests before applying.
+Deployment sequence
+1. Verify PG_* points to an isolated test/staging database, never production for this task. Back up using scripts/backup_database.py --output <private-directory-outside-repository>, and verify restoration before deployment.
+2. Before editing or deploying this revision, read schema_migration for migration_name='20261104_roster_signup_revision.sql'. A read-only check of the configured database reported NOT APPLIED during this implementation. Recheck each deployment target; never edit an applied migration or replace its checksum.
+3. Run python scripts/migrate.py status, review all pending files, then run python scripts/migrate.py upgrade in the verified staging environment. Use the existing runner only: it orders filenames, validates historical checksums, and commits each SQL migration with its tracking row. Do not execute SQL manually or reset existing data.
+4. Coordinate application code and schema cutover in a maintenance window: the new account-deletion queries need the revised signup columns. Fresh Supabase initialization uses the revised reference schema and records/replays the same migrations.
+5. Verify signup/user counts, legacy timestamps, logout archive completeness, foreign keys, login/signout, administrative account deletion, and manuscript access before cutover. Retain the external backup; reversal requires a reviewed restore/forward migration, not automatic recreation of logout.
+6. The logout archive and DROP share one transaction. RESTRICT aborts on external dependencies; archive failure or blocked DROP rolls back this revision without recording its checksum. Earlier migrations committed by the runner remain applied.
+7. Implement roster upload, verification matching, review status transitions, and tests in a later application change.
+Validation: see the test results below. No DDL or migration was executed against the configured database; runtime checks use disposable databases in a newly initialized local PostgreSQL cluster.
+Logout table decommissioning — important compatibility requirement
+The revised ERD removes storage, while POST /logout and its CSRF protection remain:
+- app/db/auth.py now writes action_type='logout' directly to audit, affected_table='user', affected_record_id=user_id, with the device IP in new_values. Audit supplies the timestamp.
+- app/routes/authentication/sessions.py clears authentication session data before auditing and handles database connection errors, so an audit outage cannot keep the browser authenticated. Existing session/password checks remain in place; this does not introduce server-side revocation of previously copied Flask cookies.
+- app/db/users.py removes the obsolete logout DELETE and clears signup.reviewer/contact links before deleting referenced users/contacts. Other users' signup rows survive; explicit account deletion still removes the account's own signup as before.
+- Supabase hardening covers roster/upload tables without referencing logout. Both local seed scripts no longer list logout in truncation SQL; the ignored scripts/data_seeder.py remains a local-only file.
+
+Historical retention: each old row becomes an audit event with its original user_id, log_out_id as affected_record_id, and original log_out_time as action_timestamp. new_values contains the full original row as JSON, including IDs, timestamp and IP (even NULL values). affected_table='logout' identifies archived events; live logout events reference user. No historical logout content is intentionally discarded. Backups and archived IP addresses remain subject to the existing audit retention/access policy; obtain approval separately for any future purge.
+
+Test results: the affected regression run passed 114 tests, skipped one opt-in PostgreSQL/Supabase check, and deselected one JavaScript browser test. Command: venv/Scripts/python.exe -m pytest tests/test_roster_signup_revision.py tests/test_auth_security.py tests/test_data_leak_regressions.py tests/test_data_seeder_current.py tests/test_supabase_setup.py tests/test_creation_transactions.py tests/test_workflow_updates.py tests/test_manuscript_reader.py -q --tb=short -k 'not javascript' -p no:cacheprovider --basetemp=<new-private-test-directory>. After aligning the reference-schema constraint name, all 9 focused revision tests passed again, including the single-check-constraint assertion on fresh setup. Python syntax checks passed for all seven affected Python files; git diff --check passed.
+
+tests/test_roster_signup_revision.py covers populated upgrades through the normal runner, checksums and repeat runs, schema parity with revised SQL, indexes/defaults/FKs/checks, duplicate university numbers, archive retention, dependency rollback, browser-role restrictions, fresh Supabase setup, registration/login/logout/account deletion, CSRF, and session clearing during audit outages. These tests start their own local PostgreSQL cluster and create/drop disposable databases, without using configured application credentials. The initial sandbox attempt could not start pg_ctl; runtime tests passed outside that sandbox. Full browser end-to-end validation and production execution are outside this change.
+
+Files changed: app/db/auth.py, app/db/users.py, app/routes/authentication/sessions.py; database/capreDB.sql, database/capre_revised_schema.sql, database/supabase_setup.sql; migrations/20261104_roster_signup_revision.sql; scripts/setup_supabase.py, scripts/data_seeder_current.py and the ignored local scripts/data_seeder.py; tests/test_roster_signup_revision.py; these notes and .gitignore (to include these notes in version control). No applied historical migration or original authoritative schema was edited.

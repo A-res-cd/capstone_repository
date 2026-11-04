@@ -99,20 +99,6 @@ CREATE TABLE IF NOT EXISTS login (
 );
 
 -- =========================================
--- LOGOUT TABLE
--- =========================================
-CREATE TABLE IF NOT EXISTS logout (
-    log_out_id SERIAL PRIMARY KEY,
-    user_id INT,
-    log_out_time TIMESTAMP,
-    logout_device_ip VARCHAR(50),
-
-    CONSTRAINT fk_logout_user
-        FOREIGN KEY (user_id)
-        REFERENCES "user"(user_id)
-);
-
--- =========================================
 -- SIGNUP TABLE
 -- =========================================
 CREATE TABLE IF NOT EXISTS signup (

@@ -26,8 +26,10 @@ python -m playwright install
 ```
 
 Tkinter is included in standard Windows Python installations. Database tests
-still require PostgreSQL tools and browser tests need their existing fixtures or
-running application. Missing dependencies and test errors appear in the GUI.
+require `initdb` and `pg_ctl` on PATH. Browser tests use their existing fixtures;
+the core E2E tests start their own loopback Flask server and disposable PostgreSQL
+database, so no application server or production test account is needed.
+Missing dependencies and test errors appear in the GUI.
 Locust and SQL monitoring scripts use their own tools, not pytest.
 
 ## Install
@@ -48,8 +50,20 @@ Edit selectors/payloads in `locustfile.py` to match your actual `auth`,
 ```
 python -m pytest tests/test_e2e_workflow.py --headed
 ```
-Update CSS selectors in `test_e2e_workflow.py` to match your Jinja
-templates (login form, archive result cards, error messages).
+The fixture chooses an available loopback port, seeds an active account and a
+capstone with its program/track links, applies migrations through the normal
+runner, and shuts down the server and database afterward. It uses real login,
+archive, logout and CSRF handling with an isolated connection pool. External
+assets are blocked during these tests. No server at `localhost:5000` is required.
+
+The COR PDF tests generate an image-only PDF from synthetic identity data in
+memory. They never read private uploads. OCR extraction requires Tesseract;
+only a missing OCR dependency causes a skip, while extraction warnings fail.
+
+Run the full suite with `python -m pytest -q`. If Windows denies access to an old
+pytest temp directory, supply a new writable directory with
+`--basetemp=<new-test-directory>`. PostgreSQL must be allowed to start local
+processes; a sandbox that blocks `pg_ctl` cannot run the integration fixtures.
 
 ## 3. Database monitoring
 While Locust runs, open `postgres_monitoring.sql` in psql/pgAdmin and

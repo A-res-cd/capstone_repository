@@ -648,7 +648,6 @@ TRUNCATE_TABLES_IN_ORDER = [
     "password_reset",
     "contact",
     "signup",
-    '"logout"',
     "login",
     "slug",
     "ror",
