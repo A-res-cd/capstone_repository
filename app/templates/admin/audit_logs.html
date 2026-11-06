@@ -12,7 +12,7 @@
         <div><strong>{{ counts[key] }}</strong><span>{{ label }}</span></div>
         {% endfor %}
     </div>
-    <form class="audit-filters" method="GET" action="{{ url_for('admin.audit_logs') }}">
+    <form class="audit-filters listing-filter-form" method="GET" action="{{ url_for('admin.audit_logs') }}">
         <!-- <div class="form-group"><label for="audit-search">Actor name or record / event ID</label><input id="audit-search" name="q" value="{{ filters.q }}" maxlength="100" placeholder="Search recorded activity"></div> -->
         <div class="form-group"><label for="audit-category">Category</label><select id="audit-category" name="category"><option value="">All categories</option>{% for key, label in categories.items() %}<option value="{{ key }}" {% if filters.category == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
         <div class="form-group"><label for="audit-action">Action</label><select id="audit-action" name="action"><option value="">All actions</option>{% for key, label in actions|dictsort %}<option value="{{ key }}" {% if filters.action == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
@@ -48,10 +48,12 @@
         <p class="audit-empty">No recorded activity matches these filters.</p>
         {% endfor %}
     </div>
-    <nav class="audit-pagination" aria-label="Audit log pages">
-        {% if page > 1 %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.audit_logs', page=page-1, **filters) }}">Previous</a>{% endif %}
+    <nav class="audit-pagination listing-pagination" aria-label="Audit log pages">
         <span>Page {{ page }} of {{ pages }}</span>
-        {% if page < pages %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.audit_logs', page=page+1, **filters) }}">Next</a>{% endif %}
+        <div class="listing-pagination-controls">
+        {% if page > 1 %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.audit_logs', page=page-1, **filters) }}">Previous</a>{% else %}<span role="link" aria-disabled="true">Previous</span>{% endif %}
+        {% if page < pages %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('admin.audit_logs', page=page+1, **filters) }}">Next</a>{% else %}<span role="link" aria-disabled="true">Next</span>{% endif %}
+        </div>
     </nav>
 </section>
 {% endblock %}

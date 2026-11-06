@@ -157,6 +157,9 @@ def test_registered_roster_and_complete_class_masterlists(roster_db,feature_app)
     assert student()[1]['decision']=='approved'
     registered=roster.read_roster(2,registered_only=True)[1]
     assert [row['university_no'] for row in registered]==['001234']
+    assert [row['university_no'] for row in roster.read_roster(2,class_name=' bsit 2 ')[1]]==['B0001']
+    assert roster.read_roster(2,registered_only=True,class_name='BSIT 2')[1]==[]
+    assert len(roster.read_roster(2,registered_only=True,class_name='BSIT 1')[1])==1
     groups=roster.read_class_masterlists(2)
     assert [(group['class_name'],len(group['students'])) for group in groups]==[('BSIT 1',105),('BSIT 2',1)]
     assert len(roster.read_class_masterlists(1))==3
@@ -169,6 +172,9 @@ def test_registered_roster_and_complete_class_masterlists(roster_db,feature_app)
     assert 'N0103' in html and 'A0001' not in html
     students_panel=html.split('id="roster-panel-students"',1)[1].split('id="roster-panel-masterlists"',1)[0]
     assert '001234' in students_panel and 'N0103' not in students_panel
+    filtered=client.get('/roster?class=BSIT+2').get_data(as_text=True)
+    filtered_students=filtered.split('id="roster-panel-students"',1)[1].split('id="roster-panel-masterlists"',1)[0]
+    assert '001234' not in filtered_students and 'value="BSIT 2" selected' in filtered_students
 
 
 def test_upload_ownership_migration_backfills_known_audit_uploaders(roster_db):
@@ -510,7 +516,7 @@ def test_current_signup_reservation_is_not_treated_as_another_applicant(roster_d
     assert student()[1]['decision']=='approved'
 
 @pytest.mark.parametrize('actor',[1,2])
-def test_http_upload_redirects_to_persistent_result(roster_db,feature_app,actor,monkeypatch):
+def test_http_upload_returns_to_masterlist_root(roster_db,feature_app,actor,monkeypatch):
     client=feature_app.test_client()
     with client.session_transaction() as state:
         state['user_id']=actor
@@ -523,9 +529,10 @@ def test_http_upload_redirects_to_persistent_result(roster_db,feature_app,actor,
     assert b'Estimated:' in client.get(preview_url).data
     token=preview_url.rsplit('/',1)[-1]
     confirmed=client.post('/roster/confirm/'+token,data={'candidate':'0'})
-    assert confirmed.status_code==302
+    assert confirmed.status_code==302 and confirmed.location=='/roster'
     result=client.get(confirmed.location)
     assert result.status_code==200 and b'Added 1, updated 0, skipped 0' in result.data
+    assert client.get(preview_url).location=='/roster'
     retry=client.get('/signup?resubmit=1')
     assert b'maxlength="256"' in retry.data and b'COR PDF remains required' in retry.data
     monkeypatch.setattr(roster_stage,'create_stage',lambda *a,**k: (_ for _ in ()).throw(PermissionError('revoked')))

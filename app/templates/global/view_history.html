@@ -23,10 +23,12 @@
             {% endfor %}
     </div>
     {% if total > page_size %}
-    <nav class="audit-pagination" aria-label="Viewing history pages">
-        {% if page > 1 %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('pages.view_history', page=page-1) }}">Previous</a>{% endif %}
+    <nav class="audit-pagination listing-pagination" aria-label="Viewing history pages">
         <span>Page {{ page }}</span>
-        {% if page * page_size < total %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('pages.view_history', page=page+1) }}">Next</a>{% endif %}
+        <div class="listing-pagination-controls">
+        {% if page > 1 %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('pages.view_history', page=page-1) }}">Previous</a>{% else %}<span role="link" aria-disabled="true">Previous</span>{% endif %}
+        {% if page * page_size < total %}<a class="btn-pill btn-pill--ghost" href="{{ url_for('pages.view_history', page=page+1) }}">Next</a>{% else %}<span role="link" aria-disabled="true">Next</span>{% endif %}
+        </div>
     </nav>
     {% endif %}
 </section>

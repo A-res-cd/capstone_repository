@@ -11,10 +11,10 @@
     <div class="explore-archive-container">
         {# ── Filter Bar ── #}
         <div class="archive-filters">
-            <form method="GET" action="{{ url_for('pages.browse') }}" class="filter-form">
-                <div class="archive-search">
+            <form method="GET" action="{{ url_for('pages.browse') }}" class="filter-form listing-filter-form">
+                <div class="archive-search listing-search">
                     <label for="archive-search">Search capstones</label>
-                    <div class="archive-search-controls">
+                    <div class="archive-search-controls listing-search-controls">
                         <select name="search_scope" class="archive-search-scope" aria-label="Search field">
                             <option value="all" {% if search_scope == 'all' %}selected{% endif %}>All fields</option>
                             <option value="title" {% if search_scope == 'title' %}selected{% endif %}>Title</option>
@@ -105,18 +105,22 @@
                     </div>
 
                     {% if total_pages > 1 %}
-                    <nav class="archive-pagination-bar" aria-label="Archive pages">
+                    <nav class="archive-pagination-bar listing-pagination" aria-label="Archive pages">
                         <span>Page {{ page }} of {{ total_pages }}</span>
-                        <div class="pagination-controls">
+                        <div class="pagination-controls listing-pagination-controls">
                             {% if page > 1 %}
                             <a class="pagination-link" href="{{ url_for('pages.browse', page=page-1, search=search or None, search_scope=search_scope, year=selected_year or None, program=selected_program, specialization=selected_specialization, sort=selected_sort) }}">
                                 <i class="bx bx-chevron-left"></i> Previous
                             </a>
+                            {% else %}
+                            <span class="pagination-link" role="link" aria-disabled="true"><i class="bx bx-chevron-left" aria-hidden="true"></i> Previous</span>
                             {% endif %}
                             {% if page < total_pages %}
                             <a class="pagination-link" href="{{ url_for('pages.browse', page=page+1, search=search or None, search_scope=search_scope, year=selected_year or None, program=selected_program, specialization=selected_specialization, sort=selected_sort) }}">
                                 Next <i class="bx bx-chevron-right"></i>
                             </a>
+                            {% else %}
+                            <span class="pagination-link" role="link" aria-disabled="true">Next <i class="bx bx-chevron-right" aria-hidden="true"></i></span>
                             {% endif %}
                         </div>
                     </nav>
@@ -180,7 +184,7 @@
                                 target="_self"
                                 rel="noopener noreferrer"
                                 >
-                                 <i class="bx bx-show"></i> View Abstract
+                                 <i class="bx bx-show"></i> View Full Manuscript
                             </a>
                             {% endif %}
                         </div>

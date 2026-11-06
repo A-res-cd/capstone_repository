@@ -52,16 +52,19 @@ main:has(.explore-archive-section) {
 }
 
 .filter-form {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr)) auto;
+    align-items: end;
+    gap: 12px 16px;
 }
+.archive-filters .filter-form:has(.btn-clear) { grid-template-columns: repeat(4,minmax(0,1fr)) auto auto; }
 
 .filter-group {
     display: flex;
-    align-items: center;
-    gap: var(--space-sm);
+    align-items: stretch;
+    flex-direction: column;
+    min-width: 0;
+    gap: 6px;
     font-size: var(--text-sm);
     color: var(--color-gray-dark);
 }
@@ -87,7 +90,7 @@ main:has(.explore-archive-section) {
 .filter-input--compact { width: 150px; }
 
 .archive-search {
-    flex: 0 0 100%;
+    grid-column: 1 / -1;
     min-width: 0;
 }
 
@@ -127,7 +130,7 @@ main:has(.explore-archive-section) {
 .archive-search-controls > .custom-select .custom-select__input,
 .archive-search-scope {
     box-sizing: border-box;
-    height: 44px;
+    height: 38px;
     padding: 0 32px 0 var(--space-md);
     border: 0;
     border-radius: var(--radius-md);
@@ -180,11 +183,13 @@ main:has(.explore-archive-section) {
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    min-height: 0;
 }
 
 /* Scrollable list of cards */
 .archive-grid {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -316,13 +321,15 @@ main:has(.explore-archive-section) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-sm) var(--space-md);
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 14px;
     border: var(--border-light);
-    border-top: none;
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    border-radius: var(--radius-md);
     background: var(--bg-card-neutral);
     font-size: var(--text-sm);
     flex-shrink: 0;
+    color: var(--color-gray-dark);
 }
 
 .pagination-controls {
@@ -334,10 +341,13 @@ main:has(.explore-archive-section) {
 .pagination-link {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    padding: 5px 9px;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    box-sizing: border-box;
+    padding: 8px 14px;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-pill);
     color: var(--text-brand);
     background: var(--surface-paper);
     font-weight: 600;
@@ -348,6 +358,20 @@ main:has(.explore-archive-section) {
     border-color: var(--color-primary-light);
     background: var(--hover-tint);
 }
+.pagination-link[aria-disabled="true"] { color: var(--color-gray-dark); opacity: .5; background: transparent; border-color: transparent; cursor: default; }
+.pagination-link:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
+
+.archive-filters .filter-select,
+.archive-filters .filter-group .custom-select__input { height: 48px; box-sizing: border-box; padding: 11px 32px 11px 12px; border-radius: var(--radius-md); }
+.archive-filters .filter-group .custom-select { width: 100%; min-width: 0; }
+.archive-filters .custom-select--compact::after { top: 20px; }
+.archive-search-controls { height: 48px; box-sizing: border-box; }
+.archive-search .filter-input,
+.archive-search-controls .custom-select__input,
+.archive-search-scope { height: 38px; box-sizing: border-box; }
+.archive-filters .btn-filter,
+.archive-filters .btn-clear { display: inline-flex; align-items: center; justify-content: center; height: 48px; box-sizing: border-box; padding: 10px 20px; border-radius: var(--radius-md); font: inherit; font-size: var(--text-sm); text-decoration: none; white-space: nowrap; }
+.archive-filters .btn-clear { border: 1px solid var(--border-color); background: transparent; color: var(--text-brand); }
 
 .page-indicator { font-size: var(--text-sm); }
 
@@ -355,6 +379,8 @@ main:has(.explore-archive-section) {
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
+    .archive-filters .filter-form,
+    .archive-filters .filter-form:has(.btn-clear) { grid-template-columns: repeat(2,minmax(0,1fr)); }
     .explore-archive-section {
         height: auto;
         overflow: visible;
@@ -367,8 +393,7 @@ main:has(.explore-archive-section) {
     .filter-input { width: 100%; }
 
     .filter-group {
-        flex: 1;
-        min-width: 119px;
+        min-width: 0;
     }
 
     /* Sidebar drops below the list instead of sitting beside it */

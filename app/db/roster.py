@@ -79,18 +79,24 @@ def plan_import(cursor,rows,skipped,metadata,actor_id,update_upload_id=None):
         raise ValueError('Older-term uploads are not allowed; existing eligibility unchanged.')
     same=[row['upload_id'] for row in active if term(row)==current]
     older=[row['upload_id'] for row in active if term(row)<current]
+    target_owner=owner
     if update_upload_id is not None:
-        _update_target(cursor,update_upload_id,actor_id,metadata)
+        target_owner=_update_target(cursor,update_upload_id,actor_id,metadata)['uploader_user_id']
         same=[update_upload_id]
         older=[]
     numbers=[row['university_no'] for row in rows]
     foreign_numbers=set()
+    same_owner_numbers=set()
     if owner is not None or update_upload_id is not None:
-        cursor.execute('''SELECT UPPER(BTRIM(r.university_no)) AS number FROM roster r
+        cursor.execute('''SELECT UPPER(BTRIM(r.university_no)) AS number,u.uploader_user_id FROM roster r
             JOIN uploaded_by u USING(upload_id) WHERE r.person_type='Student' AND u.status='active'
             AND ((%s::int IS NOT NULL AND u.upload_id<>%s) OR (%s::int IS NULL AND u.uploader_user_id IS DISTINCT FROM %s))
             AND UPPER(BTRIM(r.university_no))=ANY(%s)''',(update_upload_id,update_upload_id,update_upload_id,owner,numbers))
-        foreign_numbers={row['number'] for row in cursor.fetchall()}
+        for match in cursor.fetchall():
+            if update_upload_id is not None and match['uploader_user_id']==target_owner:
+                same_owner_numbers.add(match['number'])
+            else:
+                foreign_numbers.add(match['number'])
     cursor.execute("""SELECT r.* FROM roster r WHERE upload_id=ANY(%s) AND person_type='Student'
         AND UPPER(BTRIM(university_no))=ANY(%s) ORDER BY roster_id FOR UPDATE""",(same,numbers))
     existing_by_number={}
@@ -111,6 +117,8 @@ def plan_import(cursor,rows,skipped,metadata,actor_id,update_upload_id=None):
             reason='Student belongs to another active masterlist; administrator review required.'
         elif len(existing)>1:
             reason='Ambiguous active identity; explicit correction required.'
+        elif not existing and row['university_no'] in same_owner_numbers:
+            reason='Student already appears in another active masterlist you own; update that list instead.'
         elif existing:
             old=existing[0]
             if old['roster_id'] in protected or row['university_no'] in claimed_numbers:
@@ -248,7 +256,7 @@ REGISTRATION_JOIN='''LEFT JOIN LATERAL (
 ) account ON TRUE'''
 
 
-def read_roster(actor_id,search='',upload_id=None,registered_only=False):
+def read_roster(actor_id,search='',upload_id=None,registered_only=False,class_name=''):
     with closing(db_connect()) as conn, conn.cursor(cursor_factory=RealDictCursor) as cursor:
         owner=_roster_owner(cursor,actor_id)
         cursor.execute(UPLOAD_READ_SQL+' WHERE (%s::int IS NULL OR u.uploader_user_id=%s) ORDER BY u.uploaded_at DESC,u.upload_id DESC LIMIT 100',(owner,owner))
@@ -259,9 +267,10 @@ def read_roster(actor_id,search='',upload_id=None,registered_only=False):
             FROM roster r JOIN uploaded_by u USING(upload_id) {REGISTRATION_JOIN}
             WHERE (%s::int IS NULL OR u.uploader_user_id=%s) AND (%s::int IS NULL OR r.upload_id=%s)
             AND (NOT %s OR (u.status='active' AND account.account_status='active' AND account.signup_status='approved'))
+            AND (%s='' OR LOWER(BTRIM(u.class_name))=LOWER(BTRIM(%s)))
             AND (r.university_no ILIKE %s ESCAPE '!' OR r.contact ILIKE %s ESCAPE '!'
             OR CONCAT_WS(' ',r.user_first_name,r.user_last_name) ILIKE %s ESCAPE '!') ORDER BY r.roster_id DESC LIMIT 100''',
-            (owner,owner,upload_id,upload_id,registered_only,query,query,query))
+            (owner,owner,upload_id,upload_id,registered_only,class_name.strip(),class_name.strip(),query,query,query))
         return history,cursor.fetchall(),upload
 
 

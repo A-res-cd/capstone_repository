@@ -48,7 +48,11 @@
 {% endif %}
 </div>
 <section id="roster-panel-students" class="roster-panel roster-students" role="tabpanel" aria-labelledby="roster-tab-students" tabindex="0"{% if import_active %} hidden{% endif %}>
-<form method="get" class="roster-search"><label>Find a student<input name="search" maxlength="100" placeholder="Name, university ID or email" value="{{ request.args.get('search','') }}"></label><button type="submit" class="btn-pill btn-pill--ghost">Apply filters</button></form>
+<form method="get" class="roster-search listing-filter-form">
+<label class="listing-search">Find a student<input name="search" maxlength="100" placeholder="Name, university ID or email" value="{{ request.args.get('search','') }}"></label>
+<label class="roster-class-filter">Class<select name="class" id="roster-class-filter"><option value="">All classes</option>{% for class_name in class_masterlists|map(attribute='class_name')|unique|sort %}<option value="{{ class_name }}" {% if request.args.get('class','') == class_name %}selected{% endif %}>{{ class_name }}</option>{% endfor %}</select></label>
+<button type="submit" class="btn-pill btn-pill--ghost">Apply filters</button>
+</form>
 <p>{{ records|length }} registered student{{ 's' if records|length != 1 else '' }} shown (up to 100 matching records).</p>
 <div class="roster-table"><table><thead><tr><th>Number</th><th>Name</th><th>Email</th><th>Class</th><th>Term</th><th>Registration</th></tr></thead><tbody>
 {% for row in records %}<tr><td><a href="{{ url_for('admin.roster_record',roster_id=row.roster_id) }}">{{ row.university_no }}</a></td><td>{{ row.user_first_name }} {{ row.user_middle_name or '' }} {{ row.user_last_name }}</td><td>{{ row.contact }}</td><td>{{ row.class_name }}</td><td>{{ row.academic_year }} {{ row.semester }}</td><td>{{ row.registration_status }}</td></tr>{% else %}<tr><td colspan="6">No registered students match your search.</td></tr>{% endfor %}

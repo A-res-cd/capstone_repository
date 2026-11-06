@@ -111,7 +111,7 @@ def test_page_access_rechecked_after_revocation_and_logout(reader_app, path):
     assert client.get(path).status_code == 401
     login(client)
     assert client.get(path).status_code == 200
-    reader_app.reader_state.users[2]['role_name'] = 'Student'
+    reader_app.reader_state.users[2]['role_name'] = 'Unknown'
     response = client.get(path)
     assert response.status_code == 403
     assert 'no-store' in response.headers['Cache-Control']
@@ -176,7 +176,7 @@ def test_pdfjs_receives_only_one_watermarked_image_page(reader_app):
         assert pdf.pages[0].images[0]['stream'].get_data() != image_data
 
 
-@pytest.mark.parametrize('uid', [2, 4])
+@pytest.mark.parametrize('uid', [1, 2, 4, 5])
 @pytest.mark.parametrize('path', ['/manuscript/view/7', '/repository/pdf/7'])
 def test_full_view_uses_protected_reader_for_non_admin(reader_app, uid, path):
     client = reader_app.test_client()
@@ -190,15 +190,18 @@ def test_full_view_uses_protected_reader_for_non_admin(reader_app, uid, path):
     assert b'private.pdf' not in response.data
 
 
-def test_unapproved_student_keeps_abstract_only_access(reader_app):
+def test_student_reads_all_pages_without_original_file_access(reader_app):
     client = reader_app.test_client()
     login(client)
     reader_app.reader_state.users[2]['role_name'] = 'Student'
     response = client.get('/repository/pdf/7')
-    assert response.status_code == 200 and b'Public abstract only.' in response.data
-    assert b'data-manuscript-reader' not in response.data
-    assert client.get('/manuscript/view/7').status_code == 403
-    assert client.get('/manuscript/pages/7/1').status_code == 403
+    assert response.status_code == 200 and b'data-manuscript-reader' in response.data
+    assert b'<iframe' not in response.data
+    assert client.get('/manuscript/view/7').status_code == 200
+    assert client.get('/manuscript/pages/7').json == {'page_count':2}
+    assert client.get('/manuscript/pages/7/2').status_code == 200
+    assert client.get('/manuscript/file/7').status_code == 403
+    assert client.get('/repository/file/7').status_code == 403
 
 
 @pytest.mark.parametrize('path', ['/static/uploads/private.pdf', '/static/./uploads/private.pdf',
@@ -216,7 +219,7 @@ def test_legacy_uploads_cannot_bypass_protected_routes(reader_app, tmp_path, pat
 @pytest.mark.parametrize('theme,width', [('light', 1280), ('dark', 1280), ('light', 390), ('dark', 390)])
 def test_reader_browser_navigation_zoom_and_revoked_access(reader_app, page, theme, width):
     client = reader_app.test_client()
-    login(client)
+    login(client, 1)
     requests, errors = [], []
 
     def handle(route):
@@ -297,7 +300,7 @@ def test_reader_browser_navigation_zoom_and_revoked_access(reader_app, page, the
     page.locator('#manuscript-page').select_option('1')
     expect(canvas).to_have_attribute('aria-label', 'Manuscript page 1 of 2')
     expect(page.get_by_role('status')).to_have_text('Page 1 of 2')
-    reader_app.reader_state.users[2]['role_name'] = 'Student'
+    reader_app.reader_state.users[1]['role_name'] = 'Unknown'
     page.get_by_role('button', name='Next', exact=True).click()
     expect(page.get_by_role('status')).to_have_text('You no longer have access to this manuscript.')
     expect(canvas).to_be_hidden()

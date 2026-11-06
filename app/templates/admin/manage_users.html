@@ -157,8 +157,8 @@
 
             {# ── Filter Bar ── #}
             <div class="mu-filters">
-                <form method="GET" action="{{ url_for('admin.manage_users') }}" class="mu-filter-form">
-                    <div class="filter-group">
+                <form method="GET" action="{{ url_for('admin.manage_users') }}" class="mu-filter-form listing-filter-form">
+                    <div class="filter-group listing-search">
                         <span>Search:</span>
                         <input type="text" name="search" class="filter-input"
                             placeholder="Name, university no., or email…" value="{{ search }}">
@@ -232,18 +232,20 @@
 
             {# ── Pagination ── #}
             {% if total_pages > 1 %}
-            <div class="mu-pagination">
+            <nav class="mu-pagination listing-pagination" aria-label="User pages">
                 {% set qs = {'search': search, 'role': selected_role, 'status': selected_status} %}
-                <a href="{{ url_for('admin.manage_users', page=page-1, **qs) }}"
-                class="btn-pill btn-pill--ghost {% if page <= 1 %}mu-pagination__link--disabled{% endif %}">
-                    <i class="bx bx-left-arrow-alt" aria-hidden="true"></i> Prev
-                </a>
                 <span class="mu-pagination__status">Page {{ page }} of {{ total_pages }}</span>
+                <div class="listing-pagination-controls">
+                <a href="{{ url_for('admin.manage_users', page=page-1, **qs) }}"
+                class="btn-pill btn-pill--ghost {% if page <= 1 %}mu-pagination__link--disabled{% endif %}" {% if page <= 1 %}aria-disabled="true" tabindex="-1"{% endif %}>
+                    <i class="bx bx-left-arrow-alt" aria-hidden="true"></i> Previous
+                </a>
                 <a href="{{ url_for('admin.manage_users', page=page+1, **qs) }}"
-                class="btn-pill btn-pill--ghost {% if page >= total_pages %}mu-pagination__link--disabled{% endif %}">
+                class="btn-pill btn-pill--ghost {% if page >= total_pages %}mu-pagination__link--disabled{% endif %}" {% if page >= total_pages %}aria-disabled="true" tabindex="-1"{% endif %}>
                     Next <i class="bx bx-right-arrow-alt" aria-hidden="true"></i>
                 </a>
-            </div>
+                </div>
+            </nav>
             {% endif %}
 
             {% else %}

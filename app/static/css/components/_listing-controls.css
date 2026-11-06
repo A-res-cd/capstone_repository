@@ -1,0 +1,73 @@
+/* Compact controls shared by listing pages; opt in without affecting upload forms. */
+:root { --listing-control-height: 36px; --listing-search-height: 42px; }
+
+:is(.archive-filters,.repo-filters,.mu-filters) .listing-filter-form,
+.audit-page .listing-filter-form,
+.roster-page .roster-search.listing-filter-form {
+    display: grid;
+    grid-template-columns: repeat(var(--listing-filter-columns,4),minmax(0,1fr)) auto;
+    align-items: end;
+    gap: 10px 14px;
+    margin: 0;
+}
+:is(.archive-filters,.repo-filters,.mu-filters) .listing-filter-form:has(.btn-clear) {
+    grid-template-columns: repeat(var(--listing-filter-columns,4),minmax(0,1fr)) auto auto;
+}
+.repo-filters { --listing-filter-columns: 3; }
+.mu-filters { --listing-filter-columns: 2; }
+.roster-page .roster-search.listing-filter-form { grid-template-columns: minmax(0,1fr) minmax(100px,.4fr) auto; }
+.listing-filter-form > :is(.filter-group,.form-group) { display: flex; flex-direction: column; align-items: stretch; gap: 5px; min-width: 0; margin: 0; }
+.listing-filter-form .listing-search { grid-column: 1 / -1; min-width: 0; max-width: none; }
+.roster-page .roster-search.listing-filter-form .listing-search { grid-column: auto; }
+.listing-filter-form :is(label,.filter-group > span) { margin: 0; color: var(--color-gray-dark); font-size: var(--text-sm); font-weight: 500; }
+
+:is(.archive-filters,.repo-filters,.mu-filters,.audit-page) .listing-filter-form :is(.filter-select,.custom-select__input,input[type="date"]),
+.roster-masterlist .roster-search.listing-filter-form input {
+    height: var(--listing-control-height);
+    min-height: 0;
+    box-sizing: border-box;
+    padding: 7px 30px 7px 10px;
+    border: 1px solid var(--border-input);
+    border-radius: var(--radius-md);
+    background: var(--surface-input);
+    color: var(--text-dark);
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+}
+.listing-filter-form .filter-group .custom-select { width: 100%; min-width: 0; }
+.listing-filter-form .custom-select::after { top: 15px; }
+.listing-filter-form .listing-search-controls { display: flex; align-items: stretch; height: var(--listing-search-height); padding: 4px; border: 1px solid var(--border-input); border-radius: var(--radius-md); box-sizing: border-box; background: var(--surface-paper); box-shadow: var(--shadow-sm); }
+.listing-filter-form .listing-search-controls > .custom-select .custom-select__input,
+.listing-filter-form .listing-search-controls > select,
+.listing-filter-form .listing-search-controls > .filter-input { height: 32px; min-height: 0; border: 0; box-shadow: none; }
+.listing-filter-form .listing-search-controls > .filter-input { padding: 0 12px; font-size: var(--text-md); }
+.listing-filter-form .listing-search-controls > .custom-select .custom-select__input { padding: 0 30px 0 10px; background: var(--hover-tint); color: var(--text-brand); }
+.listing-filter-form .listing-search-controls .custom-select::after { top: 13px; }
+.mu-filter-form .filter-group.listing-search .filter-input,
+.roster-masterlist .roster-search.listing-filter-form .listing-search input { width: 100%; min-width: 0; flex: none; height: var(--listing-search-height); min-height: var(--listing-search-height); box-sizing: border-box; padding: 0 12px; border: 1px solid var(--border-input); border-radius: var(--radius-md); background: var(--surface-paper); font-size: var(--text-md); }
+
+.listing-filter-form :is(.btn-filter,.btn-clear,.audit-filter-actions .btn-pill),
+.roster-page .roster-search.listing-filter-form > button { display: inline-flex; align-items: center; justify-content: center; justify-self: start; height: var(--listing-control-height); min-height: 0; box-sizing: border-box; margin: 0; padding: 7px 15px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: var(--font-primary); font-size: var(--text-sm); font-weight: 600; line-height: 1.2; white-space: nowrap; text-decoration: none; box-shadow: none; transform: none; }
+.listing-filter-form :is(.btn-filter,button[type="submit"]) { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-white); }
+.listing-filter-form :is(.btn-clear,.audit-filter-actions a) { background: transparent; color: var(--text-brand); }
+.listing-filter-form :is(button,a):hover { transform: none; }
+.roster-page .roster-search.listing-filter-form > button { height: var(--listing-search-height); }
+.roster-page .roster-search.listing-filter-form .roster-class-filter { min-width: 0; }
+.roster-page .roster-search.listing-filter-form .roster-class-filter .custom-select { width: 100%; min-width: 0; }
+.roster-page .roster-search.listing-filter-form .roster-class-filter :is(select,.custom-select__input) { height: var(--listing-search-height); min-width: 0; box-sizing: border-box; font-size: var(--text-sm); border-radius: var(--radius-md); }
+.roster-page .roster-search.listing-filter-form .custom-select::after { top: 18px; }
+.listing-filter-form :is(input,select,button,a):focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
+
+:is(.archive-pagination-bar,.repo-pagination,.mu-pagination,.audit-pagination,.roster-page nav).listing-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin: 12px 0 0; padding: 8px 12px; border: var(--border-light); border-radius: var(--radius-md); background: var(--bg-card-neutral); color: var(--color-gray-dark); font-size: var(--text-sm); flex-shrink: 0; }
+.listing-pagination .listing-pagination-controls { display: flex; align-items: center; gap: 8px; }
+.listing-pagination .listing-pagination-controls :is(a,[aria-disabled="true"]) { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; box-sizing: border-box; padding: 6px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-pill); background: transparent; color: var(--text-brand); font-size: var(--text-sm); font-weight: 500; text-decoration: none; box-shadow: none; transform: none; }
+.listing-pagination .listing-pagination-controls a:hover { background: var(--hover-tint); border-color: var(--color-primary-soft); transform: none; }
+.listing-pagination .listing-pagination-controls [aria-disabled="true"] { color: var(--color-gray-dark); opacity: .5; border-color: transparent; pointer-events: none; }
+.listing-pagination a:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; }
+
+@media (max-width: 900px) {
+    :is(.archive-filters,.repo-filters,.mu-filters) .listing-filter-form,
+    :is(.archive-filters,.repo-filters,.mu-filters) .listing-filter-form:has(.btn-clear),
+    .audit-page .listing-filter-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .listing-filter-form .audit-filter-actions { grid-column: 1 / -1; }
+}

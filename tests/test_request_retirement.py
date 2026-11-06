@@ -111,10 +111,10 @@ def test_retired_routes_are_absent_even_for_admin(feature_app, path, method):
     assert client.open(path, method=method).status_code == 404
 
 
-def test_students_cannot_use_old_approved_view_or_image_routes(feature_app):
+def test_students_cannot_fetch_original_manuscripts(feature_app):
     client = feature_app.test_client()
     login(client, 1)
-    for path in ('/manuscript/view/1', '/manuscript/pages/1', '/manuscript/pages/1/1', '/manuscript/file/1'):
+    for path in ('/manuscript/file/1', '/repository/file/1'):
         assert client.get(path).status_code == 403
 
 

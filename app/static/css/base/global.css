@@ -7,6 +7,40 @@
     box-sizing: border-box;
 }
 
+/* Shared scrollbars for pages, panels, tables, and modal content. */
+@media (forced-colors: none) {
+    :root {
+        --scrollbar-plastic: color-mix(in srgb, var(--color-accent) 35%, var(--surface-paper));
+        --scrollbar-plastic-edge: color-mix(in srgb, var(--color-accent) 50%, var(--border-color));
+    }
+
+    * {
+        scrollbar-width: auto;
+        scrollbar-color: var(--scrollbar-plastic) var(--surface-paper);
+    }
+
+    @supports selector(::-webkit-scrollbar) {
+        * { scrollbar-color: auto; }
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track {
+            background: var(--surface-paper);
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-corner { background: var(--surface-paper); }
+        ::-webkit-scrollbar-thumb {
+            min-height: 36px;
+            min-width: 36px;
+            background: var(--scrollbar-plastic);
+            border: 2px solid var(--surface-paper);
+            border-radius: 3px;
+            box-shadow: inset 0 0 0 1px var(--scrollbar-plastic-edge);
+        }
+        ::-webkit-scrollbar-thumb:hover { --scrollbar-plastic: color-mix(in srgb, var(--color-accent) 55%, var(--surface-paper)); }
+        ::-webkit-scrollbar-thumb:active { box-shadow: inset 0 0 0 2px var(--scrollbar-plastic-edge); }
+    }
+}
+
 html {
     height: 100%;
     overflow-x: hidden;

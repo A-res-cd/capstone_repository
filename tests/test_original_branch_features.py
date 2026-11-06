@@ -577,6 +577,7 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     monkeypatch.setattr(admin.users, 'get_all_roles', lambda: [(1, 'Student'), (3, 'Admin'), (4, 'Faculty')])
     monkeypatch.setattr(admin.users, 'get_pending_verifications', lambda *args: [dict(request_id=1, full_name='Maria Cruz', role='Student', email='maria@example.com', university_no=None)])
     monkeypatch.setattr(admin.users, 'get_verification_details', lambda *args: dict(request_id=1, full_name='<img src=x onerror=alert(1)>', filename='COR.pdf', size_bytes=500))
+    monkeypatch.setattr(admin.users, 'get_verification_document', lambda *args: {'filename': 'COR.pdf'})
     folder = Path(feature_app.config['UPLOAD_REGISTRATION_FOLDER'])
     folder.mkdir()
     (folder / 'COR.pdf').write_bytes(pdf_bytes())
@@ -696,7 +697,7 @@ def test_browser_pages(feature_app, page, monkeypatch, theme, width):
     expect(page.locator('#sb-request-link, #manuscript-request-dialog, #sb-fullview-link')).to_have_count(0)
     expect(page.locator('#sb-abstract-link')).to_have_attribute('href', '/repository/pdf/2')
     page.goto('http://features.test/signup')
-    expect(page.locator('#cor')).to_be_visible()
+    expect(page.locator('#email')).to_be_visible()
 
 
 

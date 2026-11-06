@@ -1,5 +1,6 @@
 """Shared Admin/Capstone Professor roster management; never public roster data."""
 from functools import wraps
+from datetime import timedelta, timezone
 from io import BytesIO
 import csv
 import secrets
@@ -44,7 +45,8 @@ def roster_upload():
             flash('Import failed; no roster changes saved. Try again later.','danger')
         else:
             return redirect(url_for('admin.roster_preview',token=token))
-    history,records,_ = roster.read_roster(session['user_id'],request.args.get('search',''),registered_only=True)
+    history,records,_ = roster.read_roster(session['user_id'],request.args.get('search',''),registered_only=True,
+                                         class_name=request.args.get('class','').strip())
     return render_template('admin/roster.html',history=history,records=records,upload=None,
                            overview=roster.roster_overview(session['user_id']),update_upload=update_upload,
                            class_masterlists=roster.read_class_masterlists(session['user_id']))
@@ -61,11 +63,12 @@ def roster_preview(token):
     except ValueError as exc:
         return render_template('admin/roster_preview.html',error=str(exc)),400
     if preview.get('completed_upload_id'):
-        return redirect(url_for('admin.roster_result',upload_id=preview['completed_upload_id']))
+        return redirect(url_for('admin.roster_upload'))
     rows=preview.get('rows',[])
     page=max(1,request.args.get('page',1,type=int))
     pages=max(1,(len(rows)+99)//100)
     page=min(page,pages)
+    preview['expires_label']=preview['expires_at'].astimezone(timezone(timedelta(hours=8))).strftime('%I:%M %p')
     return render_template('admin/roster_preview.html',preview=preview,rows=rows[(page-1)*100:page*100],page=page,pages=pages)
 
 @admin.route('/roster/confirm/<uuid:token>',methods=['POST'])
@@ -84,12 +87,15 @@ def roster_confirm(token):
     except Exception as exc:
         current_app.logger.error('Roster confirmation rolled back (%s)',type(exc).__name__)
         return render_template('admin/roster_preview.html',error='Import failed; no changes saved. Retry the preview before it expires.'),503
-    return redirect(url_for('admin.roster_result',upload_id=result['upload_id']))
+    flash(f"Masterlist saved. Added {result['added']}, updated {result['updated']}, skipped {result['skipped']}.",
+          'warning' if result['skipped'] else 'success')
+    return redirect(url_for('admin.roster_upload'))
 
 @admin.route('/roster/uploads/<int:upload_id>')
 @roster_access
 def roster_result(upload_id):
-    history,records,upload = roster.read_roster(session['user_id'],request.args.get('search',''),upload_id,registered_only=True)
+    history,records,upload = roster.read_roster(session['user_id'],request.args.get('search',''),upload_id,registered_only=True,
+                                             class_name=request.args.get('class','').strip())
     if not upload:
         abort(404)
     return render_template('admin/roster.html',history=history,records=records,upload=upload,

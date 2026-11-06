@@ -40,10 +40,10 @@
 
         {# ── Filter Bar ── #}
         <div class="repo-filters">
-            <form method="GET" action="{{ url_for('admin.view_capstone_repository') }}" class="filter-form">
-                <div class="repo-search">
+            <form method="GET" action="{{ url_for('admin.view_capstone_repository') }}" class="filter-form listing-filter-form">
+                <div class="repo-search listing-search">
                     <label for="repo-search">Search capstones</label>
-                    <div class="repo-search-controls">
+                    <div class="repo-search-controls listing-search-controls">
                         <select name="search_scope" class="repo-search-scope" aria-label="Search field">
                             <option value="all" {% if search_scope == 'all' %}selected{% endif %}>All fields</option>
                             <option value="title" {% if search_scope == 'title' %}selected{% endif %}>Title</option>
@@ -134,18 +134,20 @@
 
         {# ── Pagination ── #}
         {% if total_pages > 1 %}
-        <div class="repo-pagination">
+        <nav class="repo-pagination listing-pagination" aria-label="Repository pages">
             {% set qs = {'search': search, 'search_scope': search_scope, 'year': selected_year, 'program': selected_program, 'specialization': selected_specialization} %}
-            <a href="{{ url_for('admin.view_capstone_repository', page=page-1, **qs) }}"
-               class="btn-pill btn-pill--ghost {% if page <= 1 %}repo-pagination__link--disabled{% endif %}">
-                <i class="bx bx-left-arrow-alt"></i> Prev
-            </a>
             <span class="repo-pagination__status">Page {{ page }} of {{ total_pages }}</span>
+            <div class="listing-pagination-controls">
+            <a href="{{ url_for('admin.view_capstone_repository', page=page-1, **qs) }}"
+               class="btn-pill btn-pill--ghost {% if page <= 1 %}repo-pagination__link--disabled{% endif %}" {% if page <= 1 %}aria-disabled="true" tabindex="-1"{% endif %}>
+                <i class="bx bx-left-arrow-alt"></i> Previous
+            </a>
             <a href="{{ url_for('admin.view_capstone_repository', page=page+1, **qs) }}"
-               class="btn-pill btn-pill--ghost {% if page >= total_pages %}repo-pagination__link--disabled{% endif %}">
+               class="btn-pill btn-pill--ghost {% if page >= total_pages %}repo-pagination__link--disabled{% endif %}" {% if page >= total_pages %}aria-disabled="true" tabindex="-1"{% endif %}>
                 Next <i class="bx bx-right-arrow-alt"></i>
             </a>
-        </div>
+            </div>
+        </nav>
         {% endif %}
 
         {% else %}

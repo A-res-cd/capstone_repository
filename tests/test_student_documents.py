@@ -171,6 +171,10 @@ def test_masterlist_update_reuses_class_list_and_corrects_rejected_email(roster_
     assert roster_stage.preview(token,1,BINDING)['summary']['updated']==1
     update=roster_stage.confirm(token,1,BINDING)
     assert update['upload_id']==upload and update['updated']==1
+    with client.session_transaction() as state:
+        state['roster_import_binding']=BINDING
+    confirmed=client.post('/roster/confirm/'+token,data={'candidate':'0'})
+    assert confirmed.status_code==302 and confirmed.location=='/roster'
     assert query(roster_db,'SELECT COUNT(*) FROM uploaded_by')==[(1,)]
     assert query(roster_db,'SELECT COUNT(*) FROM roster')==[(2,)]
     assert student(email='correct@example.edu',resubmit=True)[1]['decision']=='approved'
@@ -180,6 +184,26 @@ def test_masterlist_update_reuses_class_list_and_corrects_rejected_email(roster_
     assert roster_stage.confirm(token,1,BINDING)==update
     with pytest.raises(ValueError,match='allowed to update'):
         stage(actor=2,update_upload_id=upload)
+
+
+def test_update_distinguishes_other_uploads_from_other_owners(roster_db):
+    first=import_list(actor=2)
+    second=import_list([['00002','Grace','','Hopper','grace@example.edu']],actor=2)
+    query(roster_db,'''INSERT INTO roster(upload_id,university_no,person_type,user_first_name,user_middle_name,user_last_name,contact)
+        SELECT %s,university_no,person_type,user_first_name,user_middle_name,user_last_name,contact FROM roster WHERE upload_id=%s''',(second,first))
+    token=stage(actor=2,update_upload_id=first,rows=[list(HEADERS),['001234','Ada','','Lovelace','corrected@example.edu']])
+    result=roster_stage.confirm(token,2,BINDING)
+    assert result['updated']==1 and result['skipped']==0
+    assert query(roster_db,"SELECT contact FROM roster WHERE upload_id=%s AND university_no='001234'",(first,))==[('corrected@example.edu',)]
+    assert query(roster_db,"SELECT contact FROM roster WHERE upload_id=%s AND university_no='001234'",(second,))==[('ada@example.edu',)]
+    token=stage(actor=2,update_upload_id=first,rows=[list(HEADERS),['00002','Grace','','Hopper','grace@example.edu']])
+    blocked=roster_stage.confirm(token,2,BINDING)
+    assert blocked['added']==0 and 'you own' in blocked['skipped_rows'][0]['reason']
+    other=query(roster_db,"INSERT INTO \"user\"(role_id,account_status) VALUES(47,'active') RETURNING user_id")[0][0]
+    query(roster_db,'UPDATE uploaded_by SET uploader_user_id=%s WHERE upload_id=%s',(other,second))
+    token=stage(actor=2,update_upload_id=first,rows=[list(HEADERS),['001234','Ada','','Lovelace','again@example.edu']])
+    blocked=roster_stage.confirm(token,2,BINDING)
+    assert blocked['updated']==0 and 'another active masterlist' in blocked['skipped_rows'][0]['reason']
 
 
 def test_duplicate_class_previews_are_rechecked_at_confirmation(roster_db):
